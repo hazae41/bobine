@@ -1,0 +1,28 @@
+{
+  "name": "@hazae41/bobine",
+  "version": "1.0.0",
+  "imports": {
+    "@/": "./src/",
+    "@hazae41/jsonrpc": "jsr:@hazae41/jsonrpc@^1.1.11",
+    "@hazae41/phobos": "jsr:@hazae41/phobos@^2.0.16",
+    "@hazae41/tscousin": "jsr:@hazae41/tscousin@^1.0.28"
+  },
+  "exports": {
+    ".": "./src/mod.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-namespace"
+      ]
+    }
+  },
+  "compilerOptions": {
+    "lib": [
+      "esnext",
+      "dom",
+      "deno.ns",
+      "deno.unstable"
+    ]
+  }
+}

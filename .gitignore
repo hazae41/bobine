@@ -1,0 +1,11 @@
+.DS_Store
+
+/node_modules
+
+/vendor
+
+/out
+
+/local
+
+*.local
