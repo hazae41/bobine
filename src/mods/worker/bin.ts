@@ -18,7 +18,7 @@ async function load(code: string): Promise<WebAssembly.Exports> {
 
   const imports: WebAssembly.Imports = {}
 
-  for (const match of text!.matchAll(/^ *\(import \"\.\/([a-zA-Z0-9]+)\.wat\" .+\)$/gm)) {
+  for (const match of text!.matchAll(/^ *\(import \"([a-f0-9]{64})\" .+\)$/gm)) {
     const [name] = match.slice(1)
 
     if (imports[name] != null)
@@ -28,7 +28,7 @@ async function load(code: string): Promise<WebAssembly.Exports> {
 
     const exports = await load(code)
 
-    imports[`./${name}.wat`] = exports
+    imports[name] = exports
 
     continue
   }
