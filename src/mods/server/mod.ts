@@ -1,6 +1,8 @@
 // deno-lint-ignore-file no-cond-assign
 /// <reference lib="deno.ns" />
 
+import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { Mutex } from "@hazae41/mutex";
 import { connect, type Database } from '@tursodatabase/database';
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -29,6 +31,8 @@ export async function serveWithEnv(prefix = "") {
 }
 
 export function serve(database: Database) {
+  const worker = new Mutex(new Worker(import.meta.resolve("@/mods/worker/bin.ts"), { name: "worker", type: "module" }))
+
   const onHttpRequest = async (request: Request) => {
     if (request.headers.get("Upgrade") === "websocket") {
       const uuid = new URL(request.url).searchParams.get("session")
@@ -81,28 +85,38 @@ export function serve(database: Database) {
 
         using stack = new DisposableStack()
 
-        const aborter = new AbortController()
-        stack.defer(() => aborter.abort())
-
         const data = new TextEncoder().encode(code)
         const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", data)).toHex()
-        const file = `./data/bob/scripts/${hash}.ts`
+        const file = `./local/scripts/${hash}.ts`
 
         mkdirSync(dirname(file), { recursive: true })
 
         writeFileSync(file, data)
 
-        const url = URL.createObjectURL(new Blob([data], { type: "text/javascript" }))
-
-        const worker = new Worker(url, { name: file, type: "module", deno: { permissions: "none" } })
-
-        stack.defer(() => worker.terminate())
-
         const future = Promise.withResolvers<void>()
+
+        const aborter = new AbortController()
+        stack.defer(() => aborter.abort())
+
+        stack.use(await worker.lockOrWait())
+
+        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<void>>) => {
+          RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+        }, { signal: aborter.signal })
+
+        worker.get().addEventListener("error", (event: ErrorEvent) => {
+          future.reject(event.error)
+        }, { signal: aborter.signal })
+
+        worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+          future.reject(event.data)
+        }, { signal: aborter.signal })
 
         AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
           future.reject(reason)
         }, { signal: aborter.signal })
+
+        worker.get().postMessage(new RpcRequest(null, "execute", [code]))
 
         await future.promise
 

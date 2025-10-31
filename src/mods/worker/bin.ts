@@ -1,41 +1,41 @@
-import { RpcErr, RpcError, type RpcRequestInit } from "@hazae41/jsonrpc";
+// deno-lint-ignore-file no-explicit-any
+
+import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
+import { compileString } from "assemblyscript/asc";
 import { readFile } from "node:fs/promises";
-import wassemble from "wassemble/wassemble.mjs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-async function load(code: string) {
-  const instances: Record<string, WebAssembly.Instance> = {}
-  const functions: Record<string, unknown> = {}
+async function load(code: string): Promise<WebAssembly.Exports> {
+  const { error, binary, text, "binary.js": glue } = await compileString(code, { bindings: ["raw"] }) as any
 
-  const matches = code.matchAll(/^ *\(import \"([a-zA-Z0-9]+)\" .+\)$/gm)
+  if (error != null)
+    throw new Error("AssemblyScript compilation failed", { cause: error })
 
-  for (const match of matches) {
-    const [module, name] = match.slice(1)
+  const { instantiate } = await import(URL.createObjectURL(new Blob([glue], { type: "application/javascript" })))
 
-    const instance = instances[module]
+  const module = await WebAssembly.compile(binary)
 
-    if (instance == null) {
-      const code = await readFile(`./data/bob/scripts/${module}.wat`, "utf8")
-      const wasm = await WebAssembly.instantiate(wassemble(code))
+  const imports: WebAssembly.Imports = {}
 
-      const { instance } = wasm
+  for (const match of text!.matchAll(/^ *\(import \"\.\/([a-zA-Z0-9]+)\.wat\" .+\)$/gm)) {
+    const [name] = match.slice(1)
 
-      instances[module] = instance
-
-      functions[module] = wasm.instance.exports[name]
-
+    if (imports[name] != null)
       continue
-    }
 
-    functions[module] = instance.exports[name]
+    const code = await readFile(`./local/scripts/${name}.ts`, "utf8")
+
+    const exports = await load(code)
+
+    imports[`./${name}.wat`] = exports
 
     continue
   }
 
-  const wasm = await WebAssembly.instantiate(wassemble(code))
+  const exports = await instantiate(module, imports)
 
-  return wasm.instance
+  return exports
 }
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
@@ -46,9 +46,15 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
     const [code] = params as [string]
 
-    await load(code)
+    const exports = await load(code)
 
+    // @ts-ignore: main
+    exports.main()
+
+    self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
+    console.error(cause)
+
     self.postMessage(new RpcErr(id, RpcError.rewrap(cause)))
   }
 })

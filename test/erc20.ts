@@ -1,16 +1,7 @@
-// @ts-ignore: decorator
-@external("sender")
-declare function sender(): string
-
-export function balanceOf(_address: string): number {
-  return 1000
+export function hello(x: string): string {
+  return `Hello, ${x}!`
 }
 
-export function transfer(_target: string, amount: number): void {
-  const _ = balanceOf(sender()) - amount
+export function main(): void {
+  console.log(`${hello("import")}`)
 }
-
-
-
-
-

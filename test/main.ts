@@ -1,7 +1,7 @@
 // @ts-ignore: decorator
-@external("0xE1397f777BE7F246F04424b3EbadA68a5189cdb5", "transfer")
-declare function token_transfer(target: string, amount: number): void
+@external("./2fe1bdbc44fe75ef7411d88d3c53bfb576cfbada762e0e89270d6bc5f6aa7fb1.wat", "hello")
+declare function hello(x: string): string
 
 export function main(): void {
-  token_transfer("0x8349A3FaA1fcDEA94183c1652af3b86853eac3F0", 100)
+  console.log(`${hello("main")}`)
 }
