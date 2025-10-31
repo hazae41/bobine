@@ -24,11 +24,13 @@
   },
   "dependencies": {
     "@hazae41/jsonrpc": "^1.1.11",
-    "@tursodatabase/database": "^0.3.0"
+    "@tursodatabase/database": "^0.3.0",
+    "wassemble": "^0.0.2"
   },
   "devDependencies": {
     "@hazae41/phobos": "^2.0.16",
     "@hazae41/tscousin": "^1.0.28",
+    "@types/node": "^24.9.2",
     "typescript": "^5.9.3"
   },
   "keywords": [

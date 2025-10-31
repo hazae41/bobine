@@ -22,7 +22,8 @@
       "esnext",
       "dom",
       "deno.ns",
-      "deno.unstable"
+      "deno.unstable",
+      "webworker"
     ]
   }
 }

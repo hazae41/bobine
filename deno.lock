@@ -10,7 +10,8 @@
     "npm:@hazae41/tscousin@^1.0.28": "1.0.28",
     "npm:@tursodatabase/database@0.3": "0.3.0",
     "npm:@types/node@*": "24.2.0",
-    "npm:typescript@^5.9.3": "5.9.3"
+    "npm:typescript@^5.9.3": "5.9.3",
+    "npm:wassemble@^0.0.2": "0.0.2"
   },
   "jsr": {
     "@hazae41/jsonrpc@1.1.11": {
@@ -93,6 +94,9 @@
     },
     "undici-types@7.10.0": {
       "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="
+    },
+    "wassemble@0.0.2": {
+      "integrity": "sha512-ibrnYPDxYofLqyaNNqVwoI0Rv04eXt60EzK+oX3ELp1aVelDAiMln4ctv9HXOJ3XJutdorhi6WiZZG3xADB3kA=="
     }
   },
   "workspace": {
@@ -107,7 +111,8 @@
         "npm:@hazae41/phobos@^2.0.16",
         "npm:@hazae41/tscousin@^1.0.28",
         "npm:@tursodatabase/database@0.3",
-        "npm:typescript@^5.9.3"
+        "npm:typescript@^5.9.3",
+        "npm:wassemble@^0.0.2"
       ]
     }
   }

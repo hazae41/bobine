@@ -1,9 +1,8 @@
 // deno-lint-ignore-file no-cond-assign
 /// <reference lib="deno.ns" />
 
-import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequest, type RpcRequestInit, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { connect, type Database } from '@tursodatabase/database';
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export async function serveWithEnv(prefix = "") {
@@ -85,8 +84,6 @@ export function serve(database: Database) {
         const aborter = new AbortController()
         stack.defer(() => aborter.abort())
 
-        const workers = new Map<string, Worker>()
-
         const data = new TextEncoder().encode(code)
         const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", data)).toHex()
         const file = `./data/bob/scripts/${hash}.ts`
@@ -101,105 +98,7 @@ export function serve(database: Database) {
 
         stack.defer(() => worker.terminate())
 
-        workers.set(hash, worker)
-
         const future = Promise.withResolvers<void>()
-
-        type RpcMessageInit = RpcRequestInit | RpcResponseInit
-
-        const routeOrThrow = (source: Worker, request: RpcRequest, transfers: Transferable[]) => {
-          const { method, params } = request
-
-          if (method === "import") {
-            const [hash] = params as [string]
-
-            if (workers.has(hash))
-              throw new Error("Already imported")
-
-            const file = `./data/bob/scripts/${hash}.ts`
-            const data = readFileSync(file)
-
-            const url = URL.createObjectURL(new Blob([data], { type: "text/javascript" }))
-
-            const worker = new Worker(url, { name: file, type: "module", deno: { permissions: "none" } })
-
-            stack.defer(() => worker.terminate())
-
-            worker.addEventListener("message", (event) => {
-              const [message, transfers] = event.data as [RpcMessageInit, Transferable[]]
-
-              if ("method" in message === false)
-                return
-
-              const request = RpcRequest.from(message)
-
-              try {
-                const result = routeOrThrow(worker, request, transfers)
-
-                const response = new RpcOk(request.id, result)
-
-                worker.postMessage([response])
-              } catch (cause: unknown) {
-                const error = RpcError.rewrap(cause)
-
-                const response = new RpcErr(request.id, error)
-
-                worker.postMessage([response])
-              }
-            }, { signal: aborter.signal })
-
-            workers.set(hash, worker)
-
-            return
-          }
-
-          if (method === "message") {
-            const [hash, message] = params as [string, unknown]
-
-            const worker = workers.get(hash)
-
-            if (worker == null)
-              throw new Error("Not imported")
-
-            worker.postMessage([message, transfers], transfers)
-
-            return
-          }
-
-          if (method === "return") {
-            source.terminate()
-
-            if (source === worker)
-              future.resolve()
-
-            return
-          }
-
-          throw new RpcMethodNotFoundError()
-        }
-
-        worker.addEventListener("message", (event: MessageEvent<unknown>) => {
-          const [message, transfers] = event.data as [RpcMessageInit, Transferable[]]
-
-          if ("method" in message === false)
-            return
-
-          const request = RpcRequest.from(message)
-
-          try {
-            const result = routeOrThrow(worker, request, transfers)
-
-            const response = new RpcOk(request.id, result)
-
-            worker.postMessage([response])
-          } catch (cause: unknown) {
-            const error = RpcError.rewrap(cause)
-
-            const response = new RpcErr(request.id, error)
-
-            worker.postMessage([response])
-          }
-        }, { signal: aborter.signal })
 
         AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
           future.reject(reason)
