@@ -1,13 +1,14 @@
 import { readFile } from "node:fs/promises";
 
-const [name] = Deno.args
+const [wasm, wast] = Deno.args
 
-const code = await readFile(name, "utf8");
-const body = JSON.stringify({ code });
+const body = new FormData()
+
+body.append("wasm", new Blob([await readFile(wasm)]))
+body.append("wast", new Blob([await readFile(wast)]))
 
 await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 
-const data = new TextEncoder().encode(code)
-const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", data)).toHex()
+const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", await readFile(wasm))).toHex()
 
 console.log(hash)

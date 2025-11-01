@@ -9,3 +9,5 @@
 /local
 
 *.local
+
+/test

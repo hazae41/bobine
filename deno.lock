@@ -109,8 +109,10 @@
         "npm:@hazae41/tscousin@^1.0.28",
         "npm:@tursodatabase/database@0.3",
         "npm:@types/node@^24.9.2",
-        "npm:assemblyscript@~0.28.9",
-        "npm:typescript@^5.9.3"
+        "npm:@webassemblyjs/wasm-parser@^1.14.1",
+        "npm:typescript@^5.9.3",
+        "npm:wat-compiler@^1.1.1",
+        "npm:watr@^3.2.1"
       ]
     }
   }

@@ -78,20 +78,27 @@ export function serve(database: Database) {
 
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
-        const { code } = await request.json()
+        const form = await request.formData()
 
-        if (code == null)
+        const wasm = await (form.get("wasm") as File).bytes()
+        const wast = await (form.get("wast") as File).text()
+
+        if (wasm == null)
+          return Response.json(null, { status: 400 })
+        if (wast == null)
           return Response.json(null, { status: 400 })
 
         using stack = new DisposableStack()
 
-        const data = new TextEncoder().encode(code)
-        const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", data)).toHex()
-        const file = `./local/scripts/${hash}.ts`
+        const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
 
-        mkdirSync(dirname(file), { recursive: true })
+        const wasmAsFile = `./local/scripts/${hash}.wasm`
+        const wastAsFile = `./local/scripts/${hash}.wast`
 
-        writeFileSync(file, data)
+        mkdirSync(dirname(wasmAsFile), { recursive: true })
+
+        writeFileSync(wasmAsFile, wasm)
+        writeFileSync(wastAsFile, wast)
 
         const future = Promise.withResolvers<void>()
 
@@ -116,7 +123,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [code]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [wasm, wast]))
 
         await future.promise
 
