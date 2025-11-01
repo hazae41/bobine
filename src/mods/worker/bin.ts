@@ -112,14 +112,26 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
   })
 
   imports["test"] = {
-    invoke: () => ({ lol: () => console.log("lol") })
+    invoke: () => 456
   }
 
+  imports["virtual"] = {}
+
   for (const element of WebAssembly.Module.imports(module)) {
+    console.log(element)
+
+    if (element.module === "virtual") {
+      imports["virtual"][element.name] = (pointer: number) => {
+        console.log(`Called ${element.name} with pointer ${pointer}`)
+        return 123
+      }
+      continue
+    }
+
     if (imports[element.module] != null)
       continue
 
-    const imported = await load(await readFile(`./local/scripts/${module}.wasm`))
+    const imported = await load(await readFile(`./local/scripts/${element.module}.wasm`))
 
     imports[element.module] = imp(current, exp(imported, imported.instance.exports))
 
