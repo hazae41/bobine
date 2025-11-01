@@ -12,7 +12,7 @@ function extract<T extends ArrayBufferLike>(memory: Uint8Array<T>, pointer: numb
   return memory.subarray(pointer, until)
 }
 
-function adapt(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithPointers: WebAssembly.Exports) {
+function exp(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithPointers: WebAssembly.Exports) {
   const exportsWithBytes: WebAssembly.Exports = { ...exportsWithPointers }
 
   for (const key in exportsWithPointers) {
@@ -52,7 +52,7 @@ function adapt(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithPoi
   return exportsWithBytes
 }
 
-function unadapt(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithBytes: WebAssembly.Exports) {
+function imp(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithBytes: WebAssembly.Exports) {
   const exportsWithPointers: WebAssembly.Exports = { ...exportsWithBytes }
 
   for (const key in exportsWithBytes) {
@@ -99,33 +99,39 @@ function unadapt(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithB
   return exportsWithPointers
 }
 
-async function load(wasm: Uint8Array<ArrayBuffer>, wast: string): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
-  const exported: WebAssembly.WebAssemblyInstantiatedSource = { instance: null } as any
+async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
+  const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
-  const imports: WebAssembly.Imports = { env: { abort: () => { throw new Error() } } }
+  const module = await WebAssembly.compile(wasm)
 
-  for (const match of wast.matchAll(/^ *\(import \"([a-f0-9]{64})\" .+\)$/gm)) {
-    const [module] = match.slice(1)
+  const imports: WebAssembly.Imports = {}
 
-    if (imports[module] != null)
+  imports["env"] = imp(current, {
+    abort: () => { throw new Error() },
+    log: (messageAsBytes: Uint8Array) => console.log(new TextDecoder().decode(messageAsBytes))
+  })
+
+  imports["test"] = {
+    invoke: () => ({ lol: () => console.log("lol") })
+  }
+
+  for (const element of WebAssembly.Module.imports(module)) {
+    if (imports[element.module] != null)
       continue
 
-    const wasm = await readFile(`./local/scripts/${module}.wasm`)
-    const wast = await readFile(`./local/scripts/${module}.wast`, "utf8")
+    const imported = await load(await readFile(`./local/scripts/${module}.wasm`))
 
-    const imported = await load(wasm, wast)
-
-    imports[module] = unadapt(exported, adapt(imported, imported.instance.exports))
+    imports[element.module] = imp(current, exp(imported, imported.instance.exports))
 
     continue
   }
 
-  const { instance, module } = await WebAssembly.instantiate(wasm, imports)
+  const instance = await WebAssembly.instantiate(module, imports)
 
-  exported.instance = instance
-  exported.module = module
+  current.instance = instance
+  current.module = module
 
-  return exported
+  return current
 }
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
@@ -134,20 +140,12 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
   try {
     const { params } = event.data
 
-    const [wasm, wast] = params as [Uint8Array<ArrayBuffer>, string]
+    const [wasm] = params as [Uint8Array<ArrayBuffer>]
 
-    const loaded = await load(wasm, wast)
-
-    const adapted = adapt(loaded, loaded.instance.exports)
-
-    const input = new TextEncoder().encode(JSON.stringify("hello"))
+    const main = await load(wasm)
 
     // @ts-ignore: main
-    const bytes = adapted.main(input)
-
-    const output = JSON.parse(new TextDecoder().decode(bytes))
-
-    console.log(output)
+    main.instance.exports.main()
 
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
