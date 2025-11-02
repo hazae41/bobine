@@ -52,53 +52,6 @@ function exp(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithPoint
   return exportsWithBytes
 }
 
-function imp(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithBytes: WebAssembly.Exports) {
-  const exportsWithPointers: WebAssembly.Exports = { ...exportsWithBytes }
-
-  for (const key in exportsWithBytes) {
-    const methodWithBytes = exportsWithBytes[key]
-
-    if (typeof methodWithBytes !== "function")
-      continue
-
-    exportsWithPointers[key] = (inputAsPointer?: number) => {
-      const { alloc, memory } = source.instance.exports as { memory: WebAssembly.Memory, alloc: (size: number) => number }
-
-      const bytes = new Uint8Array(memory.buffer)
-
-      if (inputAsPointer == null) {
-        const outputAsBytes = methodWithBytes()
-
-        if (outputAsBytes == null)
-          return
-
-        const outputAsPointer = alloc(outputAsBytes.length + 1)
-
-        bytes.set(outputAsBytes, outputAsPointer)
-        bytes[outputAsPointer + outputAsBytes.length] = 0
-
-        return outputAsPointer
-      }
-
-      const inputAsBytes = extract(bytes, inputAsPointer)
-
-      const outputAsBytes = methodWithBytes(inputAsBytes)
-
-      if (outputAsBytes == null)
-        return
-
-      const outputAsPointer = alloc(outputAsBytes.length + 1)
-
-      bytes.set(outputAsBytes, outputAsPointer)
-      bytes[outputAsPointer + outputAsBytes.length] = 0
-
-      return outputAsPointer
-    }
-  }
-
-  return exportsWithPointers
-}
-
 async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
   const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
@@ -106,13 +59,33 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
   const imports: WebAssembly.Imports = {}
 
-  imports["env"] = imp(current, {
-    abort: () => { throw new Error() },
-    log: (messageAsBytes: Uint8Array) => console.log(new TextDecoder().decode(messageAsBytes))
-  })
+  const shared_memory = new Array<Uint8Array>()
 
-  imports["test"] = {
-    invoke: () => 456
+  imports["env"] = {
+    abort: () => { throw new Error() },
+    log: (idx: number) => console.log(new TextDecoder().decode(shared_memory[idx]))
+  }
+
+  imports["shared_memory"] = {
+    put: (ptr: number, len: number): number => {
+      const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+      const bytes = new Uint8Array(memory.buffer, ptr, len)
+
+      return shared_memory.push(bytes.slice()) - 1
+    },
+    len(idx: number): number {
+      return shared_memory[idx].length
+    },
+    get: (idx: number, ptr: number): void => {
+      const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+      const bytes = new Uint8Array(memory.buffer, ptr, shared_memory[idx].length)
+
+      bytes.set(shared_memory[idx])
+
+      delete shared_memory[idx]
+    }
   }
 
   imports["virtual"] = {}
@@ -133,7 +106,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
     const imported = await load(await readFile(`./local/scripts/${element.module}.wasm`))
 
-    imports[element.module] = imp(current, exp(imported, imported.instance.exports))
+    imports[element.module] = imported.instance.exports
 
     continue
   }
