@@ -9,7 +9,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
   const shareds = new Map<symbol, Uint8Array>()
 
-  const load = async (wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+  const load = async (name: string, wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
     const imports: WebAssembly.Imports = {}
@@ -68,6 +68,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     }
 
     const symbols = new Array<symbol>()
+    const indexes = new Map<symbol, number>()
 
     imports["symbols"] = {
       create(): symbol {
@@ -76,16 +77,28 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       compare(left: symbol, right: symbol): boolean {
         return left === right
       },
-      save(value: symbol): number {
-        return symbols.push(value) - 1
+      push(value: symbol): number {
+        const index = symbols.push(value) - 1
+
+        indexes.set(value, index)
+
+        return index
       },
-      load(index: number): symbol {
+      at(index: number): symbol {
         const value = symbols.at(index)
 
         if (value == null)
           throw new Error("Not found")
 
         return value
+      },
+      get(value: symbol): number {
+        const index = indexes.get(value)
+
+        if (index == null)
+          throw new Error("Not found")
+
+        return index
       }
     }
 
@@ -111,7 +124,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
         continue
       }
 
-      const imported = await load(await readFile(`./local/scripts/${element.module}.wasm`))
+      const imported = await load(element.module, await readFile(`./local/scripts/${element.module}.wasm`))
 
       exports[element.module] = imported.instance.exports
       imports[element.module] = imported.instance.exports
@@ -127,7 +140,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     return current
   }
 
-  return await load(wasm)
+  return await load("main", wasm)
 }
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
