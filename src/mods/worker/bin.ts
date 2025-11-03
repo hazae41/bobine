@@ -34,27 +34,27 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       save: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const reference = Symbol()
+        const symbol = Symbol()
 
         const slice = new Uint8Array(memory.buffer, offset, length)
         const clone = new Uint8Array(slice)
 
-        shareds.set(reference, clone)
+        shareds.set(symbol, clone)
 
-        return reference
+        return symbol
       },
-      size(reference: symbol): number {
-        const value = shareds.get(reference)
+      size(symbol: symbol): number {
+        const value = shareds.get(symbol)
 
         if (value == null)
           throw new Error("Not found")
 
         return value.length
       },
-      load: (reference: symbol, offset: number): void => {
+      load: (symbol: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const value = shareds.get(reference)
+        const value = shareds.get(symbol)
 
         if (value == null)
           throw new Error("Not found")
@@ -63,42 +63,36 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
         slice.set(value)
 
-        shareds.delete(reference)
+        shareds.delete(symbol)
       }
     }
 
     const symbols = new Array<symbol>()
-    const indexes = new Map<symbol, number>()
+    const numbers = new Map<symbol, number>()
 
     imports["symbols"] = {
       create(): symbol {
         return Symbol()
       },
-      compare(left: symbol, right: symbol): boolean {
-        return left === right
+      numerize(symbol: symbol): number {
+        const stale = numbers.get(symbol)
+
+        if (stale != null)
+          return stale
+
+        const fresh = symbols.push(symbol) - 1
+
+        numbers.set(symbol, fresh)
+
+        return fresh
       },
-      push(value: symbol): number {
-        const index = symbols.push(value) - 1
+      denumerize(number: number): symbol {
+        const symbol = symbols.at(number)
 
-        indexes.set(value, index)
-
-        return index
-      },
-      at(index: number): symbol {
-        const value = symbols.at(index)
-
-        if (value == null)
+        if (symbol == null)
           throw new Error("Not found")
 
-        return value
-      },
-      get(value: symbol): number {
-        const index = indexes.get(value)
-
-        if (index == null)
-          throw new Error("Not found")
-
-        return index
+        return symbol
       }
     }
 

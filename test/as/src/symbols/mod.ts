@@ -5,34 +5,28 @@ namespace symbols {
   export declare function create(): externref
 
   // @ts-ignore
-  @external("symbols", "compare")
-  export declare function compare(left: externref, right: externref): boolean
+  @external("symbols", "numerize")
+  export declare function numerize(symbol: externref): usize
 
   // @ts-ignore
-  @external("symbols", "save")
-  export declare function save(value: externref): usize
-
-  // @ts-ignore
-  @external("symbols", "load")
-  export declare function load(index: usize): externref
+  @external("symbols", "denumerize")
+  export declare function denumerize(index: usize): externref
 
 }
 
 export function main(): boolean {
-  const a = symbols.create()
+  const a = symbols.create(), ia = symbols.numerize(a)
 
-  const i = symbols.save(a)
+  const b = symbols.denumerize(ia), ib = symbols.numerize(b)
 
-  const b = symbols.load(i)
-
-  if (!symbols.compare(a, b))
+  if (ia !== ib)
     return false
 
-  const c = symbols.create()
+  const c = symbols.create(), ic = symbols.numerize(c)
 
-  if (symbols.compare(a, c))
+  if (ia === ic)
     return false
-  if (symbols.compare(b, c))
+  if (ib === ic)
     return false
 
   return true
