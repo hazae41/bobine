@@ -4,119 +4,93 @@ import { readFile } from "node:fs/promises";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-function extract<T extends ArrayBufferLike>(memory: Uint8Array<T>, pointer: number): Uint8Array<T> {
-  let until = pointer
-
-  for (; until < memory.byteLength && memory[until] !== 0; until++);
-
-  return memory.subarray(pointer, until)
-}
-
-function exp(source: WebAssembly.WebAssemblyInstantiatedSource, exportsWithPointers: WebAssembly.Exports) {
-  const exportsWithBytes: WebAssembly.Exports = { ...exportsWithPointers }
-
-  for (const key in exportsWithPointers) {
-    const methodWithPointers = exportsWithPointers[key]
-
-    if (typeof methodWithPointers !== "function")
-      continue
-
-    exportsWithBytes[key] = (inputAsBytes?: Uint8Array) => {
-      const { alloc, memory } = source.instance.exports as { memory: WebAssembly.Memory, alloc: (size: number) => number }
-
-      const bytes = new Uint8Array(memory.buffer)
-
-      if (inputAsBytes == null) {
-        const outputAsPointer = methodWithPointers()
-
-        if (outputAsPointer == null)
-          return
-
-        return extract(bytes, outputAsPointer)
-      }
-
-      const inputAsPointer = alloc(inputAsBytes.length + 1)
-
-      bytes.set(inputAsBytes, inputAsPointer)
-      bytes[inputAsPointer + inputAsBytes.length] = 0
-
-      const outputAsPointer = methodWithPointers(inputAsPointer)
-
-      if (outputAsPointer == null)
-        return
-
-      return extract(bytes, outputAsPointer)
-    }
-  }
-
-  return exportsWithBytes
-}
-
 async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
-  const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
+  const exports: WebAssembly.Imports = {}
 
-  const module = await WebAssembly.compile(wasm)
+  const shares = new Array<Uint8Array>()
 
-  const imports: WebAssembly.Imports = {}
+  const load = async (wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+    const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
-  const shared_memory = new Array<Uint8Array>()
+    const imports: WebAssembly.Imports = {}
 
-  imports["env"] = {
-    abort: () => { throw new Error() },
-    log: (idx: number) => console.log(new TextDecoder().decode(shared_memory[idx]))
-  }
-
-  imports["shared_memory"] = {
-    put: (ptr: number, len: number): number => {
-      const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
-
-      const bytes = new Uint8Array(memory.buffer, ptr, len)
-
-      return shared_memory.push(bytes.slice()) - 1
-    },
-    len(idx: number): number {
-      return shared_memory[idx].length
-    },
-    get: (idx: number, ptr: number): void => {
-      const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
-
-      const bytes = new Uint8Array(memory.buffer, ptr, shared_memory[idx].length)
-
-      bytes.set(shared_memory[idx])
-
-      delete shared_memory[idx]
-    }
-  }
-
-  imports["virtual"] = {}
-
-  for (const element of WebAssembly.Module.imports(module)) {
-    console.log(element)
-
-    if (element.module === "virtual") {
-      imports["virtual"][element.name] = (pointer: number) => {
-        console.log(`Called ${element.name} with pointer ${pointer}`)
-        return 123
+    imports["env"] = {
+      abort: () => {
+        throw new Error()
       }
+    }
+
+    imports["console"] = {
+      log: (offset: number, length: number) => {
+        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+        const bytes = new Uint8Array(memory.buffer, offset, length)
+
+        console.log(new TextDecoder().decode(bytes))
+      }
+    }
+
+    imports["shared_memory"] = {
+      put: (offset: number, length: number): number => {
+        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+        const bytes = new Uint8Array(memory.buffer, offset, length)
+
+        return shares.push(bytes.slice()) - 1
+      },
+      len(index: number): number {
+        return shares[index].length
+      },
+      get: (index: number, offset: number): void => {
+        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+        const bytes = new Uint8Array(memory.buffer, offset, shares[index].length)
+
+        bytes.set(shares[index])
+
+        delete shares[index]
+      }
+    }
+
+    imports["virtual"] = {}
+
+    const module = await WebAssembly.compile(wasm)
+
+    for (const element of WebAssembly.Module.imports(module)) {
+      console.log(element)
+
+      if (element.module === "virtual") {
+        imports["virtual"][element.name] = (pointer: number) => console.log(`Called ${element.name} with pointer ${pointer}`)
+        continue
+      }
+
+      if (imports[element.module] != null) {
+        // NOOP
+        continue
+      }
+
+      if (exports[element.module] != null) {
+        imports[element.module] = exports[element.module]
+        continue
+      }
+
+      const imported = await load(await readFile(`./local/scripts/${element.module}.wasm`))
+
+      exports[element.module] = imported.instance.exports
+      imports[element.module] = imported.instance.exports
+
       continue
     }
 
-    if (imports[element.module] != null)
-      continue
+    const instance = await WebAssembly.instantiate(module, imports)
 
-    const imported = await load(await readFile(`./local/scripts/${element.module}.wasm`))
+    current.instance = instance
+    current.module = module
 
-    imports[element.module] = imported.instance.exports
-
-    continue
+    return current
   }
 
-  const instance = await WebAssembly.instantiate(module, imports)
-
-  current.instance = instance
-  current.module = module
-
-  return current
+  return await load(wasm)
 }
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
@@ -129,8 +103,8 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
     const main = await load(wasm)
 
-    // @ts-ignore: main
-    main.instance.exports.main()
+    if (typeof main.instance.exports.main === "function")
+      console.log(main.instance.exports.main())
 
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
