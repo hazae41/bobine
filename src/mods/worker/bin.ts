@@ -7,7 +7,7 @@ declare const self: DedicatedWorkerGlobalScope;
 async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
   const exports: WebAssembly.Imports = {}
 
-  const shareds = new Array<Uint8Array>()
+  const shareds = new Map<symbol, Uint8Array>()
 
   const load = async (wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -15,13 +15,13 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     const imports: WebAssembly.Imports = {}
 
     imports["env"] = {
-      abort: () => {
+      abort: (): never => {
         throw new Error()
       }
     }
 
     imports["console"] = {
-      log: (offset: number, length: number) => {
+      log: (offset: number, length: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const bytes = new Uint8Array(memory.buffer, offset, length)
@@ -31,24 +31,61 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     }
 
     imports["shared_memory"] = {
-      put: (offset: number, length: number): number => {
+      save: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = new Uint8Array(memory.buffer, offset, length)
+        const reference = Symbol()
 
-        return shareds.push(bytes.slice()) - 1
+        const slice = new Uint8Array(memory.buffer, offset, length)
+        const clone = new Uint8Array(slice)
+
+        shareds.set(reference, clone)
+
+        return reference
       },
-      len(index: number): number {
-        return shareds[index].length
+      size(reference: symbol): number {
+        const value = shareds.get(reference)
+
+        if (value == null)
+          throw new Error("Not found")
+
+        return value.length
       },
-      get: (index: number, offset: number): void => {
+      load: (reference: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = new Uint8Array(memory.buffer, offset, shareds[index].length)
+        const value = shareds.get(reference)
 
-        bytes.set(shareds[index])
+        if (value == null)
+          throw new Error("Not found")
 
-        delete shareds[index]
+        const slice = new Uint8Array(memory.buffer, offset, value.length)
+
+        slice.set(value)
+
+        shareds.delete(reference)
+      }
+    }
+
+    const symbols = new Array<symbol>()
+
+    imports["symbols"] = {
+      create(): symbol {
+        return Symbol()
+      },
+      compare(left: symbol, right: symbol): boolean {
+        return left === right
+      },
+      save(value: symbol): number {
+        return symbols.push(value) - 1
+      },
+      load(index: number): symbol {
+        const value = symbols.at(index)
+
+        if (value == null)
+          throw new Error("Not found")
+
+        return value
       }
     }
 
