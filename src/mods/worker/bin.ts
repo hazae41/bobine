@@ -7,7 +7,7 @@ declare const self: DedicatedWorkerGlobalScope;
 async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
   const exports: WebAssembly.Imports = {}
 
-  const shares = new Array<Uint8Array>()
+  const shareds = new Array<Uint8Array>()
 
   const load = async (wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -36,19 +36,19 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
         const bytes = new Uint8Array(memory.buffer, offset, length)
 
-        return shares.push(bytes.slice()) - 1
+        return shareds.push(bytes.slice()) - 1
       },
       len(index: number): number {
-        return shares[index].length
+        return shareds[index].length
       },
       get: (index: number, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = new Uint8Array(memory.buffer, offset, shares[index].length)
+        const bytes = new Uint8Array(memory.buffer, offset, shareds[index].length)
 
-        bytes.set(shares[index])
+        bytes.set(shareds[index])
 
-        delete shares[index]
+        delete shareds[index]
       }
     }
 
