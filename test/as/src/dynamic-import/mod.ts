@@ -49,6 +49,10 @@ namespace sharedMemory {
 namespace modules {
 
   // @ts-ignore
+  @external("modules", "self")
+  export declare function self(): externref
+
+  // @ts-ignore
   @external("modules", "invoke")
   export declare function $invoke(offset: usize, length: usize): externref
 

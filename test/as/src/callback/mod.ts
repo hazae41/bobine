@@ -38,7 +38,6 @@ namespace modules {
 
 }
 
-
 namespace sharedMemory {
 
   // @ts-ignore: decorator
