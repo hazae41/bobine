@@ -180,7 +180,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       const { module, name } = element
 
       if (module === "dynamic_functions") {
-        imports["dynamic_functions"][name] = (symbol: symbol) => {
+        imports["dynamic_functions"][name] = (symbol: symbol, ...args: any[]) => {
           const module = modules.get(symbol)
 
           if (module == null)
@@ -189,7 +189,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
           if (typeof exports[module][name] !== "function")
             throw new Error("Not found")
 
-          return exports[module][name]()
+          return exports[module][name](...args)
         }
 
         continue
