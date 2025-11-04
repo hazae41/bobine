@@ -82,6 +82,15 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
       create(): symbol {
         return Symbol()
       },
+      destroy(symbol: symbol): void {
+        const index = numbers.get(symbol)
+
+        if (index == null)
+          throw new Error("Not found")
+
+        delete symbols[index]
+        numbers.delete(symbol)
+      },
       numerize(symbol: symbol): number {
         const stale = numbers.get(symbol)
 
