@@ -7,7 +7,9 @@ declare const self: DedicatedWorkerGlobalScope;
 async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
   const exports: WebAssembly.Imports = {}
 
+  const modules = new Map<symbol, string>()
   const shareds = new Map<symbol, Uint8Array>()
+  const futures = new Map<symbol, PromiseWithResolvers<symbol>>()
 
   const load = async (name: string, wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -96,32 +98,117 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       }
     }
 
-    imports["virtual"] = {}
+    imports["modules"] = {
+      import: (offset: number, length: number): symbol => {
+        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+        const symbol = Symbol()
+
+        const future = Promise.withResolvers<symbol>()
+
+        Promise.try(async () => {
+          const module = new TextDecoder().decode(new Uint8Array(memory.buffer, offset, length))
+
+          if (exports[module] != null) {
+            const symbol = Symbol()
+
+            modules.set(symbol, module)
+
+            return symbol
+          }
+
+          const imported = await load(module, await readFile(`./local/scripts/${module}.wasm`))
+
+          exports[module] = imported.instance.exports
+
+          const symbol = Symbol()
+
+          modules.set(symbol, module)
+
+          return symbol
+        }).then(future.resolve).catch(future.reject)
+
+        futures.set(symbol, future)
+
+        return symbol
+      }
+    }
+
+    imports["futures"] = {
+      create(): symbol {
+        const symbol = Symbol()
+
+        const future = Promise.withResolvers<symbol>()
+
+        futures.set(symbol, future)
+
+        return symbol
+      },
+      resolve(symbol: symbol, result: symbol): void {
+        const future = futures.get(symbol)
+
+        if (future == null)
+          throw new Error("Not found")
+
+        future.resolve(result)
+      },
+      rejects(symbol: symbol): void {
+        const future = futures.get(symbol)
+
+        if (future == null)
+          throw new Error("Not found")
+
+        future.reject()
+      },
+      await(symbol: symbol) {
+        const { settle } = current.instance.exports as { settle: (future: symbol, result: symbol | null) => void }
+
+        const future = futures.get(symbol)
+
+        if (future == null)
+          throw new Error("Not found")
+
+        future.promise.then((result) => settle(symbol, result)).catch(() => settle(symbol, null))
+      }
+    }
+
+    imports["dynamic_functions"] = {}
 
     const module = await WebAssembly.compile(wasm)
 
     for (const element of WebAssembly.Module.imports(module)) {
-      console.log(element)
+      const { module, name } = element
 
-      if (element.module === "virtual") {
-        imports["virtual"][element.name] = (pointer: number) => console.log(`Called ${element.name} with pointer ${pointer}`)
+      if (module === "dynamic_functions") {
+        imports["dynamic_functions"][name] = (symbol: symbol) => {
+          const module = modules.get(symbol)
+
+          if (module == null)
+            throw new Error("Not found")
+
+          if (typeof exports[module][name] !== "function")
+            throw new Error("Not found")
+
+          return exports[module][name]()
+        }
+
         continue
       }
 
-      if (imports[element.module] != null) {
+      if (imports[module] != null) {
         // NOOP
         continue
       }
 
-      if (exports[element.module] != null) {
-        imports[element.module] = exports[element.module]
+      if (exports[module] != null) {
+        imports[module] = exports[module]
         continue
       }
 
-      const imported = await load(element.module, await readFile(`./local/scripts/${element.module}.wasm`))
+      const imported = await load(module, await readFile(`./local/scripts/${module}.wasm`))
 
-      exports[element.module] = imported.instance.exports
-      imports[element.module] = imported.instance.exports
+      exports[module] = imported.instance.exports
+      imports[module] = imported.instance.exports
 
       continue
     }
