@@ -7,12 +7,18 @@ declare const self: DedicatedWorkerGlobalScope;
 function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
   const exports: WebAssembly.Imports = {}
 
-  const modules = new Map<symbol, string>()
-  const shareds = new Map<symbol, Uint8Array>()
-  const futures = new Map<symbol, PromiseWithResolvers<symbol>>()
+  const symbolByModule = new Map<string, symbol>()
+  const moduleBySymbol = new Map<symbol, string>()
 
-  const load = (_: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
+  const shareds = new Map<symbol, Uint8Array>()
+
+  const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
+
+    const symbol = Symbol()
+
+    symbolByModule.set(name, symbol)
+    moduleBySymbol.set(symbol, name)
 
     const imports: WebAssembly.Imports = {}
 
@@ -99,66 +105,32 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     }
 
     imports["modules"] = {
+      self: (): symbol => {
+        const symbol = symbolByModule.get(name)
+
+        if (symbol == null)
+          throw new Error("Not found")
+
+        return symbol
+      },
       invoke: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const module = new TextDecoder().decode(new Uint8Array(memory.buffer, offset, length))
 
-        if (exports[module] != null) {
-          const symbol = Symbol()
+        const stale = symbolByModule.get(module)
 
-          modules.set(symbol, module)
+        if (stale != null)
+          return stale
 
-          return symbol
-        }
+        load(module, readFileSync(`./local/scripts/${module}.wasm`))
 
-        const imported = load(module, readFileSync(`./local/scripts/${module}.wasm`))
+        const fresh = Symbol()
 
-        exports[module] = imported.instance.exports
+        symbolByModule.set(module, fresh)
+        moduleBySymbol.set(fresh, module)
 
-        const symbol = Symbol()
-
-        modules.set(symbol, module)
-
-        return symbol
-      }
-    }
-
-    imports["futures"] = {
-      create(): symbol {
-        const symbol = Symbol()
-
-        const future = Promise.withResolvers<symbol>()
-
-        futures.set(symbol, future)
-
-        return symbol
-      },
-      resolve(symbol: symbol, result: symbol): void {
-        const future = futures.get(symbol)
-
-        if (future == null)
-          throw new Error("Not found")
-
-        future.resolve(result)
-      },
-      reject(symbol: symbol): void {
-        const future = futures.get(symbol)
-
-        if (future == null)
-          throw new Error("Not found")
-
-        future.reject()
-      },
-      wait(symbol: symbol) {
-        const { onfulfilled, onrejected } = current.instance.exports as { onfulfilled: (future: symbol, result: symbol) => void, onrejected: (future: symbol) => void }
-
-        const future = futures.get(symbol)
-
-        if (future == null)
-          throw new Error("Not found")
-
-        future.promise.then((result) => onfulfilled(symbol, result)).catch(() => onrejected(symbol))
+        return fresh
       }
     }
 
@@ -171,7 +143,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
       if (module === "dynamic_functions") {
         imports["dynamic_functions"][name] = (symbol: symbol, ...args: any[]) => {
-          const module = modules.get(symbol)
+          const module = moduleBySymbol.get(symbol)
 
           if (module == null)
             throw new Error("Not found")
@@ -197,7 +169,6 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
       const imported = load(module, readFileSync(`./local/scripts/${module}.wasm`))
 
-      exports[module] = imported.instance.exports
       imports[module] = imported.instance.exports
 
       continue
@@ -207,6 +178,8 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
     current.instance = instance
     current.module = module
+
+    exports[name] = instance.exports
 
     return current
   }
