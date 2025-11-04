@@ -1,3 +1,19 @@
+namespace symbols {
+
+  // @ts-ignore
+  @external("symbols", "create")
+  export declare function create(): externref
+
+  // @ts-ignore
+  @external("symbols", "numerize")
+  export declare function numerize(symbol: externref): usize
+
+  // @ts-ignore
+  @external("symbols", "denumerize")
+  export declare function denumerize(index: usize): externref
+
+}
+
 namespace sharedMemory {
 
   // @ts-ignore: decorator
@@ -30,26 +46,6 @@ namespace sharedMemory {
 
 }
 
-namespace futures {
-
-  // @ts-ignore
-  @external("futures", "create")
-  export declare function create(): externref
-
-  // @ts-ignore
-  @external("futures", "resolve")
-  export declare function resolve(future: externref, result: externref): void
-
-  // @ts-ignore
-  @external("futures", "reject")
-  export declare function reject(future: externref): void
-
-  // @ts-ignore
-  @external("futures", "wait")
-  export declare function wait(future: externref): void
-
-}
-
 namespace modules {
 
   // @ts-ignore
@@ -66,7 +62,29 @@ namespace modules {
 
 }
 
-namespace dynamic_functions {
+class Library {
+
+  constructor(
+    readonly pointer: usize
+  ) { }
+
+  static invoke(name: string): Library {
+    const module = modules.invoke(name)
+    const pointer = symbols.numerize(module)
+
+    return new Library(pointer)
+  }
+
+  log(message: string): void {
+    const module = symbols.denumerize(this.pointer)
+    const buffer = sharedMemory.save(String.UTF8.encode(message))
+
+    Library.log(module, buffer)
+  }
+
+}
+
+namespace Library {
 
   // @ts-ignore
   @external("dynamic_functions", "log")
@@ -75,9 +93,7 @@ namespace dynamic_functions {
 }
 
 export function main(): void {
-  futures.wait(modules.invoke("933f18d8b86a6e14fb4f7290a1e4c502b1b67626915e262aec37eec0a6d40012"))
-}
+  const library = Library.invoke("933f18d8b86a6e14fb4f7290a1e4c502b1b67626915e262aec37eec0a6d40012")
 
-export function onfulfilled(_: externref, result: externref): void {
-  dynamic_functions.log(result, sharedMemory.save(String.UTF8.encode("Hello from AssemblyScript!")))
+  library.log("Hello from AssemblyScript!")
 }

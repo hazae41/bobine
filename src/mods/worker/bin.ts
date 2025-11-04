@@ -1,17 +1,17 @@
 // deno-lint-ignore-file no-explicit-any
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
+function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
   const exports: WebAssembly.Imports = {}
 
   const modules = new Map<symbol, string>()
   const shareds = new Map<symbol, Uint8Array>()
   const futures = new Map<symbol, PromiseWithResolvers<symbol>>()
 
-  const load = async (name: string, wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+  const load = (_: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
     const imports: WebAssembly.Imports = {}
@@ -102,33 +102,23 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       invoke: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const symbol = Symbol()
+        const module = new TextDecoder().decode(new Uint8Array(memory.buffer, offset, length))
 
-        const future = Promise.withResolvers<symbol>()
-
-        Promise.try(async () => {
-          const module = new TextDecoder().decode(new Uint8Array(memory.buffer, offset, length))
-
-          if (exports[module] != null) {
-            const symbol = Symbol()
-
-            modules.set(symbol, module)
-
-            return symbol
-          }
-
-          const imported = await load(module, await readFile(`./local/scripts/${module}.wasm`))
-
-          exports[module] = imported.instance.exports
-
+        if (exports[module] != null) {
           const symbol = Symbol()
 
           modules.set(symbol, module)
 
           return symbol
-        }).then(future.resolve).catch(future.reject)
+        }
 
-        futures.set(symbol, future)
+        const imported = load(module, readFileSync(`./local/scripts/${module}.wasm`))
+
+        exports[module] = imported.instance.exports
+
+        const symbol = Symbol()
+
+        modules.set(symbol, module)
 
         return symbol
       }
@@ -174,7 +164,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
     imports["dynamic_functions"] = {}
 
-    const module = await WebAssembly.compile(wasm)
+    const module = new WebAssembly.Module(wasm)
 
     for (const element of WebAssembly.Module.imports(module)) {
       const { module, name } = element
@@ -205,7 +195,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
         continue
       }
 
-      const imported = await load(module, await readFile(`./local/scripts/${module}.wasm`))
+      const imported = load(module, readFileSync(`./local/scripts/${module}.wasm`))
 
       exports[module] = imported.instance.exports
       imports[module] = imported.instance.exports
@@ -213,7 +203,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
       continue
     }
 
-    const instance = await WebAssembly.instantiate(module, imports)
+    const instance = new WebAssembly.Instance(module, imports)
 
     current.instance = instance
     current.module = module
@@ -221,10 +211,10 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     return current
   }
 
-  return await load("main", wasm)
+  return load("main", wasm)
 }
 
-self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
+self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   const { id } = event.data
 
   try {
@@ -232,10 +222,12 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
     const [wasm] = params as [Uint8Array<ArrayBuffer>]
 
-    const main = await load(wasm)
+    const main = load(wasm)
 
     if (typeof main.instance.exports.main === "function")
       console.log(main.instance.exports.main())
+
+    console.log("finished")
 
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
