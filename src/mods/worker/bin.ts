@@ -99,7 +99,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
     }
 
     imports["modules"] = {
-      import: (offset: number, length: number): symbol => {
+      invoke: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const symbol = Symbol()
@@ -152,7 +152,7 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
         future.resolve(result)
       },
-      rejects(symbol: symbol): void {
+      reject(symbol: symbol): void {
         const future = futures.get(symbol)
 
         if (future == null)
@@ -160,15 +160,15 @@ async function load(wasm: Uint8Array<ArrayBuffer>): Promise<WebAssembly.WebAssem
 
         future.reject()
       },
-      await(symbol: symbol) {
-        const { settle } = current.instance.exports as { settle: (future: symbol, result: symbol | null) => void }
+      wait(symbol: symbol) {
+        const { onfulfilled, onrejected } = current.instance.exports as { onfulfilled: (future: symbol, result: symbol) => void, onrejected: (future: symbol) => void }
 
         const future = futures.get(symbol)
 
         if (future == null)
           throw new Error("Not found")
 
-        future.promise.then((result) => settle(symbol, result)).catch(() => settle(symbol, null))
+        future.promise.then((result) => onfulfilled(symbol, result)).catch(() => onrejected(symbol))
       }
     }
 

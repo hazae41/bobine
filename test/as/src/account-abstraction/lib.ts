@@ -5,16 +5,12 @@ namespace symbols {
   export declare function create(): externref
 
   // @ts-ignore
-  @external("symbols", "compare")
-  export declare function compare(left: externref, right: externref): boolean
+  @external("symbols", "numerize")
+  export declare function numerize(symbol: externref): usize
 
   // @ts-ignore
-  @external("symbols", "save")
-  export declare function save(value: externref): usize
-
-  // @ts-ignore
-  @external("symbols", "load")
-  export declare function load(index: usize): externref
+  @external("symbols", "denumerize")
+  export declare function denumerize(index: usize): externref
 
 }
 
@@ -50,7 +46,7 @@ namespace sharedMemory {
 
 }
 
-// account.ts
+// account.ts 
 
 export function login(signature: externref): externref {
   const text = String.UTF8.decode(sharedMemory.load(signature))
@@ -60,11 +56,11 @@ export function login(signature: externref): externref {
 
   const session = symbols.create()
 
-  symbols.save(session)
+  symbols.numerize(session)
 
   return session
 }
 
 export function verify(session: externref): boolean {
-  return symbols.compare(session, symbols.load(0))
+  return symbols.numerize(session) === 0
 }

@@ -14,7 +14,6 @@ namespace symbols {
 
 }
 
-
 class Account {
 
   balance: u64
