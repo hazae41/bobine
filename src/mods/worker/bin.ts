@@ -176,6 +176,30 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         shareds.set(symbol, Uint8Array.fromBase64(textAsString))
 
         return symbol
+      },
+      to_hex: (bytesAsSymbol: symbol): symbol => {
+        const bytesAsBytes = shareds.get(bytesAsSymbol)
+
+        if (bytesAsBytes == null)
+          throw new Error("Not found")
+
+        const symbol = Symbol()
+
+        shareds.set(symbol, new TextEncoder().encode(bytesAsBytes.toHex()))
+
+        return symbol
+      },
+      to_base64: (bytesAsSymbol: symbol): symbol => {
+        const bytesAsBytes = shareds.get(bytesAsSymbol)
+
+        if (bytesAsBytes == null)
+          throw new Error("Not found")
+
+        const symbol = Symbol()
+
+        shareds.set(symbol, new TextEncoder().encode(bytesAsBytes.toBase64()))
+
+        return symbol
       }
     }
 
