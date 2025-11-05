@@ -1,19 +1,3 @@
-namespace console {
-
-  // @ts-ignore: decorator
-  @external("console", "log")
-  declare function $log(pointer: usize, length: usize): void
-
-  export function log(message: string): void {
-    const buffer = String.UTF8.encode(message)
-
-    const bytes = Uint8Array.wrap(buffer)
-
-    $log(bytes.dataStart, bytes.length)
-  }
-
-}
-
 namespace sharedMemory {
 
   // @ts-ignore: decorator
@@ -42,6 +26,18 @@ namespace sharedMemory {
     $load(reference, bytes.dataStart)
 
     return bytes.buffer
+  }
+
+}
+
+namespace console {
+
+  // @ts-ignore: decorator
+  @external("console", "log")
+  declare function $log(message: externref): void
+
+  export function log(message: string): void {
+    $log(sharedMemory.save(String.UTF8.encode(message)))
   }
 
 }

@@ -38,8 +38,6 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
           throw new Error("Not found")
 
         console.log(new TextDecoder().decode(messageAsBytes))
-
-        shareds.delete(messageAsSymbol)
       }
     }
 
@@ -51,7 +49,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         const slice = new Uint8Array(memory.buffer, offset, length)
 
-        shareds.set(symbol, slice)
+        shareds.set(symbol, slice.slice())
 
         return symbol
       },
@@ -74,8 +72,6 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         const slice = new Uint8Array(memory.buffer, offset, bytes.length)
 
         slice.set(bytes)
-
-        shareds.delete(symbol)
       }
     }
 

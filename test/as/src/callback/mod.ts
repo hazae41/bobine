@@ -2,42 +2,6 @@
 @external("473dc9c2c978e577a0f0b119f13404e80dafd9f7883c010fa494faa43849d4ad", "logmeback")
 declare function logmeback(module: externref): void
 
-namespace console {
-
-  // @ts-ignore: decorator
-  @external("console", "log")
-  declare function $log(pointer: usize, length: usize): void
-
-  export function log(message: string): void {
-    const buffer = String.UTF8.encode(message)
-
-    const bytes = Uint8Array.wrap(buffer)
-
-    $log(bytes.dataStart, bytes.length)
-  }
-
-}
-
-namespace modules {
-
-  // @ts-ignore
-  @external("modules", "self")
-  export declare function self(): externref
-
-  // @ts-ignore
-  @external("modules", "invoke")
-  export declare function $invoke(offset: usize, length: usize): externref
-
-  export function invoke(module: string): externref {
-    const buffer = String.UTF8.encode(module)
-
-    const bytes = Uint8Array.wrap(buffer)
-
-    return $invoke(bytes.dataStart, bytes.length)
-  }
-
-}
-
 namespace sharedMemory {
 
   // @ts-ignore: decorator
@@ -66,6 +30,38 @@ namespace sharedMemory {
     $load(reference, bytes.dataStart)
 
     return bytes.buffer
+  }
+
+}
+
+namespace console {
+
+  // @ts-ignore: decorator
+  @external("console", "log")
+  declare function $log(message: externref): void
+
+  export function log(message: string): void {
+    $log(sharedMemory.save(String.UTF8.encode(message)))
+  }
+
+}
+
+namespace modules {
+
+  // @ts-ignore
+  @external("modules", "self")
+  export declare function self(): externref
+
+  // @ts-ignore
+  @external("modules", "invoke")
+  export declare function $invoke(offset: usize, length: usize): externref
+
+  export function invoke(module: string): externref {
+    const buffer = String.UTF8.encode(module)
+
+    const bytes = Uint8Array.wrap(buffer)
+
+    return $invoke(bytes.dataStart, bytes.length)
   }
 
 }
