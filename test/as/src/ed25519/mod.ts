@@ -34,7 +34,7 @@ namespace bytes {
 
   // @ts-ignore: decorator
   @external("bytes", "from_hex")
-  export declare function from_hex(text: externref): externref
+  export declare function fromHex(text: externref): externref
 
 }
 
@@ -47,8 +47,8 @@ namespace ed25519 {
 }
 
 export function main(): boolean {
-  const pubkey = bytes.from_hex(sharedMemory.save(String.UTF8.encode("E0293454F6B94439F24BE13CD9DE35C5A2958808B3932A518A33161CB1D811E8")))
-  const signature = bytes.from_hex(sharedMemory.save(String.UTF8.encode("146BD4C4BFC4B13FC3BE444F9A65DEBD684339E251E07A37AC486E283B8953FF7EBEEFB0F8334BDEE30A9F17F2B0232625F8FEA559A27A2279AB32BF2151660C")))
+  const pubkey = bytes.fromHex(sharedMemory.save(String.UTF8.encode("E0293454F6B94439F24BE13CD9DE35C5A2958808B3932A518A33161CB1D811E8")))
+  const signature = bytes.fromHex(sharedMemory.save(String.UTF8.encode("146BD4C4BFC4B13FC3BE444F9A65DEBD684339E251E07A37AC486E283B8953FF7EBEEFB0F8334BDEE30A9F17F2B0232625F8FEA559A27A2279AB32BF2151660C")))
   const payload = sharedMemory.save(String.UTF8.encode("hello world"))
 
   return ed25519.verify(pubkey, signature, payload)
