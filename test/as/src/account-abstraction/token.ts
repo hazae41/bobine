@@ -98,8 +98,14 @@ export function transfer(module: externref, session: externref, target: externre
   const isender = symbols.numerize(sender)
   const itarget = symbols.numerize(target)
 
-  balances.set(isender, balanceOf(isender) - amount)
-  balances.set(itarget, balanceOf(itarget) + amount)
+  const bsender = balanceOf(isender)
+  const btarget = balanceOf(itarget)
+
+  if (bsender < amount)
+    throw new Error("Insufficient balance")
+
+  balances.set(isender, bsender - amount)
+  balances.set(itarget, btarget + amount)
 
   console.log(`Transferred ${amount.toString()} tokens`)
 }
