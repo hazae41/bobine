@@ -29,12 +29,15 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     }
 
     imports["console"] = {
-      log: (offset: number, length: number): void => {
-        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+      log: (message: symbol): void => {
+        const shared = shareds.get(message)
 
-        const bytes = new Uint8Array(memory.buffer, offset, length)
+        if (shared == null)
+          throw new Error("Not found")
 
-        console.log(new TextDecoder().decode(bytes))
+        console.log(new TextDecoder().decode(shared))
+
+        shareds.delete(symbol)
       }
     }
 
@@ -51,25 +54,25 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return symbol
       },
-      size(symbol: symbol): number {
-        const value = shareds.get(symbol)
+      size: (symbol: symbol): number => {
+        const shared = shareds.get(symbol)
 
-        if (value == null)
+        if (shared == null)
           throw new Error("Not found")
 
-        return value.length
+        return shared.length
       },
       load: (symbol: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const value = shareds.get(symbol)
+        const shared = shareds.get(symbol)
 
-        if (value == null)
+        if (shared == null)
           throw new Error("Not found")
 
-        const slice = new Uint8Array(memory.buffer, offset, value.length)
+        const slice = new Uint8Array(memory.buffer, offset, shared.length)
 
-        slice.set(value)
+        slice.set(shared)
 
         shareds.delete(symbol)
       }
@@ -79,10 +82,10 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     const numbers = new Map<symbol, number>()
 
     imports["symbols"] = {
-      create(): symbol {
+      create: (): symbol => {
         return Symbol()
       },
-      destroy(symbol: symbol): void {
+      destroy: (symbol: symbol): void => {
         const index = numbers.get(symbol)
 
         if (index == null)
@@ -91,7 +94,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         delete symbols[index]
         numbers.delete(symbol)
       },
-      numerize(symbol: symbol): number {
+      numerize: (symbol: symbol): number => {
         const stale = numbers.get(symbol)
 
         if (stale != null)
@@ -103,7 +106,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return fresh
       },
-      denumerize(number: number): symbol {
+      denumerize: (number: number): symbol => {
         const symbol = symbols.at(number)
 
         if (symbol == null)
@@ -140,6 +143,46 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         moduleBySymbol.set(fresh, module)
 
         return fresh
+      }
+    }
+
+    imports["ed25519"] = {
+      ping: (): boolean => {
+        const result = new Int32Array(new SharedArrayBuffer(2))
+        const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
+
+        runner.postMessage({ method: "ping", params: [], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        return result[1] === 1
+      },
+      verify: (pubkeyAsSymbol: symbol, signatureAsSymbol: symbol, payloadAsSymbol: symbol): boolean => {
+        const pubkeyAsBytes = shareds.get(pubkeyAsSymbol)
+        const signatureAsBytes = shareds.get(signatureAsSymbol)
+        const payloadAsBytes = shareds.get(payloadAsSymbol)
+
+        if (pubkeyAsBytes == null)
+          throw new Error("Not found")
+        if (signatureAsBytes == null)
+          throw new Error("Not found")
+        if (payloadAsBytes == null)
+          throw new Error("Not found")
+
+        const result = new Int32Array(new SharedArrayBuffer(2))
+        const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
+
+        runner.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        return result[1] === 1
       }
     }
 
