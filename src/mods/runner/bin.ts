@@ -6,15 +6,6 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
   try {
     const { method, params, result } = event.data
 
-    if (method === "ping") {
-      result[0] = 1
-      result[1] = 1
-
-      Atomics.notify(result, 0)
-
-      return
-    }
-
     if (method === "ed25519_verify") {
       const [pubkeyAsBytes, signatureAsBytes, payloadAsBytes] = params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 

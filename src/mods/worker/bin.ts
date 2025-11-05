@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
+const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
+
 function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
   const exports: WebAssembly.Imports = {}
 
@@ -29,15 +31,15 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     }
 
     imports["console"] = {
-      log: (message: symbol): void => {
-        const shared = shareds.get(message)
+      log: (messageAsSymbol: symbol): void => {
+        const messageAsBytes = shareds.get(messageAsSymbol)
 
-        if (shared == null)
+        if (messageAsBytes == null)
           throw new Error("Not found")
 
-        console.log(new TextDecoder().decode(shared))
+        console.log(new TextDecoder().decode(messageAsBytes))
 
-        shareds.delete(symbol)
+        shareds.delete(messageAsSymbol)
       }
     }
 
@@ -48,31 +50,30 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         const symbol = Symbol()
 
         const slice = new Uint8Array(memory.buffer, offset, length)
-        const clone = new Uint8Array(slice)
 
-        shareds.set(symbol, clone)
+        shareds.set(symbol, slice)
 
         return symbol
       },
       size: (symbol: symbol): number => {
-        const shared = shareds.get(symbol)
+        const bytes = shareds.get(symbol)
 
-        if (shared == null)
+        if (bytes == null)
           throw new Error("Not found")
 
-        return shared.length
+        return bytes.length
       },
       load: (symbol: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const shared = shareds.get(symbol)
+        const bytes = shareds.get(symbol)
 
-        if (shared == null)
+        if (bytes == null)
           throw new Error("Not found")
 
-        const slice = new Uint8Array(memory.buffer, offset, shared.length)
+        const slice = new Uint8Array(memory.buffer, offset, bytes.length)
 
-        slice.set(shared)
+        slice.set(bytes)
 
         shareds.delete(symbol)
       }
@@ -106,8 +107,8 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return fresh
       },
-      denumerize: (number: number): symbol => {
-        const symbol = symbols.at(number)
+      denumerize: (index: number): symbol => {
+        const symbol = symbols.at(index)
 
         if (symbol == null)
           throw new Error("Not found")
@@ -125,41 +126,60 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return symbol
       },
-      invoke: (offset: number, length: number): symbol => {
-        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+      invoke: (nameAsSymbol: symbol): symbol => {
+        const nameAsString = new TextDecoder().decode(shareds.get(nameAsSymbol))
 
-        const module = new TextDecoder().decode(new Uint8Array(memory.buffer, offset, length))
+        if (nameAsString == null)
+          throw new Error("Not found")
 
-        const stale = symbolByModule.get(module)
+        const stale = symbolByModule.get(nameAsString)
 
         if (stale != null)
           return stale
 
-        load(module, readFileSync(`./local/scripts/${module}.wasm`))
+        load(nameAsString, readFileSync(`./local/scripts/${nameAsString}.wasm`))
 
         const fresh = Symbol()
 
-        symbolByModule.set(module, fresh)
-        moduleBySymbol.set(fresh, module)
+        symbolByModule.set(nameAsString, fresh)
+        moduleBySymbol.set(fresh, nameAsString)
 
         return fresh
       }
     }
 
-    imports["ed25519"] = {
-      ping: (): boolean => {
-        const result = new Int32Array(new SharedArrayBuffer(2 * 4))
-        const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
+    imports["bytes"] = {
+      from_hex: (textAsSymbol: symbol): symbol => {
+        const textAsBytes = shareds.get(textAsSymbol)
 
-        runner.postMessage({ method: "ping", params: [], result })
+        if (textAsBytes == null)
+          throw new Error("Not found")
 
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
+        const textAsString = new TextDecoder().decode(textAsBytes)
 
-        return result[1] === 1
+        const symbol = Symbol()
+
+        shareds.set(symbol, Uint8Array.fromHex(textAsString))
+
+        return symbol
       },
+      from_base64: (textAsSymbol: symbol): symbol => {
+        const textAsBytes = shareds.get(textAsSymbol)
+
+        if (textAsBytes == null)
+          throw new Error("Not found")
+
+        const textAsString = new TextDecoder().decode(textAsBytes)
+
+        const symbol = Symbol()
+
+        shareds.set(symbol, Uint8Array.fromBase64(textAsString))
+
+        return symbol
+      }
+    }
+
+    imports["ed25519"] = {
       verify: (pubkeyAsSymbol: symbol, signatureAsSymbol: symbol, payloadAsSymbol: symbol): boolean => {
         const pubkeyAsBytes = shareds.get(pubkeyAsSymbol)
         const signatureAsBytes = shareds.get(signatureAsSymbol)
@@ -173,7 +193,6 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
           throw new Error("Not found")
 
         const result = new Int32Array(new SharedArrayBuffer(2 * 4))
-        const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
         runner.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
 
@@ -181,8 +200,6 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
           throw new Error("Failed to wait")
         if (result[0] === 2)
           throw new Error("Internal error")
-
-        runner.terminate()
 
         return result[1] === 1
       }
