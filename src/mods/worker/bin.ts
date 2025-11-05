@@ -80,18 +80,12 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
     imports["symbols"] = {
       create: (): symbol => {
-        return Symbol()
-      },
-      destroy: (symbol: symbol): void => {
-        const index = numbers.get(symbol)
+        return Symbol.for(crypto.randomUUID())
+      }
+    }
 
-        if (index == null)
-          throw new Error("Not found")
-
-        delete symbols[index]
-        numbers.delete(symbol)
-      },
-      numerize: (symbol: symbol): number => {
+    imports["symbols_memory"] = {
+      save: (symbol: symbol): number => {
         const stale = numbers.get(symbol)
 
         if (stale != null)
@@ -103,7 +97,30 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return fresh
       },
-      denumerize: (index: number): symbol => {
+      load: (index: number): symbol => {
+        const symbol = symbols.at(index)
+
+        if (symbol == null)
+          throw new Error("Not found")
+
+        return symbol
+      }
+    }
+
+    imports["symbols_storage"] = {
+      save: (symbol: symbol): number => {
+        const stale = numbers.get(symbol)
+
+        if (stale != null)
+          return stale
+
+        const fresh = symbols.push(symbol) - 1
+
+        numbers.set(symbol, fresh)
+
+        return fresh
+      },
+      load: (index: number): symbol => {
         const symbol = symbols.at(index)
 
         if (symbol == null)
