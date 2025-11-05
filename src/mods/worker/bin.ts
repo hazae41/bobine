@@ -148,7 +148,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
     imports["ed25519"] = {
       ping: (): boolean => {
-        const result = new Int32Array(new SharedArrayBuffer(2))
+        const result = new Int32Array(new SharedArrayBuffer(2 * 4))
         const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
         runner.postMessage({ method: "ping", params: [], result })
@@ -172,7 +172,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer(2))
+        const result = new Int32Array(new SharedArrayBuffer(2 * 4))
         const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
         runner.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
@@ -181,6 +181,8 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
           throw new Error("Failed to wait")
         if (result[0] === 2)
           throw new Error("Internal error")
+
+        runner.terminate()
 
         return result[1] === 1
       }
