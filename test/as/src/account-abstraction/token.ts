@@ -58,6 +58,26 @@ namespace console {
 
 }
 
+namespace sha256 {
+
+  // @ts-ignore: decorator
+  @external("sha256", "digest")
+  export declare function digest(payload: externref): externref
+
+}
+
+namespace bytes {
+
+  // @ts-ignore: decorator
+  @external("bytes", "to_hex")
+  export declare function toHex(bytes: externref): externref
+
+  // @ts-ignore: decorator
+  @external("bytes", "from_hex")
+  export declare function fromHex(hex: externref): externref
+
+}
+
 namespace accounts {
 
   // @ts-ignore: decorator
@@ -87,8 +107,14 @@ export function $mint(address: usize, amount: usize): void {
 }
 
 export function address(module: externref, modulus: externref): externref {
-  // return sha256(module, modulus)
-  return modulus
+  const bmodule = Uint8Array.wrap(sharedMemory.load(module))
+  const bmodulus = Uint8Array.wrap(sharedMemory.load(modulus))
+
+  const payload = new Uint8Array(bmodule.length + bmodulus.length)
+  payload.set(bmodule, 0)
+  payload.set(bmodulus, bmodule.length)
+
+  return sha256.digest(sharedMemory.save(payload.buffer))
 }
 
 export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
@@ -108,5 +134,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(isender, bsender - amount)
   balances.set(itarget, btarget + amount)
 
-  console.log(`Transferred ${amount.toString()} tokens from ${isender} to ${itarget}`)
+  console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(target)))}`)
 }

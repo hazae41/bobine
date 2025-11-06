@@ -19,8 +19,24 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | U
     const imports: WebAssembly.Imports = {}
 
     imports["env"] = {
-      abort: (): never => {
-        throw new Error()
+      abort: (messageAsPointer: number): void => {
+        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
+
+        const memory32 = new Uint32Array(memory.buffer)
+        const memory16 = new Uint16Array(memory.buffer)
+
+        const start = messageAsPointer >>> 1
+        const until = messageAsPointer + memory32[messageAsPointer - 4 >>> 2] >>> 1
+
+        let offset = start
+        let message = ""
+
+        while (until - offset > 1024)
+          message += String.fromCharCode(...memory16.subarray(offset, offset += 1024));
+
+        message += String.fromCharCode(...memory16.subarray(offset, until));
+
+        throw new Error(message)
       }
     }
 

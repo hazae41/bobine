@@ -11,7 +11,7 @@ namespace ed25519 {
 namespace token {
 
   // @ts-ignore
-  @external("e1d6bb98cbee21e879710f6a60b95d78c857d1289a62fd86b25bd814a40e503d", "transfer")
+  @external("504f52e0f9c1c7606a06539b9a1ae92085240093e3deb9f7764bfbf2f4fe62a3", "transfer")
   export declare function transfer(module: externref, session: externref, target: externref, amount: u64): void
 
 }
@@ -64,6 +64,6 @@ namespace console {
 
 export function main(pubkey: externref, signature: externref, target: externref, amount: u64): void {
   const module = sharedMemory.save(String.UTF8.encode(ed25519.name))
-  const session = ed25519.login(pubkey, signature)
-  token.transfer(module, session, target, amount)
+  console.log("lol")
+  token.transfer(module, ed25519.login(pubkey, signature), target, amount)
 }
