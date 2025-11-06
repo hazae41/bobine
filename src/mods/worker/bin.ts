@@ -332,8 +332,6 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
     run(name, wasm, args)
 
-    console.log("finished")
-
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
     console.error(cause)
