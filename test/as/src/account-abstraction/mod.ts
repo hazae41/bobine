@@ -1,9 +1,9 @@
 namespace ed25519 {
 
-  export const name = "b4efb79b0eac81ff82c3dd5386ae576423603d0e2334cf6688af6210ed5c1bdb"
+  export const name = "9dc9d76c564647d594d980481156129875a7a416dba79e68e3dd75096c70aa2d"
 
   // @ts-ignore
-  @external("b4efb79b0eac81ff82c3dd5386ae576423603d0e2334cf6688af6210ed5c1bdb", "login")
+  @external("9dc9d76c564647d594d980481156129875a7a416dba79e68e3dd75096c70aa2d", "login")
   export declare function login(pubkey: externref, signature: externref): externref
 
 }
@@ -11,7 +11,7 @@ namespace ed25519 {
 namespace token {
 
   // @ts-ignore
-  @external("18f89208ebfcf3deca9b3a1ddb3f3da25ee4630906a6e7bb032eb15b4796ce0a", "transfer")
+  @external("e1d6bb98cbee21e879710f6a60b95d78c857d1289a62fd86b25bd814a40e503d", "transfer")
   export declare function transfer(module: externref, session: externref, target: externref, amount: u64): void
 
 }
@@ -48,9 +48,22 @@ namespace sharedMemory {
 
 }
 
+namespace console {
+
+  // @ts-ignore: decorator
+  @external("console", "log")
+  export declare function $log(message: externref): void
+
+  export function log(message: string): void {
+    $log(sharedMemory.save(String.UTF8.encode(message)))
+  }
+
+}
+
 // main.ts
 
 export function main(pubkey: externref, signature: externref, target: externref, amount: u64): void {
   const module = sharedMemory.save(String.UTF8.encode(ed25519.name))
-  token.transfer(module, ed25519.login(pubkey, signature), target, amount)
+  const session = ed25519.login(pubkey, signature)
+  token.transfer(module, session, target, amount)
 }

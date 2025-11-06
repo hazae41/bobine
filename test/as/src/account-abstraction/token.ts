@@ -108,5 +108,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(isender, bsender - amount)
   balances.set(itarget, btarget + amount)
 
-  console.log(`Transferred ${amount.toString()} tokens from ${String.UTF8.decode(sharedMemory.load(sender))} to ${String.UTF8.decode(sharedMemory.load(target))}`)
+  console.log(`Transferred ${amount.toString()} tokens from ${isender} to ${itarget}`)
 }

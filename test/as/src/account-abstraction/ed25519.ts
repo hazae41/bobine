@@ -76,6 +76,10 @@ namespace bytes {
   @external("bytes", "to_hex")
   export declare function toHex(bytes: externref): externref
 
+  // @ts-ignore: decorator
+  @external("bytes", "from_hex")
+  export declare function fromHex(hex: externref): externref
+
 }
 
 namespace ed25519 {
@@ -111,7 +115,7 @@ function $payload(module: ArrayBuffer, nonce: u64): ArrayBuffer {
 export function login(modulus: externref, signature: externref): externref {
   const imodulus = symbols.numerize(modulus)
 
-  const main = sharedMemory.load(modules.main())
+  const main = sharedMemory.load(bytes.fromHex(modules.main()))
 
   const nonce = $nonce(imodulus)
   const payload = $payload(main, nonce)

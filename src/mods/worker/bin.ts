@@ -6,7 +6,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<number | Uint8Array<ArrayBuffer>>) {
+function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | Uint8Array<ArrayBuffer>>) {
   const main = name
 
   const exports: WebAssembly.Imports = {}
@@ -267,7 +267,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<number | U
     return
 
   instance.exports.main(...args.map(arg => {
-    if (typeof arg === "number")
+    if (typeof arg === "string")
       return arg
 
     const symbol = Symbol()
@@ -284,7 +284,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [name, wasm, args] = params as [string, Uint8Array<ArrayBuffer>, Array<number | Uint8Array<ArrayBuffer>>]
+    const [name, wasm, args] = params as [string, Uint8Array<ArrayBuffer>, Array<string | Uint8Array<ArrayBuffer>>]
 
     run(name, wasm, args)
 
