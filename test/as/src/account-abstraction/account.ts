@@ -48,7 +48,14 @@ namespace sharedMemory {
 
 // account.ts 
 
-export function login(signature: externref): externref {
+const addresses = new Map<usize, string>()
+
+export function pubkey_address(pubkey: externref): externref {
+  // return sha256(self, pubkey)
+  return pubkey
+}
+
+export function session_login(signature: externref): externref {
   const text = String.UTF8.decode(sharedMemory.load(signature))
 
   if (text !== "0xDEADBEEF")

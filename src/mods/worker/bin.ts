@@ -9,18 +9,10 @@ const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: 
 function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
   const exports: WebAssembly.Imports = {}
 
-  const symbolByModule = new Map<string, symbol>()
-  const moduleBySymbol = new Map<symbol, string>()
-
   const shareds = new Map<symbol, Uint8Array>()
 
   const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
-
-    const symbol = Symbol()
-
-    symbolByModule.set(name, symbol)
-    moduleBySymbol.set(symbol, name)
 
     const imports: WebAssembly.Imports = {}
 
@@ -80,12 +72,9 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
     imports["symbols"] = {
       create: (): symbol => {
-        return Symbol.for(crypto.randomUUID())
-      }
-    }
-
-    imports["symbols_memory"] = {
-      save: (symbol: symbol): number => {
+        return Symbol()
+      },
+      numerize: (symbol: symbol): number => {
         const stale = numbers.get(symbol)
 
         if (stale != null)
@@ -97,30 +86,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return fresh
       },
-      load: (index: number): symbol => {
-        const symbol = symbols.at(index)
-
-        if (symbol == null)
-          throw new Error("Not found")
-
-        return symbol
-      }
-    }
-
-    imports["symbols_storage"] = {
-      save: (symbol: symbol): number => {
-        const stale = numbers.get(symbol)
-
-        if (stale != null)
-          return stale
-
-        const fresh = symbols.push(symbol) - 1
-
-        numbers.set(symbol, fresh)
-
-        return fresh
-      },
-      load: (index: number): symbol => {
+      denumerize: (index: number): symbol => {
         const symbol = symbols.at(index)
 
         if (symbol == null)
@@ -132,32 +98,24 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
     imports["modules"] = {
       self: (): symbol => {
-        const symbol = symbolByModule.get(name)
+        const moduleAsSymbol = Symbol()
 
-        if (symbol == null)
-          throw new Error("Not found")
+        shareds.set(moduleAsSymbol, new TextEncoder().encode(name))
 
-        return symbol
+        return moduleAsSymbol
       },
-      invoke: (nameAsSymbol: symbol): symbol => {
-        const nameAsString = new TextDecoder().decode(shareds.get(nameAsSymbol))
+      invoke: (nameAsSymbol: symbol): void => {
+        const moduleAsBytes = shareds.get(nameAsSymbol)
 
-        if (nameAsString == null)
+        if (moduleAsBytes == null)
           throw new Error("Not found")
 
-        const stale = symbolByModule.get(nameAsString)
+        const moduleAsString = new TextDecoder().decode(moduleAsBytes)
 
-        if (stale != null)
-          return stale
+        if (exports[moduleAsString] != null)
+          return
 
-        load(nameAsString, readFileSync(`./local/scripts/${nameAsString}.wasm`))
-
-        const fresh = Symbol()
-
-        symbolByModule.set(nameAsString, fresh)
-        moduleBySymbol.set(fresh, nameAsString)
-
-        return fresh
+        load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
       }
     }
 
@@ -251,15 +209,17 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
       if (module === "dynamic_functions") {
         imports["dynamic_functions"][name] = (symbol: symbol, ...args: any[]) => {
-          const module = moduleBySymbol.get(symbol)
+          const moduleAsBytes = shareds.get(symbol)
 
-          if (module == null)
+          if (moduleAsBytes == null)
             throw new Error("Not found")
 
-          if (typeof exports[module][name] !== "function")
+          const moduleAsString = new TextDecoder().decode(moduleAsBytes)
+
+          if (typeof exports[moduleAsString][name] !== "function")
             throw new Error("Not found")
 
-          return exports[module][name](...args)
+          return exports[moduleAsString][name](...args)
         }
 
         continue

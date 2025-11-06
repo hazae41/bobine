@@ -54,14 +54,14 @@ namespace modules {
 
   // @ts-ignore
   @external("modules", "invoke")
-  export declare function $invoke(offset: usize, length: usize): externref
+  export declare function $invoke(module: externref): void
 
   export function invoke(module: string): externref {
-    const buffer = String.UTF8.encode(module)
+    const shared = sharedMemory.save(String.UTF8.encode(module))
 
-    const bytes = Uint8Array.wrap(buffer)
+    $invoke(shared)
 
-    return $invoke(bytes.dataStart, bytes.length)
+    return shared
   }
 
 }
@@ -97,7 +97,10 @@ namespace Library {
 }
 
 export function main(): void {
-  const library = Library.invoke("933f18d8b86a6e14fb4f7290a1e4c502b1b67626915e262aec37eec0a6d40012")
+  const library = Library.invoke("80862d2e7f92a1e8405a7c07e23cabd49d34d9a80a3204830f336efe352e1174")
 
-  library.log("Hello from AssemblyScript!")
+  library.log("hello")
+  library.log("world")
+
+  return
 }

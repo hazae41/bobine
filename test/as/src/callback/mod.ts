@@ -54,14 +54,14 @@ namespace modules {
 
   // @ts-ignore
   @external("modules", "invoke")
-  export declare function $invoke(offset: usize, length: usize): externref
+  export declare function $invoke(module: externref): void
 
   export function invoke(module: string): externref {
-    const buffer = String.UTF8.encode(module)
+    const shared = sharedMemory.save(String.UTF8.encode(module))
 
-    const bytes = Uint8Array.wrap(buffer)
+    $invoke(shared)
 
-    return $invoke(bytes.dataStart, bytes.length)
+    return shared
   }
 
 }
