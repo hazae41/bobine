@@ -1,10 +1,10 @@
 // @ts-ignore
-@external("692315bd342a3c04ce71c9b3aeb95f1f27a3e05cd9401469da71f0f1c1bf5eb9", "login")
-declare function login(signature: externref): externref
+@external("4d4dea45fb4e05a05480f7da6946533901d5becaed1bef24bde638195e3e69bc", "login")
+declare function login(pubkey: externref, signature: externref): externref
 
 // @ts-ignore
-@external("10cfaa0046a5a0d54fc4818b7cd386ab480e4b0f8234d431979175a7320839f6", "transfer")
-declare function transfer(session: externref, amount: usize): void
+@external("de8b021f2561870e718077f6c287b739e640bf8c8f7eb62bced3284fc434fa1c", "transfer")
+declare function transfer(module: externref, session: externref, target: externref, amount: u64): void
 
 namespace sharedMemory {
 
@@ -53,9 +53,16 @@ namespace console {
 // main.ts
 
 export function main(): void {
-  const session = login(sharedMemory.save(String.UTF8.encode("0xDEADBEEF")))
+  const module = sharedMemory.save(String.UTF8.encode("4d4dea45fb4e05a05480f7da6946533901d5becaed1bef24bde638195e3e69bc"))
+
+  const pubkey = sharedMemory.save(String.UTF8.encode("0xCAFEBABE"))
+  const signature = sharedMemory.save(String.UTF8.encode("0xDEADBEEF"))
+
+  const target = sharedMemory.save(String.UTF8.encode("0xFEEDBEEF"))
+
+  const session = login(pubkey, signature)
 
   console.log("Login successful")
 
-  transfer(session, 100)
+  transfer(module, session, target, 10)
 }

@@ -62,44 +62,49 @@ namespace accounts {
 
   // @ts-ignore: decorator
   @external("dynamic_functions", "verify")
-  export declare function verify(module: externref, session: externref): bool
-
-  // @ts-ignore: decorator
-  @external("dynamic_functions", "address")
-  export declare function address(module: externref, session: externref): externref
+  export declare function verify(module: externref, session: externref): externref
 
 }
 
 // token.ts
 
-const balances = new Map<usize, usize>()
+const balances = new Map<usize, u64>()
 
-export function set(account: usize, amount: usize): void {
-  balances.set(account, amount)
+export function balance(address: externref): u64 {
+  return $balance(symbols.numerize(address))
 }
 
-export function balanceOf(account: usize): usize {
-  const balance = balances.get(account)
-
-  if (balance == null)
-    return 0
-
-  return balance
+export function $balance(address: usize): u64 {
+  return balances.has(address) ? balances.get(address) : 0
 }
 
-export function transfer(module: externref, session: externref, target: externref, amount: usize): void {
-  const valid = accounts.verify(module, session)
+export function mint(address: externref, amount: usize): void {
+  return $mint(symbols.numerize(address), amount)
+}
 
-  if (!valid)
-    throw new Error("Invalid session")
+export function $mint(address: usize, amount: usize): void {
+  balances.set(address, $balance(address) + amount)
+}
 
-  const sender = accounts.address(module, session)
+export function address(module: externref, modulus: externref): externref {
+  // return sha256(module, modulus)
+  return modulus
+}
+
+export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
+  const sender = address(module, accounts.verify(module, session))
+
+  console.log(`Verified sender`)
 
   const isender = symbols.numerize(sender)
   const itarget = symbols.numerize(target)
 
-  const bsender = balanceOf(isender)
-  const btarget = balanceOf(itarget)
+  $mint(isender, 100)
+
+  console.log(`Minted 100 tokens to sender`)
+
+  const bsender = $balance(isender)
+  const btarget = $balance(itarget)
 
   if (bsender < amount)
     throw new Error("Insufficient balance")

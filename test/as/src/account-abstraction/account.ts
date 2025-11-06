@@ -48,14 +48,9 @@ namespace sharedMemory {
 
 // account.ts 
 
-const addresses = new Map<usize, string>()
+const sessions = new Map<usize, usize>()
 
-export function pubkey_address(pubkey: externref): externref {
-  // return sha256(self, pubkey)
-  return pubkey
-}
-
-export function session_login(signature: externref): externref {
+export function login(pubkey: externref, signature: externref): externref {
   const text = String.UTF8.decode(sharedMemory.load(signature))
 
   if (text !== "0xDEADBEEF")
@@ -63,11 +58,21 @@ export function session_login(signature: externref): externref {
 
   const session = symbols.create()
 
-  symbols.numerize(session)
+  const isession = symbols.numerize(session)
+  const imodulus = symbols.numerize(pubkey)
+
+  sessions.set(isession, imodulus)
 
   return session
 }
 
-export function verify(session: externref): boolean {
-  return symbols.numerize(session) === 0
+export function verify(session: externref): externref {
+  const isession = symbols.numerize(session)
+
+  if (!sessions.has(isession))
+    throw new Error("Not found")
+
+  const imodulus = sessions.get(isession)
+
+  return symbols.denumerize(imodulus)
 }

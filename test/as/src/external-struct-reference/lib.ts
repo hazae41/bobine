@@ -39,19 +39,9 @@ export function account_create(balance: u64): externref {
 }
 
 export function account_get_balance(symbol: externref): u64 {
-  const account = accounts.get(symbols.numerize(symbol))
-
-  if (account == null)
-    throw new Error("Account not found")
-
-  return account.balance
+  return accounts.get(symbols.numerize(symbol)).balance
 }
 
 export function account_set_balance(symbol: externref, balance: u64): void {
-  const account = accounts.get(symbols.numerize(symbol))
-
-  if (account == null)
-    throw new Error("Account not found")
-
-  account.balance = balance
+  accounts.get(symbols.numerize(symbol)).balance = balance
 }
