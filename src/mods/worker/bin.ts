@@ -17,8 +17,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     const imports: WebAssembly.Imports = {}
 
     imports["env"] = {
-      abort: (...args: any[]): never => {
-        console.error(...args)
+      abort: (): never => {
         throw new Error()
       }
     }
