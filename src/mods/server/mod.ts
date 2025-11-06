@@ -78,19 +78,19 @@ export function serve(database: Database) {
 
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
-        const code = await request.bytes()
+        const wasm = await request.bytes()
 
-        if (code == null)
+        if (wasm == null)
           return Response.json(null, { status: 400 })
 
         using stack = new DisposableStack()
 
-        const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", code)).toHex()
-        const file = `./local/scripts/${hash}.wasm`
+        const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
+        const file = `./local/scripts/${name}.wasm`
 
         mkdirSync(dirname(file), { recursive: true })
 
-        writeFileSync(file, code)
+        writeFileSync(file, wasm)
 
         const future = Promise.withResolvers<void>()
 
@@ -115,7 +115,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [code]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm]))
 
         await future.promise
 

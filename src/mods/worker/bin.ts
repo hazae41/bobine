@@ -6,7 +6,9 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
+function load(name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource {
+  const main = name
+
   const exports: WebAssembly.Imports = {}
 
   const shareds = new Map<symbol, Uint8Array>()
@@ -97,6 +99,13 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
     }
 
     imports["modules"] = {
+      main: (): symbol => {
+        const moduleAsSymbol = Symbol()
+
+        shareds.set(moduleAsSymbol, new TextEncoder().encode(main))
+
+        return moduleAsSymbol
+      },
       self: (): symbol => {
         const moduleAsSymbol = Symbol()
 
@@ -104,7 +113,7 @@ function load(wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiate
 
         return moduleAsSymbol
       },
-      invoke: (nameAsSymbol: symbol): void => {
+      load: (nameAsSymbol: symbol): void => {
         const moduleAsBytes = shareds.get(nameAsSymbol)
 
         if (moduleAsBytes == null)
@@ -261,12 +270,12 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [wasm] = params as [Uint8Array<ArrayBuffer>]
+    const [name, wasm] = params as [string, Uint8Array<ArrayBuffer>]
 
-    const main = load(wasm)
+    const { instance } = load(name, wasm)
 
-    if (typeof main.instance.exports.main === "function")
-      console.log(main.instance.exports.main())
+    if (typeof instance.exports.main === "function")
+      console.log(instance.exports.main())
 
     console.log("finished")
 

@@ -49,17 +49,21 @@ namespace console {
 namespace modules {
 
   // @ts-ignore
+  @external("modules", "main")
+  export declare function main(): externref
+
+  // @ts-ignore
   @external("modules", "self")
   export declare function self(): externref
 
   // @ts-ignore
-  @external("modules", "invoke")
-  export declare function $invoke(module: externref): void
+  @external("modules", "load")
+  export declare function $load(module: externref): void
 
-  export function invoke(module: string): externref {
+  export function load(module: string): externref {
     const shared = sharedMemory.save(String.UTF8.encode(module))
 
-    $invoke(shared)
+    $load(shared)
 
     return shared
   }

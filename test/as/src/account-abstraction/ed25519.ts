@@ -70,41 +70,72 @@ namespace modules {
 
 }
 
-class Library {
+namespace bytes {
 
-  constructor(
-    readonly pointer: usize
-  ) { }
-
-  static invoke(name: string): Library {
-    const module = modules.load(name)
-    const pointer = symbols.numerize(module)
-
-    return new Library(pointer)
-  }
-
-  log(message: string): void {
-    const module = symbols.denumerize(this.pointer)
-    const buffer = sharedMemory.save(String.UTF8.encode(message))
-
-    Library.log(module, buffer)
-  }
+  // @ts-ignore: decorator
+  @external("bytes", "to_hex")
+  export declare function toHex(bytes: externref): externref
 
 }
 
-namespace Library {
+namespace ed25519 {
 
-  // @ts-ignore
-  @external("dynamic_functions", "log")
-  export declare function log(module: externref, message: externref): void
+  // @ts-ignore: decorator
+  @external("ed25519", "verify")
+  export declare function verify(pubkey: externref, signature: externref, payload: externref): boolean
 
 }
 
-export function main(): void {
-  const library = Library.invoke("80862d2e7f92a1e8405a7c07e23cabd49d34d9a80a3204830f336efe352e1174")
+// account.ts 
 
-  library.log("hello")
-  library.log("world")
+const nonces = new Map<usize, u64>()
+const sessions = new Map<usize, usize>()
 
-  return
+export function nonce(modulus: externref): u64 {
+  return $nonce(symbols.numerize(modulus))
+}
+
+export function $nonce(modulus: usize): u64 {
+  return nonces.has(modulus) ? nonces.get(modulus) : 0
+}
+
+function $payload(nonce: u64): ArrayBuffer {
+  const payload = new ArrayBuffer(32 + 8)
+
+  Uint8Array.wrap(payload).set(Uint8Array.wrap(sharedMemory.load(modules.main())), 0)
+
+  new DataView(payload).setUint64(32, nonce, true)
+
+  return payload
+}
+
+export function login(modulus: externref, signature: externref): externref {
+  const imodulus = symbols.numerize(modulus)
+
+  const nonce = $nonce(imodulus)
+  const payload = $payload(nonce)
+
+  const verified = ed25519.verify(modulus, signature, sharedMemory.save(payload))
+
+  if (!verified)
+    throw new Error("Invalid signature")
+
+  nonces.set(imodulus, nonce + 1)
+
+  const session = symbols.create()
+
+  sessions.set(symbols.numerize(session), imodulus)
+
+  return session
+}
+
+export function verify(session: externref): externref {
+  const isession = symbols.numerize(session)
+
+  if (!sessions.has(isession))
+    throw new Error("Not found")
+
+  const imodulus = sessions.get(isession)
+
+  return symbols.denumerize(imodulus)
 }
