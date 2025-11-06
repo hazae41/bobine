@@ -99,11 +99,10 @@ export function $nonce(modulus: usize): u64 {
   return nonces.has(modulus) ? nonces.get(modulus) : 0
 }
 
-function $payload(nonce: u64): ArrayBuffer {
+function $payload(module: ArrayBuffer, nonce: u64): ArrayBuffer {
   const payload = new ArrayBuffer(32 + 8)
 
-  Uint8Array.wrap(payload).set(Uint8Array.wrap(sharedMemory.load(modules.main())), 0)
-
+  Uint8Array.wrap(payload).set(Uint8Array.wrap(module), 0)
   new DataView(payload).setUint64(32, nonce, true)
 
   return payload
@@ -112,8 +111,10 @@ function $payload(nonce: u64): ArrayBuffer {
 export function login(modulus: externref, signature: externref): externref {
   const imodulus = symbols.numerize(modulus)
 
+  const main = sharedMemory.load(modules.main())
+
   const nonce = $nonce(imodulus)
-  const payload = $payload(nonce)
+  const payload = $payload(main, nonce)
 
   const verified = ed25519.verify(modulus, signature, sharedMemory.save(payload))
 
