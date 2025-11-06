@@ -94,14 +94,10 @@ export function address(module: externref, modulus: externref): externref {
 export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address(module, accounts.verify(module, session))
 
-  console.log(`Verified sender`)
-
   const isender = symbols.numerize(sender)
   const itarget = symbols.numerize(target)
 
   $mint(isender, 100)
-
-  console.log(`Minted 100 tokens to sender`)
 
   const bsender = $balance(isender)
   const btarget = $balance(itarget)
@@ -112,5 +108,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(isender, bsender - amount)
   balances.set(itarget, btarget + amount)
 
-  console.log(`Transferred ${amount.toString()} tokens`)
+  console.log(`Transferred ${amount.toString()} tokens from ${String.UTF8.decode(sharedMemory.load(sender))} to ${String.UTF8.decode(sharedMemory.load(target))}`)
 }
