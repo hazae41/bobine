@@ -80,11 +80,7 @@ export function serve(database: Database) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const entries = new Array<FormDataEntryValue>()
-
-        form.forEach(x => entries.push(x))
-
-        const code = entries[0]
+        const code = form.get("0")
 
         if (code == null)
           return Response.json(null, { status: 400 })
@@ -92,13 +88,21 @@ export function serve(database: Database) {
           return Response.json(null, { status: 400 })
 
         const wasm = await code.bytes()
-        const args = new Array<Uint8Array<ArrayBuffer>>()
 
-        for (const entry of entries) {
+        const args = new Array<number | Uint8Array<ArrayBuffer>>()
+
+        for (let i = 1; ; i++) {
+          const entry = form.get(`${i}`)
+
+          if (entry == null)
+            break
+
           if (typeof entry === "string")
-            args.push(new TextEncoder().encode(entry))
+            args.push(+entry)
           else
             args.push(await entry.bytes())
+
+          continue
         }
 
         using stack = new DisposableStack()
@@ -133,7 +137,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm, args.slice(1)]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm, args]))
 
         await future.promise
 
