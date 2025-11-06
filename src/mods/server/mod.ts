@@ -78,10 +78,28 @@ export function serve(database: Database) {
 
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
-        const wasm = await request.bytes()
+        const form = await request.formData()
 
-        if (wasm == null)
+        const entries = new Array<FormDataEntryValue>()
+
+        form.forEach(x => entries.push(x))
+
+        const code = entries[0]
+
+        if (code == null)
           return Response.json(null, { status: 400 })
+        if (typeof code === "string")
+          return Response.json(null, { status: 400 })
+
+        const wasm = await code.bytes()
+        const args = new Array<Uint8Array<ArrayBuffer>>()
+
+        for (const entry of entries) {
+          if (typeof entry === "string")
+            args.push(new TextEncoder().encode(entry))
+          else
+            args.push(await entry.bytes())
+        }
 
         using stack = new DisposableStack()
 
@@ -115,7 +133,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm, args.slice(1)]))
 
         await future.promise
 
