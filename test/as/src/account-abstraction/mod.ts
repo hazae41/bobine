@@ -64,6 +64,5 @@ namespace console {
 
 export function main(pubkey: externref, signature: externref, target: externref, amount: u64): void {
   const module = sharedMemory.save(String.UTF8.encode(ed25519.name))
-  console.log("lol")
   token.transfer(module, ed25519.login(pubkey, signature), target, amount)
 }
