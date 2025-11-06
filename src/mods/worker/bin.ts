@@ -183,6 +183,34 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | U
       }
     }
 
+    imports["sha256"] = {
+      digest: (payloadAsSymbol: symbol): symbol => {
+        const payloadAsBytes = shareds.get(payloadAsSymbol)
+
+        if (payloadAsBytes == null)
+          throw new Error("Not found")
+
+        const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
+
+        runner.postMessage({ method: "sha256_digest", params: [payloadAsBytes], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        const digestAsBytes = new Uint8Array(32)
+
+        digestAsBytes.set(new Uint8Array(result.buffer, 4, 32))
+
+        const symbol = Symbol()
+
+        shareds.set(symbol, digestAsBytes)
+
+        return symbol
+      }
+    }
+
     imports["ed25519"] = {
       verify: (pubkeyAsSymbol: symbol, signatureAsSymbol: symbol, payloadAsSymbol: symbol): boolean => {
         const pubkeyAsBytes = shareds.get(pubkeyAsSymbol)
@@ -196,7 +224,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | U
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer(2 * 4))
+        const result = new Int32Array(new SharedArrayBuffer((1 + 1) * 4))
 
         runner.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
 
