@@ -9,6 +9,10 @@ const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: 
 function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array<ArrayBuffer>>) {
   const main = name
 
+  const exports: WebAssembly.Imports = {}
+
+  const shareds = new Map<symbol, Uint8Array>()
+
   const argv = args.map(arg => {
     const symbol = Symbol()
 
@@ -16,10 +20,6 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array
 
     return symbol
   })
-
-  const exports: WebAssembly.Imports = {}
-
-  const shareds = new Map<symbol, Uint8Array>()
 
   const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any

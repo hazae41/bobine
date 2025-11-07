@@ -1,9 +1,9 @@
 namespace ed25519 {
 
-  export const name = "9dc9d76c564647d594d980481156129875a7a416dba79e68e3dd75096c70aa2d"
+  export const name = "8b8d7299bd5049bade73956dfc6dc7f4a492665b08c84eb77d3f52a0c2cca775"
 
   // @ts-ignore
-  @external("9dc9d76c564647d594d980481156129875a7a416dba79e68e3dd75096c70aa2d", "login")
+  @external("8b8d7299bd5049bade73956dfc6dc7f4a492665b08c84eb77d3f52a0c2cca775", "login")
   export declare function login(pubkey: externref, signature: externref): externref
 
 }
@@ -11,7 +11,7 @@ namespace ed25519 {
 namespace token {
 
   // @ts-ignore
-  @external("504f52e0f9c1c7606a06539b9a1ae92085240093e3deb9f7764bfbf2f4fe62a3", "transfer")
+  @external("38bbcdc1759d97e021ff33553a4da407612bf1ba1febd9936629837c793d84e3", "transfer")
   export declare function transfer(module: externref, session: externref, target: externref, amount: u64): void
 
 }

@@ -116,7 +116,7 @@ export function $nonce(modulus: usize): u64 {
 }
 
 function $payload(module: ArrayBuffer, nonce: u64): ArrayBuffer {
-  const count = args.count()
+  const count: i32 = <i32>args.count()
 
   const argc = count < 1 ? 0 : count - 1
   const argv = new Array<ArrayBuffer>(argc)
