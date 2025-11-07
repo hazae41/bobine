@@ -11,7 +11,7 @@ namespace ed25519 {
 namespace token {
 
   // @ts-ignore
-  @external("38bbcdc1759d97e021ff33553a4da407612bf1ba1febd9936629837c793d84e3", "transfer")
+  @external("f93a0c6f4013956d22bc809942dc117c2bc33addc4e22807f83c891ddd0dd8c7", "transfer")
   export declare function transfer(module: externref, session: externref, target: externref, amount: u64): void
 
 }
@@ -62,21 +62,6 @@ namespace console {
 
 // main.ts
 
-export function main(pubkey: externref, target: externref, amount: externref, signature: externref): void {
-  const accounts = sharedMemory.save(String.UTF8.encode(ed25519.name))
-
-  const bmethod = String.UTF8.encode("main")
-  const btarget = sharedMemory.load(target)
-  const bamount = sharedMemory.load(amount)
-
-  const bpayload = new ArrayBuffer(bmethod.byteLength + btarget.byteLength + bamount.byteLength)
-
-  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bmethod), 0)
-  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(btarget), bmethod.byteLength)
-  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bamount), bmethod.byteLength + btarget.byteLength)
-
-  const payload = sharedMemory.save(bpayload)
-  const amount64 = new DataView(bamount).getUint64(0, true)
-
-  token.transfer(accounts, ed25519.login(pubkey, payload, signature), target, amount64)
+export function main(module: externref, session: externref, target: externref, amount: externref): void {
+  token.transfer(module, session, target, new DataView(sharedMemory.load(amount)).getUint64(0, true))
 }

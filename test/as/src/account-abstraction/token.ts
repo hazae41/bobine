@@ -84,10 +84,6 @@ namespace dynamic {
   @external("dynamic", "call")
   export declare function call1(module: externref, name: externref, arg0: externref): externref
 
-  // @ts-ignore
-  @external("dynamic", "call")
-  export declare function call2(module: externref, name: externref, arg0: externref, arg1: externref): externref
-
 }
 
 namespace accounts {

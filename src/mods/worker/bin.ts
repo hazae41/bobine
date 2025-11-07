@@ -128,19 +128,6 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         shareds.set(moduleAsSymbol, Uint8Array.fromHex(name))
 
         return moduleAsSymbol
-      },
-      load: (nameAsSymbol: symbol): void => {
-        const moduleAsBytes = shareds.get(nameAsSymbol)
-
-        if (moduleAsBytes == null)
-          throw new Error("Not found")
-
-        const moduleAsString = moduleAsBytes.toHex()
-
-        if (exports[moduleAsString] != null)
-          return
-
-        load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
       }
     }
 
@@ -268,6 +255,9 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
           throw new Error("Not found")
 
         const nameAsString = new TextDecoder().decode(nameAsBytes)
+
+        if (exports[moduleAsString] == null)
+          load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
 
         if (typeof exports[moduleAsString][nameAsString] !== "function")
           throw new Error("Not found")

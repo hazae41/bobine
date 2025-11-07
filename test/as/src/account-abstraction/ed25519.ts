@@ -56,18 +56,6 @@ namespace modules {
   @external("modules", "self")
   export declare function self(): externref
 
-  // @ts-ignore
-  @external("modules", "load")
-  export declare function $load(module: externref): void
-
-  export function load(module: string): externref {
-    const shared = sharedMemory.save(String.UTF8.encode(module))
-
-    $load(shared)
-
-    return shared
-  }
-
 }
 
 namespace bytes {
@@ -94,7 +82,11 @@ namespace dynamic {
 
   // @ts-ignore
   @external("dynamic", "call")
-  export declare function call1(module: externref, name: externref, arg0: externref): externref
+  export declare function call3(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref): externref
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call4(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref, arg3: externref): externref
 
 }
 
@@ -122,14 +114,14 @@ export function verify(session: externref): externref {
   return symbols.denumerize(imodulus)
 }
 
-export function main(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
+export function call1(module: externref, method: externref, arg0: externref, pubkey: externref, signature: externref): void {
   const imodulus = symbols.numerize(pubkey)
 
   const nonce = $nonce(imodulus)
 
   const bmodule = sharedMemory.load(module)
   const bmethod = sharedMemory.load(method)
-  const bpayload = sharedMemory.load(payload)
+  const bpayload = sharedMemory.load(arg0)
 
   const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
 
@@ -152,5 +144,38 @@ export function main(module: externref, method: externref, payload: externref, p
 
   sessions.set(symbols.numerize(session), imodulus)
 
-  dynamic.call1(module, method, payload)
+  dynamic.call3(module, method, modules.self(), session, arg0)
+}
+
+export function call2(module: externref, method: externref, arg0: externref, arg1: externref, pubkey: externref, signature: externref): void {
+  const imodulus = symbols.numerize(pubkey)
+
+  const nonce = $nonce(imodulus)
+
+  const bmodule = sharedMemory.load(module)
+  const bmethod = sharedMemory.load(method)
+  const bpayload = sharedMemory.load(arg0)
+
+  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
+
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload), bmodule.byteLength + bmethod.byteLength)
+
+  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength, nonce, true)
+
+  const message = sharedMemory.save(bmessage)
+
+  const verified = ed25519.verify(pubkey, signature, message)
+
+  if (!verified)
+    throw new Error("Invalid signature")
+
+  nonces.set(imodulus, nonce + 1)
+
+  const session = symbols.create()
+
+  sessions.set(symbols.numerize(session), imodulus)
+
+  dynamic.call4(module, method, modules.self(), session, arg0, arg1)
 }
