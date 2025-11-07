@@ -1,13 +1,3 @@
-namespace ed25519 {
-
-  export const name = "d3899b25520d395912b10e80891627e0c8efa9602597d65d3e27cfdf679706c0"
-
-  // @ts-ignore
-  @external("d3899b25520d395912b10e80891627e0c8efa9602597d65d3e27cfdf679706c0", "login")
-  export declare function login(pubkey: externref, payload: externref, signature: externref): externref
-
-}
-
 namespace token {
 
   // @ts-ignore
