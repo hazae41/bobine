@@ -23,9 +23,10 @@ const wasm = await readFile(exitpoint.replace(/\.ts$/, ".wasm"))
 const body = new FormData()
 
 body.append("0", new Blob([wasm]))
+body.append("1", "main")
 
 for (let i = 0; i < args.length; i++)
-  body.append(`${i + 1}`, new Blob([Uint8Array.fromHex(args[i])]));
+  body.append(`${i + 2}`, new Blob([Uint8Array.fromHex(args[i])]));
 
 await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 

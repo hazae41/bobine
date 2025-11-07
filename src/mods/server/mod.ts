@@ -80,18 +80,26 @@ export function serve(database: Database) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const code = form.get("0")
+        const arg0 = form.get("0")
 
-        if (code == null)
+        if (arg0 == null)
           return Response.json(null, { status: 400 })
-        if (typeof code === "string")
+        if (typeof arg0 === "string")
           return Response.json(null, { status: 400 })
 
-        const wasm = await code.bytes()
+        const arg1 = form.get("1")
+
+        if (arg1 == null)
+          return Response.json(null, { status: 400 })
+        if (typeof arg1 !== "string")
+          return Response.json(null, { status: 400 })
+
+        const wasm = await arg0.bytes()
+        const func = arg1
 
         const args = new Array<Uint8Array<ArrayBuffer>>()
 
-        for (let i = 1; ; i++) {
+        for (let i = 2; ; i++) {
           const entry = form.get(`${i}`)
 
           if (entry == null)
@@ -107,8 +115,9 @@ export function serve(database: Database) {
 
         using stack = new DisposableStack()
 
-        const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
-        const file = `./local/scripts/${name}.wasm`
+        const module = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
+
+        const file = `./local/scripts/${module}.wasm`
 
         mkdirSync(dirname(file), { recursive: true })
 
@@ -137,7 +146,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, wasm, args]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [module, wasm, func, args]))
 
         await future.promise
 
