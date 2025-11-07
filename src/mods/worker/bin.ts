@@ -253,30 +253,33 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       }
     }
 
-    imports["dynamic_functions"] = {}
+    imports["dynamic"] = {
+      call: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
+        const moduleAsBytes = shareds.get(moduleAsSymbol)
+
+        if (moduleAsBytes == null)
+          throw new Error("Not found")
+
+        const moduleAsString = new TextDecoder().decode(moduleAsBytes)
+
+        const nameAsBytes = shareds.get(nameAsSymbol)
+
+        if (nameAsBytes == null)
+          throw new Error("Not found")
+
+        const nameAsString = new TextDecoder().decode(nameAsBytes)
+
+        if (typeof exports[moduleAsString][nameAsString] !== "function")
+          throw new Error("Not found")
+
+        return exports[moduleAsString][nameAsString](...args)
+      }
+    }
 
     const module = new WebAssembly.Module(wasm)
 
     for (const element of WebAssembly.Module.imports(module)) {
-      const { module, name } = element
-
-      if (module === "dynamic_functions") {
-        imports["dynamic_functions"][name] = (symbol: symbol, ...args: any[]) => {
-          const moduleAsBytes = shareds.get(symbol)
-
-          if (moduleAsBytes == null)
-            throw new Error("Not found")
-
-          const moduleAsString = new TextDecoder().decode(moduleAsBytes)
-
-          if (typeof exports[moduleAsString][name] !== "function")
-            throw new Error("Not found")
-
-          return exports[moduleAsString][name](...args)
-        }
-
-        continue
-      }
+      const { module } = element
 
       if (imports[module] != null) {
         // NOOP

@@ -65,12 +65,15 @@ namespace console {
 export function main(pubkey: externref, target: externref, amount: externref, signature: externref): void {
   const accounts = sharedMemory.save(String.UTF8.encode(ed25519.name))
 
+  const bmethod = String.UTF8.encode("main")
   const btarget = sharedMemory.load(target)
   const bamount = sharedMemory.load(amount)
 
-  const bpayload = new ArrayBuffer(btarget.byteLength + bamount.byteLength)
-  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(btarget), 0)
-  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bamount), btarget.byteLength)
+  const bpayload = new ArrayBuffer(bmethod.byteLength + btarget.byteLength + bamount.byteLength)
+
+  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bmethod), 0)
+  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(btarget), bmethod.byteLength)
+  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bamount), bmethod.byteLength + btarget.byteLength)
 
   const payload = sharedMemory.save(bpayload)
   const amount64 = new DataView(bamount).getUint64(0, true)
