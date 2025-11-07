@@ -1,10 +1,10 @@
 namespace ed25519 {
 
-  export const name = "8b8d7299bd5049bade73956dfc6dc7f4a492665b08c84eb77d3f52a0c2cca775"
+  export const name = "d3899b25520d395912b10e80891627e0c8efa9602597d65d3e27cfdf679706c0"
 
   // @ts-ignore
-  @external("8b8d7299bd5049bade73956dfc6dc7f4a492665b08c84eb77d3f52a0c2cca775", "login")
-  export declare function login(pubkey: externref, signature: externref): externref
+  @external("d3899b25520d395912b10e80891627e0c8efa9602597d65d3e27cfdf679706c0", "login")
+  export declare function login(pubkey: externref, payload: externref, signature: externref): externref
 
 }
 
@@ -63,7 +63,17 @@ namespace console {
 // main.ts
 
 export function main(pubkey: externref, target: externref, amount: externref, signature: externref): void {
-  const module = sharedMemory.save(String.UTF8.encode(ed25519.name))
-  const amount64 = new DataView(sharedMemory.load(amount)).getUint64(0, true)
-  token.transfer(module, ed25519.login(pubkey, signature), target, amount64)
+  const accounts = sharedMemory.save(String.UTF8.encode(ed25519.name))
+
+  const btarget = sharedMemory.load(target)
+  const bamount = sharedMemory.load(amount)
+
+  const bpayload = new ArrayBuffer(btarget.byteLength + bamount.byteLength)
+  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(btarget), 0)
+  Uint8Array.wrap(bpayload).set(Uint8Array.wrap(bamount), btarget.byteLength)
+
+  const payload = sharedMemory.save(bpayload)
+  const amount64 = new DataView(bamount).getUint64(0, true)
+
+  token.transfer(accounts, ed25519.login(pubkey, payload, signature), target, amount64)
 }

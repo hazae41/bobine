@@ -90,18 +90,6 @@ namespace ed25519 {
 
 }
 
-namespace args {
-
-  // @ts-ignore: decorator
-  @external("args", "count")
-  export declare function count(): usize
-
-  // @ts-ignore: decorator
-  @external("args", "value")
-  export declare function value(index: usize): externref
-
-}
-
 // account.ts 
 
 const nonces = new Map<usize, u64>()
@@ -115,48 +103,27 @@ export function $nonce(modulus: usize): u64 {
   return nonces.has(modulus) ? nonces.get(modulus) : 0
 }
 
-function $payload(module: ArrayBuffer, nonce: u64): ArrayBuffer {
-  const count: i32 = <i32>args.count()
+function $encode(module: externref, payload: externref, nonce: u64): externref {
+  const bmodule = sharedMemory.load(module)
+  const bpayload = sharedMemory.load(payload)
 
-  const argc = count < 1 ? 0 : count - 1
-  const argv = new Array<ArrayBuffer>(argc)
+  const result = new ArrayBuffer(32 + bpayload.byteLength + 8)
 
-  let argl = 0
+  Uint8Array.wrap(result).set(Uint8Array.wrap(bmodule), 0)
+  Uint8Array.wrap(result).set(Uint8Array.wrap(bpayload), 32)
 
-  for (let i = 0; i < argc; i++) {
-    const arg = args.value(i)
+  new DataView(result).setUint64(32 + bpayload.byteLength, nonce, true)
 
-    argv[i] = sharedMemory.load(arg)
-
-    argl += argv[i].byteLength
-  }
-
-  const payload = new ArrayBuffer(32 + argl + 8)
-
-  Uint8Array.wrap(payload).set(Uint8Array.wrap(module), 0)
-
-  for (let i = 0, offset = 32; i < argc; i++) {
-    const arg = argv[i]
-
-    Uint8Array.wrap(payload).set(Uint8Array.wrap(arg), offset)
-
-    offset += arg.byteLength
-  }
-
-  new DataView(payload).setUint64(32 + argl, nonce, true)
-
-  return payload
+  return sharedMemory.save(result)
 }
 
-export function login(modulus: externref, signature: externref): externref {
+export function login(modulus: externref, payload: externref, signature: externref): externref {
   const imodulus = symbols.numerize(modulus)
 
-  const main = sharedMemory.load(bytes.fromHex(modules.main()))
-
   const nonce = $nonce(imodulus)
-  const payload = $payload(main, nonce)
+  const message = $encode(bytes.fromHex(modules.main()), payload, nonce)
 
-  const verified = ed25519.verify(modulus, signature, sharedMemory.save(payload))
+  const verified = ed25519.verify(modulus, signature, message)
 
   if (!verified)
     throw new Error("Invalid signature")

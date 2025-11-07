@@ -13,14 +13,6 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array
 
   const shareds = new Map<symbol, Uint8Array>()
 
-  const argv = args.map(arg => {
-    const symbol = Symbol()
-
-    shareds.set(symbol, arg)
-
-    return symbol
-  })
-
   const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
@@ -45,20 +37,6 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array
         message += String.fromCharCode(...memory16.subarray(offset, until));
 
         throw new Error(message)
-      }
-    }
-
-    imports["args"] = {
-      count: (): number => {
-        return argv.length
-      },
-      value: (index: number): symbol => {
-        const arg = argv[index]
-
-        if (arg == null)
-          throw new Error("Not found")
-
-        return arg
       }
     }
 
@@ -332,7 +310,13 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array
   if (typeof instance.exports.main !== "function")
     return
 
-  instance.exports.main(...argv)
+  instance.exports.main(...args.map(arg => {
+    const symbol = Symbol()
+
+    shareds.set(symbol, arg)
+
+    return symbol
+  }))
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
