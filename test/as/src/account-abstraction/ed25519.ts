@@ -88,6 +88,10 @@ namespace dynamic {
   @external("dynamic", "call")
   export declare function call4(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref, arg3: externref): externref
 
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call5(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref, arg3: externref, arg4: externref): externref
+
 }
 
 // account.ts 
@@ -154,15 +158,17 @@ export function call2(module: externref, method: externref, arg0: externref, arg
 
   const bmodule = sharedMemory.load(module)
   const bmethod = sharedMemory.load(method)
-  const bpayload = sharedMemory.load(arg0)
+  const bpayload0 = sharedMemory.load(arg0)
+  const bpayload1 = sharedMemory.load(arg1)
 
-  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
+  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + 8)
 
   Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
   Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload), bmodule.byteLength + bmethod.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload0), bmodule.byteLength + bmethod.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload1), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength)
 
-  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength, nonce, true)
+  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength, nonce, true)
 
   const message = sharedMemory.save(bmessage)
 
@@ -178,4 +184,41 @@ export function call2(module: externref, method: externref, arg0: externref, arg
   sessions.set(symbols.numerize(session), imodulus)
 
   dynamic.call4(module, method, modules.self(), session, arg0, arg1)
+}
+
+export function call3(module: externref, method: externref, arg0: externref, arg1: externref, arg2: externref, pubkey: externref, signature: externref): void {
+  const imodulus = symbols.numerize(pubkey)
+
+  const nonce = $nonce(imodulus)
+
+  const bmodule = sharedMemory.load(module)
+  const bmethod = sharedMemory.load(method)
+  const bpayload0 = sharedMemory.load(arg0)
+  const bpayload1 = sharedMemory.load(arg1)
+  const bpayload2 = sharedMemory.load(arg2)
+
+  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + bpayload2.byteLength + 8)
+
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload0), bmodule.byteLength + bmethod.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload1), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload2), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength)
+
+  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + bpayload2.byteLength, nonce, true)
+
+  const message = sharedMemory.save(bmessage)
+
+  const verified = ed25519.verify(pubkey, signature, message)
+
+  if (!verified)
+    throw new Error("Invalid signature")
+
+  nonces.set(imodulus, nonce + 1)
+
+  const session = symbols.create()
+
+  sessions.set(symbols.numerize(session), imodulus)
+
+  dynamic.call5(module, method, modules.self(), session, arg0, arg1, arg2)
 }
