@@ -320,7 +320,13 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
     const [name, wasm, func, args] = params as [string, Uint8Array<ArrayBuffer>, string, Array<Uint8Array<ArrayBuffer>>]
 
+    const start = performance.now()
+
     run(name, wasm, func, args)
+
+    const until = performance.now()
+
+    console.log(`${(until - start).toFixed(2)}ms`)
 
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
