@@ -118,14 +118,14 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       main: (): symbol => {
         const moduleAsSymbol = Symbol()
 
-        shareds.set(moduleAsSymbol, new TextEncoder().encode(main))
+        shareds.set(moduleAsSymbol, Uint8Array.fromHex(main))
 
         return moduleAsSymbol
       },
       self: (): symbol => {
         const moduleAsSymbol = Symbol()
 
-        shareds.set(moduleAsSymbol, new TextEncoder().encode(name))
+        shareds.set(moduleAsSymbol, Uint8Array.fromHex(name))
 
         return moduleAsSymbol
       },
@@ -135,7 +135,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         if (moduleAsBytes == null)
           throw new Error("Not found")
 
-        const moduleAsString = new TextDecoder().decode(moduleAsBytes)
+        const moduleAsString = moduleAsBytes.toHex()
 
         if (exports[moduleAsString] != null)
           return
@@ -260,7 +260,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         if (moduleAsBytes == null)
           throw new Error("Not found")
 
-        const moduleAsString = new TextDecoder().decode(moduleAsBytes)
+        const moduleAsString = moduleAsBytes.toHex()
 
         const nameAsBytes = shareds.get(nameAsSymbol)
 

@@ -90,6 +90,14 @@ namespace ed25519 {
 
 }
 
+namespace dynamic {
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call1(module: externref, name: externref, arg0: externref): externref
+
+}
+
 // account.ts 
 
 const nonces = new Map<usize, u64>()
@@ -103,27 +111,37 @@ export function $nonce(modulus: usize): u64 {
   return nonces.has(modulus) ? nonces.get(modulus) : 0
 }
 
-function $encode(module: externref, payload: externref, nonce: u64): externref {
-  const bmodule = sharedMemory.load(module)
-  const bpayload = sharedMemory.load(payload)
+export function verify(session: externref): externref {
+  const isession = symbols.numerize(session)
 
-  const result = new ArrayBuffer(32 + bpayload.byteLength + 8)
+  if (!sessions.has(isession))
+    throw new Error("Not found")
 
-  Uint8Array.wrap(result).set(Uint8Array.wrap(bmodule), 0)
-  Uint8Array.wrap(result).set(Uint8Array.wrap(bpayload), 32)
+  const imodulus = sessions.get(isession)
 
-  new DataView(result).setUint64(32 + bpayload.byteLength, nonce, true)
-
-  return sharedMemory.save(result)
+  return symbols.denumerize(imodulus)
 }
 
-export function login(modulus: externref, payload: externref, signature: externref): externref {
-  const imodulus = symbols.numerize(modulus)
+export function main(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
+  const imodulus = symbols.numerize(pubkey)
 
   const nonce = $nonce(imodulus)
-  const message = $encode(bytes.fromHex(modules.main()), payload, nonce)
 
-  const verified = ed25519.verify(modulus, signature, message)
+  const bmodule = sharedMemory.load(module)
+  const bmethod = sharedMemory.load(method)
+  const bpayload = sharedMemory.load(payload)
+
+  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
+
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
+  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload), bmodule.byteLength + bmethod.byteLength)
+
+  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength, nonce, true)
+
+  const message = sharedMemory.save(bmessage)
+
+  const verified = ed25519.verify(pubkey, signature, message)
 
   if (!verified)
     throw new Error("Invalid signature")
@@ -134,16 +152,5 @@ export function login(modulus: externref, payload: externref, signature: externr
 
   sessions.set(symbols.numerize(session), imodulus)
 
-  return session
-}
-
-export function verify(session: externref): externref {
-  const isession = symbols.numerize(session)
-
-  if (!sessions.has(isession))
-    throw new Error("Not found")
-
-  const imodulus = sessions.get(isession)
-
-  return symbols.denumerize(imodulus)
+  dynamic.call1(module, method, payload)
 }
