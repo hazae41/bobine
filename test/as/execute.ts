@@ -25,7 +25,7 @@ const body = new FormData()
 body.append("0", new Blob([wasm]))
 
 for (let i = 0; i < args.length; i++)
-  body.append(`${i + 1}`, args[i].startsWith("0x") ? new Blob([Uint8Array.fromHex(args[i].slice(2))]) : args[i]);
+  body.append(`${i + 1}`, new Blob([Uint8Array.fromHex(args[i])]));
 
 await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 

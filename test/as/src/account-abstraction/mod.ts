@@ -62,7 +62,8 @@ namespace console {
 
 // main.ts
 
-export function main(pubkey: externref, signature: externref, target: externref, amount: u64): void {
+export function main(pubkey: externref, target: externref, amount: externref, signature: externref): void {
   const module = sharedMemory.save(String.UTF8.encode(ed25519.name))
-  token.transfer(module, ed25519.login(pubkey, signature), target, amount)
+  const amount64 = new DataView(sharedMemory.load(amount)).getUint64(0, true)
+  token.transfer(module, ed25519.login(pubkey, signature), target, amount64)
 }

@@ -6,8 +6,16 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | Uint8Array<ArrayBuffer>>) {
+function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<Uint8Array<ArrayBuffer>>) {
   const main = name
+
+  const argv = args.map(arg => {
+    const symbol = Symbol()
+
+    shareds.set(symbol, arg)
+
+    return symbol
+  })
 
   const exports: WebAssembly.Imports = {}
 
@@ -37,6 +45,20 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | U
         message += String.fromCharCode(...memory16.subarray(offset, until));
 
         throw new Error(message)
+      }
+    }
+
+    imports["args"] = {
+      count: (): number => {
+        return argv.length
+      },
+      value: (index: number): symbol => {
+        const arg = argv[index]
+
+        if (arg == null)
+          throw new Error("Not found")
+
+        return arg
       }
     }
 
@@ -310,16 +332,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, args: Array<string | U
   if (typeof instance.exports.main !== "function")
     return
 
-  instance.exports.main(...args.map(arg => {
-    if (typeof arg === "string")
-      return arg
-
-    const symbol = Symbol()
-
-    shareds.set(symbol, arg)
-
-    return symbol
-  }))
+  instance.exports.main(...argv)
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -328,7 +341,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [name, wasm, args] = params as [string, Uint8Array<ArrayBuffer>, Array<string | Uint8Array<ArrayBuffer>>]
+    const [name, wasm, args] = params as [string, Uint8Array<ArrayBuffer>, Array<Uint8Array<ArrayBuffer>>]
 
     run(name, wasm, args)
 

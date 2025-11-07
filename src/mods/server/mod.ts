@@ -89,7 +89,7 @@ export function serve(database: Database) {
 
         const wasm = await code.bytes()
 
-        const args = new Array<string | Uint8Array<ArrayBuffer>>()
+        const args = new Array<Uint8Array<ArrayBuffer>>()
 
         for (let i = 1; ; i++) {
           const entry = form.get(`${i}`)
@@ -98,9 +98,9 @@ export function serve(database: Database) {
             break
 
           if (typeof entry === "string")
-            args.push(entry)
-          else
-            args.push(await entry.bytes())
+            continue
+
+          args.push(await entry.bytes())
 
           continue
         }

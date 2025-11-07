@@ -114,7 +114,9 @@ export function address(module: externref, modulus: externref): externref {
   payload.set(bmodule, 0)
   payload.set(bmodulus, bmodule.length)
 
-  return sha256.digest(sharedMemory.save(payload.buffer))
+  const digest = sharedMemory.load(sha256.digest(sharedMemory.save(payload.buffer)))
+
+  return sharedMemory.save(digest.slice(12))
 }
 
 export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
