@@ -78,11 +78,23 @@ namespace bytes {
 
 }
 
+namespace dynamic {
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call1(module: externref, name: externref, arg0: externref): externref
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call2(module: externref, name: externref, arg0: externref, arg1: externref): externref
+
+}
+
 namespace accounts {
 
-  // @ts-ignore: decorator
-  @external("dynamic_functions", "verify")
-  export declare function verify(module: externref, session: externref): externref
+  export function verify(module: externref, session: externref): externref {
+    return dynamic.call1(module, sharedMemory.save(String.UTF8.encode("verify")), session)
+  }
 
 }
 

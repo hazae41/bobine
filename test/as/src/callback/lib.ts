@@ -1,6 +1,10 @@
-// @ts-ignore
-@external("dynamic_functions", "log")
-export declare function log(module: externref, message: externref): void
+namespace dynamic {
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call1(module: externref, name: externref, arg0: externref): externref
+
+}
 
 namespace sharedMemory {
 
@@ -35,5 +39,5 @@ namespace sharedMemory {
 }
 
 export function logmeback(module: externref): void {
-  log(module, sharedMemory.save(String.UTF8.encode("Hello from AssemblyScript!")))
+  dynamic.call1(module, sharedMemory.save(String.UTF8.encode("log")), sharedMemory.save(String.UTF8.encode("Hello from AssemblyScript!")))
 }

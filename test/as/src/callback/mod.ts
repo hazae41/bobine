@@ -1,5 +1,5 @@
 // @ts-ignore
-@external("473dc9c2c978e577a0f0b119f13404e80dafd9f7883c010fa494faa43849d4ad", "logmeback")
+@external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "logmeback")
 declare function logmeback(module: externref): void
 
 namespace sharedMemory {

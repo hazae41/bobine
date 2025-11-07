@@ -70,6 +70,14 @@ namespace modules {
 
 }
 
+namespace dynamic {
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call1(module: externref, name: externref, arg0: externref): externref
+
+}
+
 class Library {
 
   constructor(
@@ -87,16 +95,8 @@ class Library {
     const module = symbols.denumerize(this.pointer)
     const buffer = sharedMemory.save(String.UTF8.encode(message))
 
-    Library.log(module, buffer)
+    dynamic.call1(module, sharedMemory.save(String.UTF8.encode("log")), buffer)
   }
-
-}
-
-namespace Library {
-
-  // @ts-ignore
-  @external("dynamic_functions", "log")
-  export declare function log(module: externref, message: externref): void
 
 }
 
