@@ -321,14 +321,14 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
           }
 
           if (typeof arg === "symbol") {
-            const subbytes = datas.get(arg)
+            const bytes = datas.get(arg)
 
-            if (subbytes == null)
+            if (bytes == null)
               throw new Error("Not found")
 
             cursor.writeUint8OrThrow(3)
-            cursor.writeUint32OrThrow(subbytes.length)
-            cursor.writeOrThrow(subbytes)
+            cursor.writeUint32OrThrow(bytes.length)
+            cursor.writeOrThrow(bytes)
             continue
           }
 
