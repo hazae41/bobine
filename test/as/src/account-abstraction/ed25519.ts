@@ -14,7 +14,7 @@ namespace symbols {
 
 }
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -127,9 +127,9 @@ export function call(module: externref, method: externref, payload: externref, p
 
   const nonce = $nonce(imodulus)
 
-  const bmodule = sharedMemory.load(module)
-  const bmethod = sharedMemory.load(method)
-  const bpayload = sharedMemory.load(payload)
+  const bmodule = blobs.load(module)
+  const bmethod = blobs.load(method)
+  const bpayload = blobs.load(payload)
 
   const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
 
@@ -139,7 +139,7 @@ export function call(module: externref, method: externref, payload: externref, p
 
   new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength, nonce, true)
 
-  const message = sharedMemory.save(bmessage)
+  const message = blobs.save(bmessage)
 
   const verified = ed25519.verify(pubkey, signature, message)
 

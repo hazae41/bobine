@@ -2,7 +2,7 @@
 @external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "logmeback")
 declare function logmeback(module: externref): void
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -41,7 +41,7 @@ namespace console {
   declare function $log(message: externref): void
 
   export function log(message: string): void {
-    $log(sharedMemory.save(String.UTF8.encode(message)))
+    $log(blobs.save(String.UTF8.encode(message)))
   }
 
 }
@@ -61,7 +61,7 @@ namespace modules {
   export declare function $load(module: externref): void
 
   export function load(module: string): externref {
-    const shared = sharedMemory.save(String.UTF8.encode(module))
+    const shared = blobs.save(String.UTF8.encode(module))
 
     $load(shared)
 
@@ -75,5 +75,5 @@ export function main(): void {
 }
 
 export function log(message: externref): void {
-  console.log(String.UTF8.decode(sharedMemory.load(message)));
+  console.log(String.UTF8.decode(blobs.load(message)));
 }

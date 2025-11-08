@@ -1,4 +1,4 @@
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -37,7 +37,7 @@ namespace console {
   export declare function $log(message: externref): void
 
   export function log(message: string): void {
-    $log(sharedMemory.save(String.UTF8.encode(message)))
+    $log(blobs.save(String.UTF8.encode(message)))
   }
 
 }
@@ -64,7 +64,7 @@ namespace sha256 {
 }
 
 export function main(): void {
-  const data = sharedMemory.save(String.UTF8.encode("hello world"))
+  const data = blobs.save(String.UTF8.encode("hello world"))
   const hash = sha256.digest(data)
 
   console.$log(bytes.toHex(hash))

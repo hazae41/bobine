@@ -6,7 +6,7 @@ namespace dynamic {
 
 }
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -39,5 +39,5 @@ namespace sharedMemory {
 }
 
 export function logmeback(module: externref): void {
-  dynamic.call1(module, sharedMemory.save(String.UTF8.encode("log")), sharedMemory.save(String.UTF8.encode("Hello from AssemblyScript!")))
+  dynamic.call1(module, blobs.save(String.UTF8.encode("log")), blobs.save(String.UTF8.encode("Hello from AssemblyScript!")))
 }

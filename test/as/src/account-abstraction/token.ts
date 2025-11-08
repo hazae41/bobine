@@ -14,7 +14,7 @@ namespace symbols {
 
 }
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -53,7 +53,7 @@ namespace console {
   declare function $log(message: externref): void
 
   export function log(message: string): void {
-    $log(sharedMemory.save(String.UTF8.encode(message)))
+    $log(blobs.save(String.UTF8.encode(message)))
   }
 
 }
@@ -89,7 +89,7 @@ namespace dynamic {
 namespace accounts {
 
   export function verify(module: externref, session: externref): externref {
-    return dynamic.call1(module, sharedMemory.save(String.UTF8.encode("verify")), session)
+    return dynamic.call1(module, blobs.save(String.UTF8.encode("verify")), session)
   }
 
 }
@@ -115,16 +115,16 @@ export function $mint(address: usize, amount: usize): void {
 }
 
 export function address(module: externref, modulus: externref): externref {
-  const bmodule = Uint8Array.wrap(sharedMemory.load(module))
-  const bmodulus = Uint8Array.wrap(sharedMemory.load(modulus))
+  const bmodule = Uint8Array.wrap(blobs.load(module))
+  const bmodulus = Uint8Array.wrap(blobs.load(modulus))
 
   const payload = new Uint8Array(bmodule.length + bmodulus.length)
   payload.set(bmodule, 0)
   payload.set(bmodulus, bmodule.length)
 
-  const digest = sharedMemory.load(sha256.digest(sharedMemory.save(payload.buffer)))
+  const digest = blobs.load(sha256.digest(blobs.save(payload.buffer)))
 
-  return sharedMemory.save(digest.slice(12))
+  return blobs.save(digest.slice(12))
 }
 
 export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
@@ -144,5 +144,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(isender, sender64 - amount)
   balances.set(itarget, target64 + amount)
 
-  console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(target)))}`)
+  console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(bytes.toHex(target)))}`)
 }

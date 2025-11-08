@@ -14,7 +14,7 @@ namespace symbols {
 
 }
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -61,7 +61,7 @@ namespace modules {
   export declare function $load(module: externref): void
 
   export function load(module: string): externref {
-    const shared = sharedMemory.save(String.UTF8.encode(module))
+    const shared = blobs.save(String.UTF8.encode(module))
 
     $load(shared)
 
@@ -93,9 +93,9 @@ class Library {
 
   log(message: string): void {
     const module = symbols.denumerize(this.pointer)
-    const buffer = sharedMemory.save(String.UTF8.encode(message))
+    const buffer = blobs.save(String.UTF8.encode(message))
 
-    dynamic.call1(module, sharedMemory.save(String.UTF8.encode("log")), buffer)
+    dynamic.call1(module, blobs.save(String.UTF8.encode("log")), buffer)
   }
 
 }

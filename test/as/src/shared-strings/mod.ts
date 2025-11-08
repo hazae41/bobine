@@ -2,7 +2,7 @@
 @external("933f18d8b86a6e14fb4f7290a1e4c502b1b67626915e262aec37eec0a6d40012", "log")
 declare function lib_log(message: externref): void
 
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -35,5 +35,5 @@ namespace sharedMemory {
 }
 
 export function main(): void {
-  lib_log(sharedMemory.save(String.UTF8.encode("Hello from AssemblyScript!")));
+  lib_log(blobs.save(String.UTF8.encode("Hello from AssemblyScript!")));
 }

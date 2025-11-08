@@ -1,4 +1,4 @@
-namespace sharedMemory {
+namespace blobs {
 
   // @ts-ignore: decorator
   @external("shared_memory", "save")
@@ -37,7 +37,7 @@ namespace console {
   export declare function $log(message: externref): void
 
   export function log(message: string): void {
-    $log(sharedMemory.save(String.UTF8.encode(message)))
+    $log(blobs.save(String.UTF8.encode(message)))
   }
 
 }
