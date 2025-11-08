@@ -17,7 +17,13 @@ const [entrypoint, ...args] = process.argv.slice(2)
 
 const exitpoint = join("./bin", relative("./src", entrypoint))
 
+const start = performance.now()
+
 execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --enable reference-types`)
+
+const end = performance.now()
+
+console.log(`Compiled in ${(end - start).toFixed(2)}ms`)
 
 const wasm = await readFile(exitpoint.replace(/\.ts$/, ".wasm"))
 const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
@@ -61,10 +67,12 @@ body.append("mod0", new Blob([wasm]))
 
 console.log(name)
 
-const start = performance.now()
+{
+  const start = performance.now()
 
-await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
+  await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 
-const until = performance.now()
+  const until = performance.now()
 
-console.log(`${(until - start).toFixed(2)}ms`)
+  console.log(`Executed in ${(until - start).toFixed(2)}ms`)
+}
