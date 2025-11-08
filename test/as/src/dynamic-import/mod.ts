@@ -46,27 +46,15 @@ namespace blobs {
 
 }
 
-namespace modules {
+namespace bytes {
 
-  // @ts-ignore
-  @external("modules", "main")
-  export declare function main(): externref
+  // @ts-ignore: decorator
+  @external("bytes", "to_hex")
+  export declare function toHex(bytes: externref): externref
 
-  // @ts-ignore
-  @external("modules", "self")
-  export declare function self(): externref
-
-  // @ts-ignore
-  @external("modules", "load")
-  export declare function $load(module: externref): void
-
-  export function load(module: string): externref {
-    const shared = blobs.save(String.UTF8.encode(module))
-
-    $load(shared)
-
-    return shared
-  }
+  // @ts-ignore: decorator
+  @external("bytes", "from_hex")
+  export declare function fromHex(hex: externref): externref
 
 }
 
@@ -85,7 +73,7 @@ class Library {
   ) { }
 
   static invoke(name: string): Library {
-    const module = modules.load(name)
+    const module = bytes.fromHex(blobs.save(String.UTF8.encode(name)))
     const pointer = symbols.numerize(module)
 
     return new Library(pointer)
@@ -101,7 +89,7 @@ class Library {
 }
 
 export function main(): void {
-  const library = Library.invoke("80862d2e7f92a1e8405a7c07e23cabd49d34d9a80a3204830f336efe352e1174")
+  const library = Library.invoke("25fbe28a6ab6dfc0ba3603ae3082fc66ccf05bd473e8ecaded1d966c7692c9ef")
 
   library.log("hello")
   library.log("world")
