@@ -310,13 +310,13 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         for (const arg of args) {
           if (typeof arg === "number") {
             cursor.writeUint8OrThrow(1)
-            cursor.writeUint32OrThrow(arg)
+            cursor.writeUint32OrThrow(arg, true)
             continue
           }
 
           if (typeof arg === "bigint") {
             cursor.writeUint8OrThrow(2)
-            cursor.writeUint64OrThrow(arg)
+            cursor.writeUint64OrThrow(arg, true)
             continue
           }
 
@@ -327,7 +327,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
               throw new Error("Not found")
 
             cursor.writeUint8OrThrow(3)
-            cursor.writeUint32OrThrow(bytes.length)
+            cursor.writeUint32OrThrow(bytes.length, true)
             cursor.writeOrThrow(bytes)
             continue
           }
@@ -355,17 +355,17 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
           const type = cursor.readUint8OrThrow()
 
           if (type === 1) {
-            args.push(cursor.readUint32OrThrow())
+            args.push(cursor.readUint32OrThrow(true))
             continue
           }
 
           if (type === 2) {
-            args.push(cursor.readUint64OrThrow())
+            args.push(cursor.readUint64OrThrow(true))
             continue
           }
 
           if (type === 3) {
-            const size = cursor.readUint32OrThrow()
+            const size = cursor.readUint32OrThrow(true)
             const data = cursor.readOrThrow(size)
 
             const symbol = Symbol()

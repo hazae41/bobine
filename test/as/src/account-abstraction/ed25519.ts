@@ -122,7 +122,7 @@ export function verify(session: externref): externref {
   return symbols.denumerize(imodulus)
 }
 
-export function call(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
+export function main(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
   const imodulus = symbols.numerize(pubkey)
 
   const nonce = $nonce(imodulus)
