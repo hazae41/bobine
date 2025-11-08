@@ -67,4 +67,4 @@ await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 
 const until = performance.now()
 
-console.log(`Executed in ${until - start}ms`)
+console.log(`${(until - start).toFixed(2)}ms`)
