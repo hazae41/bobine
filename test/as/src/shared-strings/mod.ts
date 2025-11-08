@@ -5,15 +5,15 @@ declare function lib_log(message: externref): void
 namespace blobs {
 
   // @ts-ignore: decorator
-  @external("shared_memory", "save")
+  @external("blobs", "save")
   export declare function $save(offset: usize, length: usize): externref
 
   // @ts-ignore: decorator
-  @external("shared_memory", "size")
+  @external("blobs", "size")
   export declare function $size(reference: externref): usize
 
   // @ts-ignore: decorator
-  @external("shared_memory", "load")
+  @external("blobs", "load")
   export declare function $load(reference: externref, offset: usize): void
 
   export function save(buffer: ArrayBuffer): externref {
