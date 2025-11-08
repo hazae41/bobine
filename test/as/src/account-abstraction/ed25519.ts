@@ -82,7 +82,7 @@ namespace dynamic {
 
   // @ts-ignore
   @external("dynamic", "call_and_unpack")
-  export declare function callpack2(module: externref, name: externref, arg0: externref, arg1: externref, pack2: externref): externref
+  export declare function callpack3(module: externref, name: externref, arg0: externref, arg1: externref, pack2: externref): externref
 
 }
 
@@ -140,5 +140,5 @@ export function call(module: externref, method: externref, payload: externref, p
 
   sessions.set(symbols.numerize(session), imodulus)
 
-  dynamic.callpack2(module, method, modules.self(), session, payload)
+  dynamic.callpack3(module, method, modules.self(), session, payload)
 }

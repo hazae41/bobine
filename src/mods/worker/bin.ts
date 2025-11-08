@@ -240,6 +240,55 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       }
     }
 
+    const packs = new Map<symbol, Array<number | bigint | symbol>>()
+
+    imports["packs"] = {
+      pack: (...args: Array<number | bigint | symbol>): symbol => {
+        const symbol = Symbol()
+
+        packs.set(symbol, args)
+
+        return symbol
+      },
+      parse: (bytesAsSymbol: symbol): symbol => {
+        const bytesAsBytes = shareds.get(bytesAsSymbol)
+
+        if (bytesAsBytes == null)
+          throw new Error("Not found")
+
+        const bytesAsString = new TextDecoder().decode(bytesAsBytes)
+
+        const args = JSON.parse(bytesAsString, (_key, value) => {
+          if (typeof value !== "object")
+            return value
+          if (typeof value.type !== "string")
+            return value
+
+          if (value.type === "number")
+            return Number(value.value)
+          if (value.type === "bigint")
+            return BigInt(value.value)
+
+          if (value.type !== "bytes")
+            return
+
+          const bytes = Uint8Array.fromHex(value.value)
+
+          const symbol = Symbol()
+
+          shareds.set(symbol, bytes)
+
+          return symbol
+        }) as Array<number | bigint | symbol>
+
+        const symbol = Symbol()
+
+        packs.set(symbol, args)
+
+        return symbol
+      }
+    }
+
     imports["dynamic"] = {
       call: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
         const moduleAsBytes = shareds.get(moduleAsSymbol)
@@ -285,42 +334,33 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         if (typeof exports[moduleAsString][nameAsString] !== "function")
           throw new Error("Not found")
 
-        const packAsSymbol = args.pop()
+        const unpack = (packeds: Array<any>) => {
+          const unpackeds = new Array<any>()
 
-        if (packAsSymbol == null)
-          throw new Error("Not found")
+          const unpack = (packeds: Array<any>) => {
+            for (const arg of packeds) {
+              if (typeof arg !== "symbol") {
+                unpackeds.push(arg)
+                continue
+              }
 
-        const packAsBytes = shareds.get(packAsSymbol)
+              const subargs = packs.get(arg)
 
-        if (packAsBytes == null)
-          throw new Error("Not found")
+              if (subargs == null) {
+                unpackeds.push(arg)
+                continue
+              }
 
-        const packAsString = new TextDecoder().decode(packAsBytes)
+              unpack(subargs)
+            }
+          }
 
-        args.push(...JSON.parse(packAsString, (_key, value) => {
-          if (typeof value !== "object")
-            return value
-          if (typeof value.type !== "string")
-            return value
+          unpack(packeds)
 
-          if (value.type === "number")
-            return Number(value.value)
-          if (value.type === "bigint")
-            return BigInt(value.value)
+          return unpackeds
+        }
 
-          if (value.type !== "bytes")
-            return
-
-          const bytes = Uint8Array.fromHex(value.value)
-
-          const symbol = Symbol()
-
-          shareds.set(symbol, bytes)
-
-          return symbol
-        }))
-
-        return exports[moduleAsString][nameAsString](...args)
+        return exports[moduleAsString][nameAsString](...unpack(args))
       }
     }
 
