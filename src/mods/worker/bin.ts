@@ -7,7 +7,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function run(name: string, func: string, args: Array<Uint8Array<ArrayBuffer>>, mods: Map<string, Uint8Array<ArrayBuffer>>) {
+function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Map<string, Uint8Array<ArrayBuffer>>) {
   const main = name
 
   const exports: WebAssembly.Imports = {}
@@ -492,13 +492,39 @@ function run(name: string, func: string, args: Array<Uint8Array<ArrayBuffer>>, m
   if (typeof instance.exports[func] !== "function")
     return
 
-  instance.exports[func](...args.map(arg => {
-    const symbol = Symbol()
+  const argv = new Array<number | bigint | symbol>()
 
-    blobs.set(symbol, arg)
+  const cursor = new Cursor(args)
 
-    return symbol
-  }))
+  while (cursor.offset < cursor.length) {
+    const type = cursor.readUint8OrThrow()
+
+    if (type === 1) {
+      argv.push(cursor.readUint32OrThrow(true))
+      continue
+    }
+
+    if (type === 2) {
+      argv.push(cursor.readUint64OrThrow(true))
+      continue
+    }
+
+    if (type === 3) {
+      const size = cursor.readUint32OrThrow(true)
+      const data = cursor.readOrThrow(size)
+
+      const symbol = Symbol()
+
+      blobs.set(symbol, data)
+
+      argv.push(symbol)
+      continue
+    }
+
+    throw new Error("Unknown type")
+  }
+
+  instance.exports[func](...argv)
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -507,7 +533,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [name, func, args, mods] = params as [string, string, Array<Uint8Array<ArrayBuffer>>, Map<string, Uint8Array<ArrayBuffer>>]
+    const [name, func, args, mods] = params as [string, string, Uint8Array<ArrayBuffer>, Map<string, Uint8Array<ArrayBuffer>>]
 
     const start = performance.now()
 

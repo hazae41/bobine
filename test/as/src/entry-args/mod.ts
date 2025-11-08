@@ -42,8 +42,6 @@ namespace console {
 
 }
 
-export function main(bytes: externref, number: usize): usize {
+export function main(bytes: externref): void {
   console.$log(bytes)
-  console.log(`${number}`)
-  return number
 }

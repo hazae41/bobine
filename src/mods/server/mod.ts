@@ -94,21 +94,12 @@ export function serve(database: Database) {
         if (typeof func !== "string")
           return Response.json(null, { status: 400 })
 
-        const args = new Array<Uint8Array<ArrayBuffer>>()
+        const args = form.get("args")
 
-        for (let i = 0; ; i++) {
-          const entry = form.get(`arg${i}`)
-
-          if (entry == null)
-            break
-
-          if (typeof entry === "string")
-            continue
-
-          args.push(await entry.bytes())
-
-          continue
-        }
+        if (args == null)
+          return Response.json(null, { status: 400 })
+        if (typeof args === "string")
+          return Response.json(null, { status: 400 })
 
         const mods = new Map<string, Uint8Array<ArrayBuffer>>()
 
@@ -159,7 +150,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, args, mods]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, await args.bytes(), mods]))
 
         await future.promise
 

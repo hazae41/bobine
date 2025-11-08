@@ -1,3 +1,4 @@
+import { Cursor } from "@hazae41/cursor";
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
@@ -26,8 +27,35 @@ const body = new FormData()
 body.append("name", hash)
 body.append("func", "main")
 
-for (let i = 0; i < args.length; i++)
-  body.append(`arg${i}`, new Blob([Uint8Array.fromHex(args[i])]));
+let length = 0
+
+for (const arg of args) {
+  const bytes = Uint8Array.fromHex(arg)
+
+  if (bytes == null)
+    throw new Error("Not found")
+
+  length += 1 + 4 + bytes.length
+  continue
+}
+
+const bytes = new Uint8Array(length)
+
+const cursor = new Cursor(bytes)
+
+for (const arg of args) {
+  const bytes = Uint8Array.fromHex(arg)
+
+  if (bytes == null)
+    throw new Error("Not found")
+
+  cursor.writeUint8OrThrow(3)
+  cursor.writeUint32OrThrow(bytes.length, true)
+  cursor.writeOrThrow(bytes)
+  continue
+}
+
+body.append("args", new Blob([bytes]))
 
 body.append("mod0", new Blob([wasm]))
 
