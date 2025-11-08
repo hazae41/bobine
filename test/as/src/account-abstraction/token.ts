@@ -127,7 +127,7 @@ export function address(module: externref, modulus: externref): externref {
   return sharedMemory.save(digest.slice(12))
 }
 
-export function transfer(module: externref, session: externref, target: externref, amount: externref): void {
+export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address(module, accounts.verify(module, session))
 
   const isender = symbols.numerize(sender)
@@ -138,13 +138,11 @@ export function transfer(module: externref, session: externref, target: externre
   const sender64 = $balance(isender)
   const target64 = $balance(itarget)
 
-  const amount64 = new DataView(sharedMemory.load(amount)).getUint64(0, true)
-
-  if (sender64 < amount64)
+  if (sender64 < amount)
     throw new Error("Insufficient balance")
 
-  balances.set(isender, sender64 - amount64)
-  balances.set(itarget, target64 + amount64)
+  balances.set(isender, sender64 - amount)
+  balances.set(itarget, target64 + amount)
 
-  console.log(`Transferred ${amount64.toString()} tokens from 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(target)))}`)
+  console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(sharedMemory.load(bytes.toHex(target)))}`)
 }

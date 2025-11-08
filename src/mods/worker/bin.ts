@@ -263,6 +263,64 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
           throw new Error("Not found")
 
         return exports[moduleAsString][nameAsString](...args)
+      },
+      call_and_unpack: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
+        const moduleAsBytes = shareds.get(moduleAsSymbol)
+
+        if (moduleAsBytes == null)
+          throw new Error("Not found")
+
+        const moduleAsString = moduleAsBytes.toHex()
+
+        const nameAsBytes = shareds.get(nameAsSymbol)
+
+        if (nameAsBytes == null)
+          throw new Error("Not found")
+
+        const nameAsString = new TextDecoder().decode(nameAsBytes)
+
+        if (exports[moduleAsString] == null)
+          load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
+
+        if (typeof exports[moduleAsString][nameAsString] !== "function")
+          throw new Error("Not found")
+
+        const packAsSymbol = args.pop()
+
+        if (packAsSymbol == null)
+          throw new Error("Not found")
+
+        const packAsBytes = shareds.get(packAsSymbol)
+
+        if (packAsBytes == null)
+          throw new Error("Not found")
+
+        const packAsString = new TextDecoder().decode(packAsBytes)
+
+        args.push(...JSON.parse(packAsString, (_key, value) => {
+          if (typeof value !== "object")
+            return value
+          if (typeof value.type !== "string")
+            return value
+
+          if (value.type === "number")
+            return Number(value.value)
+          if (value.type === "bigint")
+            return BigInt(value.value)
+
+          if (value.type !== "bytes")
+            return
+
+          const bytes = Uint8Array.fromHex(value.value)
+
+          const symbol = Symbol()
+
+          shareds.set(symbol, bytes)
+
+          return symbol
+        }))
+
+        return exports[moduleAsString][nameAsString](...args)
       }
     }
 

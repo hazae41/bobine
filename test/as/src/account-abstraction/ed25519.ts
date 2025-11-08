@@ -81,16 +81,8 @@ namespace ed25519 {
 namespace dynamic {
 
   // @ts-ignore
-  @external("dynamic", "call")
-  export declare function call3(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref): externref
-
-  // @ts-ignore
-  @external("dynamic", "call")
-  export declare function call4(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref, arg3: externref): externref
-
-  // @ts-ignore
-  @external("dynamic", "call")
-  export declare function call5(module: externref, name: externref, arg0: externref, arg1: externref, arg2: externref, arg3: externref, arg4: externref): externref
+  @external("dynamic", "call_and_unpack")
+  export declare function callpack2(module: externref, name: externref, arg0: externref, arg1: externref, pack2: externref): externref
 
 }
 
@@ -118,14 +110,14 @@ export function verify(session: externref): externref {
   return symbols.denumerize(imodulus)
 }
 
-export function call1(module: externref, method: externref, arg0: externref, pubkey: externref, signature: externref): void {
+export function call(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
   const imodulus = symbols.numerize(pubkey)
 
   const nonce = $nonce(imodulus)
 
   const bmodule = sharedMemory.load(module)
   const bmethod = sharedMemory.load(method)
-  const bpayload = sharedMemory.load(arg0)
+  const bpayload = sharedMemory.load(payload)
 
   const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
 
@@ -148,77 +140,5 @@ export function call1(module: externref, method: externref, arg0: externref, pub
 
   sessions.set(symbols.numerize(session), imodulus)
 
-  dynamic.call3(module, method, modules.self(), session, arg0)
-}
-
-export function call2(module: externref, method: externref, arg0: externref, arg1: externref, pubkey: externref, signature: externref): void {
-  const imodulus = symbols.numerize(pubkey)
-
-  const nonce = $nonce(imodulus)
-
-  const bmodule = sharedMemory.load(module)
-  const bmethod = sharedMemory.load(method)
-  const bpayload0 = sharedMemory.load(arg0)
-  const bpayload1 = sharedMemory.load(arg1)
-
-  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + 8)
-
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload0), bmodule.byteLength + bmethod.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload1), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength)
-
-  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength, nonce, true)
-
-  const message = sharedMemory.save(bmessage)
-
-  const verified = ed25519.verify(pubkey, signature, message)
-
-  if (!verified)
-    throw new Error("Invalid signature")
-
-  nonces.set(imodulus, nonce + 1)
-
-  const session = symbols.create()
-
-  sessions.set(symbols.numerize(session), imodulus)
-
-  dynamic.call4(module, method, modules.self(), session, arg0, arg1)
-}
-
-export function call3(module: externref, method: externref, arg0: externref, arg1: externref, arg2: externref, pubkey: externref, signature: externref): void {
-  const imodulus = symbols.numerize(pubkey)
-
-  const nonce = $nonce(imodulus)
-
-  const bmodule = sharedMemory.load(module)
-  const bmethod = sharedMemory.load(method)
-  const bpayload0 = sharedMemory.load(arg0)
-  const bpayload1 = sharedMemory.load(arg1)
-  const bpayload2 = sharedMemory.load(arg2)
-
-  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + bpayload2.byteLength + 8)
-
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload0), bmodule.byteLength + bmethod.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload1), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload2), bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength)
-
-  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload0.byteLength + bpayload1.byteLength + bpayload2.byteLength, nonce, true)
-
-  const message = sharedMemory.save(bmessage)
-
-  const verified = ed25519.verify(pubkey, signature, message)
-
-  if (!verified)
-    throw new Error("Invalid signature")
-
-  nonces.set(imodulus, nonce + 1)
-
-  const session = symbols.create()
-
-  sessions.set(symbols.numerize(session), imodulus)
-
-  dynamic.call5(module, method, modules.self(), session, arg0, arg1, arg2)
+  dynamic.callpack2(module, method, modules.self(), session, payload)
 }
