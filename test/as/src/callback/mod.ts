@@ -56,18 +56,6 @@ namespace modules {
   @external("modules", "self")
   export declare function self(): externref
 
-  // @ts-ignore
-  @external("modules", "load")
-  export declare function $load(module: externref): void
-
-  export function load(module: string): externref {
-    const shared = blobs.save(String.UTF8.encode(module))
-
-    $load(shared)
-
-    return shared
-  }
-
 }
 
 export function main(): void {
