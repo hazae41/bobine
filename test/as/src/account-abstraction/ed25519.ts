@@ -78,11 +78,23 @@ namespace ed25519 {
 
 }
 
+namespace packs {
+
+  // @ts-ignore
+  @external("packs", "decode")
+  export declare function decode(bytes: externref): externref
+
+}
+
 namespace dynamic {
 
   // @ts-ignore
-  @external("dynamic", "call_and_unpack")
-  export declare function callpack3(module: externref, name: externref, arg0: externref, arg1: externref, pack2: externref): externref
+  @external("dynamic", "rest")
+  export declare function rest(pack: externref): externref
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call3(module: externref, name: externref, arg0: externref, arg1: externref, pack2: externref): externref
 
 }
 
@@ -140,5 +152,5 @@ export function call(module: externref, method: externref, payload: externref, p
 
   sessions.set(symbols.numerize(session), imodulus)
 
-  dynamic.callpack3(module, method, modules.self(), session, payload)
+  dynamic.call3(module, method, modules.self(), session, dynamic.rest(packs.decode(payload)))
 }

@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { readFileSync } from "node:fs";
 
@@ -11,7 +12,8 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
   const exports: WebAssembly.Imports = {}
 
-  const shareds = new Map<symbol, Uint8Array>()
+  const datas = new Map<symbol, Uint8Array>()
+  const packs = new Map<symbol, Array<number | bigint | symbol>>()
 
   const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -42,7 +44,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
     imports["console"] = {
       log: (messageAsSymbol: symbol): void => {
-        const messageAsBytes = shareds.get(messageAsSymbol)
+        const messageAsBytes = datas.get(messageAsSymbol)
 
         if (messageAsBytes == null)
           throw new Error("Not found")
@@ -59,12 +61,12 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
         const slice = new Uint8Array(memory.buffer, offset, length)
 
-        shareds.set(symbol, slice.slice())
+        datas.set(symbol, slice.slice())
 
         return symbol
       },
       size: (symbol: symbol): number => {
-        const bytes = shareds.get(symbol)
+        const bytes = datas.get(symbol)
 
         if (bytes == null)
           throw new Error("Not found")
@@ -74,7 +76,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       load: (symbol: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = shareds.get(symbol)
+        const bytes = datas.get(symbol)
 
         if (bytes == null)
           throw new Error("Not found")
@@ -118,14 +120,14 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       main: (): symbol => {
         const moduleAsSymbol = Symbol()
 
-        shareds.set(moduleAsSymbol, Uint8Array.fromHex(main))
+        datas.set(moduleAsSymbol, Uint8Array.fromHex(main))
 
         return moduleAsSymbol
       },
       self: (): symbol => {
         const moduleAsSymbol = Symbol()
 
-        shareds.set(moduleAsSymbol, Uint8Array.fromHex(name))
+        datas.set(moduleAsSymbol, Uint8Array.fromHex(name))
 
         return moduleAsSymbol
       }
@@ -133,7 +135,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
     imports["bytes"] = {
       from_hex: (textAsSymbol: symbol): symbol => {
-        const textAsBytes = shareds.get(textAsSymbol)
+        const textAsBytes = datas.get(textAsSymbol)
 
         if (textAsBytes == null)
           throw new Error("Not found")
@@ -142,12 +144,12 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
         const symbol = Symbol()
 
-        shareds.set(symbol, Uint8Array.fromHex(textAsString))
+        datas.set(symbol, Uint8Array.fromHex(textAsString))
 
         return symbol
       },
       from_base64: (textAsSymbol: symbol): symbol => {
-        const textAsBytes = shareds.get(textAsSymbol)
+        const textAsBytes = datas.get(textAsSymbol)
 
         if (textAsBytes == null)
           throw new Error("Not found")
@@ -156,31 +158,31 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
         const symbol = Symbol()
 
-        shareds.set(symbol, Uint8Array.fromBase64(textAsString))
+        datas.set(symbol, Uint8Array.fromBase64(textAsString))
 
         return symbol
       },
       to_hex: (bytesAsSymbol: symbol): symbol => {
-        const bytesAsBytes = shareds.get(bytesAsSymbol)
+        const bytesAsBytes = datas.get(bytesAsSymbol)
 
         if (bytesAsBytes == null)
           throw new Error("Not found")
 
         const symbol = Symbol()
 
-        shareds.set(symbol, new TextEncoder().encode(bytesAsBytes.toHex()))
+        datas.set(symbol, new TextEncoder().encode(bytesAsBytes.toHex()))
 
         return symbol
       },
       to_base64: (bytesAsSymbol: symbol): symbol => {
-        const bytesAsBytes = shareds.get(bytesAsSymbol)
+        const bytesAsBytes = datas.get(bytesAsSymbol)
 
         if (bytesAsBytes == null)
           throw new Error("Not found")
 
         const symbol = Symbol()
 
-        shareds.set(symbol, new TextEncoder().encode(bytesAsBytes.toBase64()))
+        datas.set(symbol, new TextEncoder().encode(bytesAsBytes.toBase64()))
 
         return symbol
       }
@@ -188,7 +190,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
     imports["sha256"] = {
       digest: (payloadAsSymbol: symbol): symbol => {
-        const payloadAsBytes = shareds.get(payloadAsSymbol)
+        const payloadAsBytes = datas.get(payloadAsSymbol)
 
         if (payloadAsBytes == null)
           throw new Error("Not found")
@@ -208,7 +210,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
         const symbol = Symbol()
 
-        shareds.set(symbol, digestAsBytes)
+        datas.set(symbol, digestAsBytes)
 
         return symbol
       }
@@ -216,9 +218,9 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
 
     imports["ed25519"] = {
       verify: (pubkeyAsSymbol: symbol, signatureAsSymbol: symbol, payloadAsSymbol: symbol): boolean => {
-        const pubkeyAsBytes = shareds.get(pubkeyAsSymbol)
-        const signatureAsBytes = shareds.get(signatureAsSymbol)
-        const payloadAsBytes = shareds.get(payloadAsSymbol)
+        const pubkeyAsBytes = datas.get(pubkeyAsSymbol)
+        const signatureAsBytes = datas.get(signatureAsSymbol)
+        const payloadAsBytes = datas.get(payloadAsSymbol)
 
         if (pubkeyAsBytes == null)
           throw new Error("Not found")
@@ -240,46 +242,141 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       }
     }
 
-    const packs = new Map<symbol, Array<number | bigint | symbol>>()
-
     imports["packs"] = {
-      pack: (...args: Array<number | bigint | symbol>): symbol => {
+      create: (...args: Array<number | bigint | symbol>): symbol => {
         const symbol = Symbol()
 
         packs.set(symbol, args)
 
         return symbol
       },
-      parse: (bytesAsSymbol: symbol): symbol => {
-        const bytesAsBytes = shareds.get(bytesAsSymbol)
+      length: (packAsSymbol: symbol): number => {
+        const args = packs.get(packAsSymbol)
 
-        if (bytesAsBytes == null)
+        if (args == null)
           throw new Error("Not found")
 
-        const bytesAsString = new TextDecoder().decode(bytesAsBytes)
+        return args.length
+      },
+      get(packAsSymbol: symbol, index: number): number | bigint | symbol {
+        const args = packs.get(packAsSymbol)
 
-        const args = JSON.parse(bytesAsString, (_key, value) => {
-          if (typeof value !== "object")
-            return value
-          if (typeof value.type !== "string")
-            return value
+        if (args == null)
+          throw new Error("Not found")
 
-          if (value.type === "number")
-            return Number(value.value)
-          if (value.type === "bigint")
-            return BigInt(value.value)
+        const arg = args[index]
 
-          if (value.type !== "bytes")
-            return
+        if (arg == null)
+          throw new Error("Not found")
 
-          const bytes = Uint8Array.fromHex(value.value)
+        return arg
+      },
+      encode: (packAsSymbol: symbol): symbol => {
+        const args = packs.get(packAsSymbol)
 
-          const symbol = Symbol()
+        if (args == null)
+          throw new Error("Not found")
 
-          shareds.set(symbol, bytes)
+        let length = 0
 
-          return symbol
-        }) as Array<number | bigint | symbol>
+        for (const arg of args) {
+          if (typeof arg === "number") {
+            length += 1 + 4
+            continue
+          }
+
+          if (typeof arg === "bigint") {
+            length += 1 + 8
+            continue
+          }
+
+          if (typeof arg === "symbol") {
+            const bytes = datas.get(arg)
+
+            if (bytes == null)
+              throw new Error("Not found")
+
+            length += 1 + 4 + bytes.length
+            continue
+          }
+
+          throw new Error("Unknown type")
+        }
+
+        const bytes = new Uint8Array(length)
+
+        const cursor = new Cursor(bytes)
+
+        for (const arg of args) {
+          if (typeof arg === "number") {
+            cursor.writeUint8OrThrow(1)
+            cursor.writeUint32OrThrow(arg)
+            continue
+          }
+
+          if (typeof arg === "bigint") {
+            cursor.writeUint8OrThrow(2)
+            cursor.writeUint64OrThrow(arg)
+            continue
+          }
+
+          if (typeof arg === "symbol") {
+            const subbytes = datas.get(arg)
+
+            if (subbytes == null)
+              throw new Error("Not found")
+
+            cursor.writeUint8OrThrow(3)
+            cursor.writeUint32OrThrow(subbytes.length)
+            cursor.writeOrThrow(subbytes)
+            continue
+          }
+
+          throw new Error("Unknown type")
+        }
+
+        const symbol = Symbol()
+
+        datas.set(symbol, bytes)
+
+        return symbol
+      },
+      decode: (bytesAsSymbol: symbol): symbol => {
+        const bytes = datas.get(bytesAsSymbol)
+
+        if (bytes == null)
+          throw new Error("Not found")
+
+        const args = new Array<number | bigint | symbol>()
+
+        const cursor = new Cursor(bytes)
+
+        while (cursor.offset < cursor.length) {
+          const type = cursor.readUint8OrThrow()
+
+          if (type === 1) {
+            args.push(cursor.readUint32OrThrow())
+            continue
+          }
+
+          if (type === 2) {
+            args.push(cursor.readUint64OrThrow())
+            continue
+          }
+
+          if (type === 3) {
+            const length = cursor.readUint32OrThrow()
+            const slice = cursor.readOrThrow(length)
+            const symbol = Symbol()
+
+            datas.set(symbol, slice)
+
+            args.push(symbol)
+            continue
+          }
+
+          throw new Error("Unknown type")
+        }
 
         const symbol = Symbol()
 
@@ -289,39 +386,25 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       }
     }
 
+    const rests = new Map<symbol, symbol>()
+
     imports["dynamic"] = {
-      call: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
-        const moduleAsBytes = shareds.get(moduleAsSymbol)
+      rest: (packAsSymbol: symbol): symbol => {
+        const symbol = Symbol()
 
-        if (moduleAsBytes == null)
-          throw new Error("Not found")
+        rests.set(symbol, packAsSymbol)
 
-        const moduleAsString = moduleAsBytes.toHex()
-
-        const nameAsBytes = shareds.get(nameAsSymbol)
-
-        if (nameAsBytes == null)
-          throw new Error("Not found")
-
-        const nameAsString = new TextDecoder().decode(nameAsBytes)
-
-        if (exports[moduleAsString] == null)
-          load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
-
-        if (typeof exports[moduleAsString][nameAsString] !== "function")
-          throw new Error("Not found")
-
-        return exports[moduleAsString][nameAsString](...args)
+        return symbol
       },
-      call_and_unpack: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
-        const moduleAsBytes = shareds.get(moduleAsSymbol)
+      call: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
+        const moduleAsBytes = datas.get(moduleAsSymbol)
 
         if (moduleAsBytes == null)
           throw new Error("Not found")
 
         const moduleAsString = moduleAsBytes.toHex()
 
-        const nameAsBytes = shareds.get(nameAsSymbol)
+        const nameAsBytes = datas.get(nameAsSymbol)
 
         if (nameAsBytes == null)
           throw new Error("Not found")
@@ -344,7 +427,16 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
                 continue
               }
 
-              const subargs = packs.get(arg)
+              const pack = rests.get(arg)
+
+              if (pack == null) {
+                unpackeds.push(arg)
+                continue
+              }
+
+              rests.delete(arg)
+
+              const subargs = packs.get(pack)
 
               if (subargs == null) {
                 unpackeds.push(arg)
@@ -404,7 +496,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
   instance.exports[func](...args.map(arg => {
     const symbol = Symbol()
 
-    shareds.set(symbol, arg)
+    datas.set(symbol, arg)
 
     return symbol
   }))
