@@ -365,11 +365,12 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
           }
 
           if (type === 3) {
-            const length = cursor.readUint32OrThrow()
-            const slice = cursor.readOrThrow(length)
+            const size = cursor.readUint32OrThrow()
+            const data = cursor.readOrThrow(size)
+
             const symbol = Symbol()
 
-            datas.set(symbol, slice)
+            datas.set(symbol, data)
 
             args.push(symbol)
             continue
