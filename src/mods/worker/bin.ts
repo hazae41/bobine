@@ -541,7 +541,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
     const until = performance.now()
 
-    console.log(`${(until - start).toFixed(2)}ms`)
+    console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
 
     self.postMessage(new RpcOk(id, undefined))
   } catch (cause: unknown) {
