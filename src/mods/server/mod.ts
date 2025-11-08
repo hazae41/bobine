@@ -80,27 +80,24 @@ export function serve(database: Database) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const arg0 = form.get("0")
+        const name = form.get("name")
 
-        if (arg0 == null)
+        if (name == null)
           return Response.json(null, { status: 400 })
-        if (typeof arg0 === "string")
-          return Response.json(null, { status: 400 })
-
-        const arg1 = form.get("1")
-
-        if (arg1 == null)
-          return Response.json(null, { status: 400 })
-        if (typeof arg1 !== "string")
+        if (typeof name !== "string")
           return Response.json(null, { status: 400 })
 
-        const wasm = await arg0.bytes()
-        const func = arg1
+        const func = form.get("func")
+
+        if (func == null)
+          return Response.json(null, { status: 400 })
+        if (typeof func !== "string")
+          return Response.json(null, { status: 400 })
 
         const args = new Array<Uint8Array<ArrayBuffer>>()
 
-        for (let i = 2; ; i++) {
-          const entry = form.get(`${i}`)
+        for (let i = 0; ; i++) {
+          const entry = form.get(`arg${i}`)
 
           if (entry == null)
             break
@@ -113,15 +110,31 @@ export function serve(database: Database) {
           continue
         }
 
+        const mods = new Map<string, Uint8Array<ArrayBuffer>>()
+
+        mkdirSync(`./local/scripts`, { recursive: true })
+
+        for (let i = 0; ; i++) {
+          const entry = form.get(`mod${i}`)
+
+          if (entry == null)
+            break
+
+          if (typeof entry === "string")
+            continue
+
+          const wasm = await entry.bytes()
+
+          const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
+
+          writeFileSync(`./local/scripts/${name}.wasm`, wasm)
+
+          mods.set(name, wasm)
+
+          continue
+        }
+
         using stack = new DisposableStack()
-
-        const module = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
-
-        const file = `./local/scripts/${module}.wasm`
-
-        mkdirSync(dirname(file), { recursive: true })
-
-        writeFileSync(file, wasm)
 
         const future = Promise.withResolvers<void>()
 
@@ -146,7 +159,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [module, wasm, func, args]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, args, mods]))
 
         await future.promise
 

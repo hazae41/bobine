@@ -7,7 +7,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Array<Uint8Array<ArrayBuffer>>) {
+function run(name: string, func: string, args: Array<Uint8Array<ArrayBuffer>>, mods: Map<string, Uint8Array<ArrayBuffer>>) {
   const main = name
 
   const exports: WebAssembly.Imports = {}
@@ -15,7 +15,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol>>()
 
-  const load = (name: string, wasm: Uint8Array<ArrayBuffer>): WebAssembly.WebAssemblyInstantiatedSource => {
+  const load = (name: string): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
     const imports: WebAssembly.Imports = {}
@@ -413,7 +413,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
         const nameAsString = new TextDecoder().decode(nameAsBytes)
 
         if (exports[moduleAsString] == null)
-          load(moduleAsString, readFileSync(`./local/scripts/${moduleAsString}.wasm`))
+          load(moduleAsString)
 
         if (typeof exports[moduleAsString][nameAsString] !== "function")
           throw new Error("Not found")
@@ -457,24 +457,22 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
       }
     }
 
-    const module = new WebAssembly.Module(wasm)
+    const module = new WebAssembly.Module(mods.get(name) || readFileSync(`./local/scripts/${name}.wasm`))
 
     for (const element of WebAssembly.Module.imports(module)) {
-      const { module } = element
-
-      if (imports[module] != null) {
+      if (imports[element.module] != null) {
         // NOOP
         continue
       }
 
-      if (exports[module] != null) {
-        imports[module] = exports[module]
+      if (exports[element.module] != null) {
+        imports[element.module] = exports[element.module]
         continue
       }
 
-      const imported = load(module, readFileSync(`./local/scripts/${module}.wasm`))
+      const imported = load(element.module)
 
-      imports[module] = imported.instance.exports
+      imports[element.module] = imported.instance.exports
 
       continue
     }
@@ -489,7 +487,7 @@ function run(name: string, wasm: Uint8Array<ArrayBuffer>, func: string, args: Ar
     return current
   }
 
-  const { instance } = load(name, wasm)
+  const { instance } = load(name)
 
   if (typeof instance.exports[func] !== "function")
     return
@@ -509,11 +507,11 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [name, wasm, func, args] = params as [string, Uint8Array<ArrayBuffer>, string, Array<Uint8Array<ArrayBuffer>>]
+    const [name, func, args, mods] = params as [string, string, Array<Uint8Array<ArrayBuffer>>, Map<string, Uint8Array<ArrayBuffer>>]
 
     const start = performance.now()
 
-    run(name, wasm, func, args)
+    run(name, func, args, mods)
 
     const until = performance.now()
 

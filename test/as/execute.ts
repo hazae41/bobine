@@ -19,15 +19,18 @@ const exitpoint = join("./bin", relative("./src", entrypoint))
 execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --enable reference-types`)
 
 const wasm = await readFile(exitpoint.replace(/\.ts$/, ".wasm"))
+const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
 
 const body = new FormData()
 
-body.append("0", new Blob([wasm]))
-body.append("1", "main")
+body.append("name", hash)
+body.append("func", "main")
 
 for (let i = 0; i < args.length; i++)
-  body.append(`${i + 2}`, new Blob([Uint8Array.fromHex(args[i])]));
+  body.append(`arg${i}`, new Blob([Uint8Array.fromHex(args[i])]));
+
+body.append("mod0", new Blob([wasm]))
 
 await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 
-console.log(new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex())
+console.log(hash)
