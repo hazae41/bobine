@@ -91,9 +91,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
     const numbers = new Map<symbol, number>()
 
     imports["symbols"] = {
-      null: () => {
-        return null
-      },
       create: (): symbol => {
         return Symbol()
       },

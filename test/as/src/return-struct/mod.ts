@@ -42,10 +42,6 @@ namespace console {
 
 }
 
-// @ts-ignore: decorator
-@external("symbols", "null")
-export declare function nil(): externref
-
 namespace packs {
 
   // @ts-ignore
