@@ -13,7 +13,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
   const exports: WebAssembly.Imports = {}
 
   const blobs = new Map<symbol, Uint8Array>()
-  const packs = new Map<symbol, Array<number | bigint | symbol>>()
+  const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
 
   const load = (name: string): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -91,6 +91,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
     const numbers = new Map<symbol, number>()
 
     imports["symbols"] = {
+      null: () => {
+        return null
+      },
       create: (): symbol => {
         return Symbol()
       },
@@ -243,7 +246,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
     }
 
     imports["packs"] = {
-      create: (...args: Array<number | bigint | symbol>): symbol => {
+      create: (...args: Array<number | bigint | symbol | null>): symbol => {
         const symbol = Symbol()
 
         packs.set(symbol, args)
@@ -258,18 +261,15 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
 
         return args.length
       },
-      get(packAsSymbol: symbol, index: number): number | bigint | symbol {
+      get(packAsSymbol: symbol, index: number): number | bigint | symbol | null {
         const args = packs.get(packAsSymbol)
 
         if (args == null)
           throw new Error("Not found")
+        if (index > args.length - 1)
+          throw new Error("Out of bounds")
 
-        const arg = args[index]
-
-        if (arg == null)
-          throw new Error("Not found")
-
-        return arg
+        return args[index]
       },
       encode: (packAsSymbol: symbol): symbol => {
         const args = packs.get(packAsSymbol)

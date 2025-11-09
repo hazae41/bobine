@@ -42,6 +42,10 @@ namespace console {
 
 }
 
+// @ts-ignore: decorator
+@external("symbols", "null")
+export declare function nil(): externref
+
 namespace packs {
 
   // @ts-ignore
@@ -55,7 +59,7 @@ namespace packs {
 }
 
 export function test(): externref {
-  return packs.create2(blobs.save(String.UTF8.encode("hello world")), 42)
+  return packs.create2<externref, usize>(blobs.save(String.UTF8.encode("Hello, world!")), 42)
 }
 
 export function main(): void {
