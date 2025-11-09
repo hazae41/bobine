@@ -46,7 +46,7 @@ namespace packs {
 
   // @ts-ignore
   @external("packs", "create")
-  export declare function create2<T, U>(arg0: T, arg1: U): externref
+  export declare function create2<A, B>(arg0: A, arg1: B): externref
 
   // @ts-ignore
   @external("packs", "get")

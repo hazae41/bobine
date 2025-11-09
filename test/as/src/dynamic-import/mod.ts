@@ -62,7 +62,7 @@ namespace dynamic {
 
   // @ts-ignore
   @external("dynamic", "call")
-  export declare function call1(module: externref, name: externref, arg0: externref): externref
+  export declare function call1<A>(module: externref, name: externref, arg0: A): externref
 
 }
 

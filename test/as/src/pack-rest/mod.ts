@@ -58,7 +58,7 @@ namespace packs {
 
   // @ts-ignore
   @external("packs", "create")
-  export declare function create(bytes: externref, number: usize): externref
+  export declare function create2<A, B>(arg0: A, arg1: B): externref
 
 }
 
@@ -70,12 +70,12 @@ namespace dynamic {
 
   // @ts-ignore
   @external("dynamic", "call")
-  export declare function call1(module: externref, name: externref, arg0: externref): usize
+  export declare function call1<A>(module: externref, name: externref, arg0: A): usize
 
 }
 
 export function main(): void {
-  const number = dynamic.call1(modules.self(), blobs.save(String.UTF8.encode("test")), dynamic.rest(packs.create(blobs.save(String.UTF8.encode("hello world")), 42)))
+  const number = dynamic.call1(modules.self(), blobs.save(String.UTF8.encode("test")), dynamic.rest(packs.create2(blobs.save(String.UTF8.encode("hello world")), 42)))
 
   console.log(`number is ${number}`)
 }
