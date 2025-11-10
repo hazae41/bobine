@@ -101,5 +101,6 @@ export function main(message: externref): void {
 }
 
 export function clone(message: externref): void {
-  console.$log(bytes.toHex(modules.create1(modules.load(modules.self()), message)))
+  console.$log(bytes.toHex(sha256.digest(packs.encode(packs.create2(modules.self(), sha256.digest(message))))))
+  console.$log(bytes.toHex(modules.create1(modules.load(modules.self()), packs.encode(packs.create2(modules.self(), sha256.digest(message))))))
 }
