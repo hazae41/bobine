@@ -268,31 +268,27 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["modules"] = {
-      create: (wasmAsSymbol: symbol, funcAsSymbol: symbol, ...args: Array<number | bigint | symbol | null>): symbol => {
+      create: (wasmAsSymbol: symbol, saltAsSymbol: symbol): symbol => {
         const wasmAsBytes = blobs.get(wasmAsSymbol)
 
         if (wasmAsBytes == null)
           throw new Error("Not found")
 
-        const funcAsBytes = blobs.get(funcAsSymbol)
+        const saltAsBytes = blobs.get(saltAsSymbol)
 
-        if (funcAsBytes == null)
+        if (saltAsBytes == null)
           throw new Error("Not found")
 
-        const funcAsString = new TextDecoder().decode(funcAsBytes)
-
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
-        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+        const digestOfSaltAsBytes = sha256_digest(saltAsBytes)
 
-        const digestOfFuncAsBytes = sha256_digest(funcAsBytes)
-        const digestOfArgsAsBytes = sha256_digest(encode(args))
-
-        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfFuncAsBytes.length + digestOfArgsAsBytes.length)
+        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfSaltAsBytes.length)
         concatAsBytes.set(digestOfWasmAsBytes, 0)
-        concatAsBytes.set(digestOfFuncAsBytes, digestOfWasmAsBytes.length)
-        concatAsBytes.set(digestOfArgsAsBytes, digestOfWasmAsBytes.length + digestOfFuncAsBytes.length)
+        concatAsBytes.set(digestOfSaltAsBytes, digestOfWasmAsBytes.length)
 
         const digestOfConcatAsBytes = sha256_digest(concatAsBytes)
+
+        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
 
         mkdirSync(`./local/scripts`, { recursive: true })
@@ -301,22 +297,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
 
-        const { instance } = load(digestOfConcatAsHex)
-
-        if (typeof instance.exports[funcAsString] !== "function")
-          throw new Error("Not found")
-
-        const result = instance.exports[funcAsString](...unrest(args))
-
         const nameAsSymbol = Symbol()
 
         blobs.set(nameAsSymbol, digestOfConcatAsBytes)
 
-        const packAsSymbol = Symbol()
-
-        packs.set(packAsSymbol, [nameAsSymbol, result])
-
-        return packAsSymbol
+        return nameAsSymbol
       },
       morph: (wasmAsSymbol: symbol): void => {
         const wasmAsBytes = blobs.get(wasmAsSymbol)
