@@ -1,19 +1,170 @@
 // deno-lint-ignore-file no-explicit-any
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
-function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Map<string, Uint8Array<ArrayBuffer>>) {
+function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const main = name
 
   const exports: WebAssembly.Imports = {}
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
+  const rests = new Map<symbol, symbol>()
+
+  const encode = (args: Array<number | bigint | symbol | null>): Uint8Array => {
+    let length = 0
+
+    for (const arg of args) {
+      if (typeof arg === "number") {
+        length += 1 + 4
+        continue
+      }
+
+      if (typeof arg === "bigint") {
+        length += 1 + 8
+        continue
+      }
+
+      if (typeof arg === "symbol") {
+        const bytes = blobs.get(arg)
+
+        if (bytes == null)
+          throw new Error("Not found")
+
+        length += 1 + 4 + bytes.length
+        continue
+      }
+
+      throw new Error("Unknown type")
+    }
+
+    const bytes = new Uint8Array(length)
+
+    const cursor = new Cursor(bytes)
+
+    for (const arg of args) {
+      if (typeof arg === "number") {
+        cursor.writeUint8OrThrow(1)
+        cursor.writeUint32OrThrow(arg, true)
+        continue
+      }
+
+      if (typeof arg === "bigint") {
+        cursor.writeUint8OrThrow(2)
+        cursor.writeUint64OrThrow(arg, true)
+        continue
+      }
+
+      if (typeof arg === "symbol") {
+        const bytes = blobs.get(arg)
+
+        if (bytes == null)
+          throw new Error("Not found")
+
+        cursor.writeUint8OrThrow(3)
+        cursor.writeUint32OrThrow(bytes.length, true)
+        cursor.writeOrThrow(bytes)
+        continue
+      }
+
+      throw new Error("Unknown type")
+    }
+
+    return bytes
+  }
+
+  const decode = (bytes: Uint8Array): Array<number | bigint | symbol> => {
+    const args = new Array<number | bigint | symbol>()
+
+    const cursor = new Cursor(bytes)
+
+    while (cursor.offset < cursor.length) {
+      const type = cursor.readUint8OrThrow()
+
+      if (type === 1) {
+        args.push(cursor.readUint32OrThrow(true))
+        continue
+      }
+
+      if (type === 2) {
+        args.push(cursor.readUint64OrThrow(true))
+        continue
+      }
+
+      if (type === 3) {
+        const size = cursor.readUint32OrThrow(true)
+        const data = cursor.readOrThrow(size)
+
+        const symbol = Symbol()
+
+        blobs.set(symbol, data)
+
+        args.push(symbol)
+        continue
+      }
+
+      throw new Error("Unknown type")
+    }
+
+    return args
+  }
+
+  const unrest = (args: Array<number | bigint | symbol | null>) => {
+    const result = new Array<number | bigint | symbol | null>()
+
+    const unrest = (args: Array<number | bigint | symbol | null>) => {
+      for (const arg of args) {
+        if (typeof arg !== "symbol") {
+          result.push(arg)
+          continue
+        }
+
+        const pack = rests.get(arg)
+
+        if (pack == null) {
+          result.push(arg)
+          continue
+        }
+
+        rests.delete(arg)
+
+        const subargs = packs.get(pack)
+
+        if (subargs == null) {
+          result.push(arg)
+          continue
+        }
+
+        unrest(subargs)
+      }
+    }
+
+    unrest(args)
+
+    return result
+  }
+
+  const sha256_digest = (payload: Uint8Array): Uint8Array => {
+    const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
+
+    runner.postMessage({ method: "sha256_digest", params: [payload], result })
+
+    if (Atomics.wait(result, 0, 0) !== "ok")
+      throw new Error("Failed to wait")
+    if (result[0] === 2)
+      throw new Error("Internal error")
+
+    const digest = new Uint8Array(32)
+
+    digest.set(new Uint8Array(result.buffer, 4, 32))
+
+    return digest
+  }
 
   const load = (name: string): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
@@ -117,19 +268,69 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
     }
 
     imports["modules"] = {
+      create: (wasmAsSymbol: symbol, funcAsSymbol: symbol, ...args: Array<number | bigint | symbol | null>): symbol => {
+        const wasmAsBytes = blobs.get(wasmAsSymbol)
+
+        if (wasmAsBytes == null)
+          throw new Error("Not found")
+
+        const funcAsBytes = blobs.get(funcAsSymbol)
+
+        if (funcAsBytes == null)
+          throw new Error("Not found")
+
+        const funcAsString = new TextDecoder().decode(funcAsBytes)
+
+        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
+        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+
+        const digestOfFuncAsBytes = sha256_digest(funcAsBytes)
+        const digestOfArgsAsBytes = sha256_digest(encode(args))
+
+        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfFuncAsBytes.length + digestOfArgsAsBytes.length)
+        concatAsBytes.set(digestOfWasmAsBytes, 0)
+        concatAsBytes.set(digestOfFuncAsBytes, digestOfWasmAsBytes.length)
+        concatAsBytes.set(digestOfArgsAsBytes, digestOfWasmAsBytes.length + digestOfFuncAsBytes.length)
+
+        const digestOfConcatAsBytes = sha256_digest(concatAsBytes)
+        const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
+
+        mkdirSync(`./local/scripts`, { recursive: true })
+
+        writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+
+        symlinkSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
+
+        const { instance } = load(digestOfConcatAsHex)
+
+        if (typeof instance.exports[funcAsString] !== "function")
+          throw new Error("Not found")
+
+        const result = instance.exports[funcAsString](...unrest(args))
+
+        const nameAsSymbol = Symbol()
+
+        blobs.set(nameAsSymbol, digestOfConcatAsBytes)
+
+        const packAsSymbol = Symbol()
+
+        packs.set(packAsSymbol, [nameAsSymbol, result])
+
+        return packAsSymbol
+      },
       main: (): symbol => {
-        const moduleAsSymbol = Symbol()
+        const nameAsSymbol = Symbol()
 
-        blobs.set(moduleAsSymbol, Uint8Array.fromHex(main))
+        blobs.set(nameAsSymbol, Uint8Array.fromHex(main))
 
-        return moduleAsSymbol
+        return nameAsSymbol
       },
       self: (): symbol => {
-        const moduleAsSymbol = Symbol()
+        const nameAsSymbol = Symbol()
 
-        blobs.set(moduleAsSymbol, Uint8Array.fromHex(name))
+        blobs.set(nameAsSymbol, Uint8Array.fromHex(name))
 
-        return moduleAsSymbol
+        return nameAsSymbol
       }
     }
 
@@ -274,67 +475,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
         if (args == null)
           throw new Error("Not found")
 
-        let length = 0
-
-        for (const arg of args) {
-          if (typeof arg === "number") {
-            length += 1 + 4
-            continue
-          }
-
-          if (typeof arg === "bigint") {
-            length += 1 + 8
-            continue
-          }
-
-          if (typeof arg === "symbol") {
-            const bytes = blobs.get(arg)
-
-            if (bytes == null)
-              throw new Error("Not found")
-
-            length += 1 + 4 + bytes.length
-            continue
-          }
-
-          throw new Error("Unknown type")
-        }
-
-        const bytes = new Uint8Array(length)
-
-        const cursor = new Cursor(bytes)
-
-        for (const arg of args) {
-          if (typeof arg === "number") {
-            cursor.writeUint8OrThrow(1)
-            cursor.writeUint32OrThrow(arg, true)
-            continue
-          }
-
-          if (typeof arg === "bigint") {
-            cursor.writeUint8OrThrow(2)
-            cursor.writeUint64OrThrow(arg, true)
-            continue
-          }
-
-          if (typeof arg === "symbol") {
-            const bytes = blobs.get(arg)
-
-            if (bytes == null)
-              throw new Error("Not found")
-
-            cursor.writeUint8OrThrow(3)
-            cursor.writeUint32OrThrow(bytes.length, true)
-            cursor.writeOrThrow(bytes)
-            continue
-          }
-
-          throw new Error("Unknown type")
-        }
-
         const symbol = Symbol()
 
-        blobs.set(symbol, bytes)
+        blobs.set(symbol, encode(args))
 
         return symbol
       },
@@ -344,47 +487,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
         if (bytes == null)
           throw new Error("Not found")
 
-        const args = new Array<number | bigint | symbol>()
-
-        const cursor = new Cursor(bytes)
-
-        while (cursor.offset < cursor.length) {
-          const type = cursor.readUint8OrThrow()
-
-          if (type === 1) {
-            args.push(cursor.readUint32OrThrow(true))
-            continue
-          }
-
-          if (type === 2) {
-            args.push(cursor.readUint64OrThrow(true))
-            continue
-          }
-
-          if (type === 3) {
-            const size = cursor.readUint32OrThrow(true)
-            const data = cursor.readOrThrow(size)
-
-            const symbol = Symbol()
-
-            blobs.set(symbol, data)
-
-            args.push(symbol)
-            continue
-          }
-
-          throw new Error("Unknown type")
-        }
-
         const symbol = Symbol()
 
-        packs.set(symbol, args)
+        packs.set(symbol, decode(bytes))
 
         return symbol
       }
     }
-
-    const rests = new Map<symbol, symbol>()
 
     imports["dynamic"] = {
       rest: (packAsSymbol: symbol): symbol => {
@@ -394,67 +503,32 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
 
         return symbol
       },
-      call: (moduleAsSymbol: symbol, nameAsSymbol: symbol, ...args: any[]) => {
-        const moduleAsBytes = blobs.get(moduleAsSymbol)
-
-        if (moduleAsBytes == null)
-          throw new Error("Not found")
-
-        const moduleAsString = moduleAsBytes.toHex()
-
+      call: (nameAsSymbol: symbol, funcAsSymbol: symbol, ...args: any[]) => {
         const nameAsBytes = blobs.get(nameAsSymbol)
 
         if (nameAsBytes == null)
           throw new Error("Not found")
 
-        const nameAsString = new TextDecoder().decode(nameAsBytes)
+        const nameAsString = nameAsBytes.toHex()
 
-        if (exports[moduleAsString] == null)
-          load(moduleAsString)
+        const funcAsBytes = blobs.get(funcAsSymbol)
 
-        if (typeof exports[moduleAsString][nameAsString] !== "function")
+        if (funcAsBytes == null)
           throw new Error("Not found")
 
-        const unpack = (packeds: Array<any>) => {
-          const unpackeds = new Array<any>()
+        const funcAsString = new TextDecoder().decode(funcAsBytes)
 
-          const unpack = (packeds: Array<any>) => {
-            for (const arg of packeds) {
-              if (typeof arg !== "symbol") {
-                unpackeds.push(arg)
-                continue
-              }
+        if (exports[nameAsString] == null)
+          load(nameAsString)
 
-              const pack = rests.get(arg)
+        if (typeof exports[nameAsString][funcAsString] !== "function")
+          throw new Error("Not found")
 
-              if (pack == null) {
-                unpackeds.push(arg)
-                continue
-              }
-
-              rests.delete(arg)
-
-              const subargs = packs.get(pack)
-
-              if (subargs == null) {
-                unpackeds.push(arg)
-                continue
-              }
-
-              unpack(subargs)
-            }
-          }
-
-          unpack(packeds)
-
-          return unpackeds
-        }
-
-        return exports[moduleAsString][nameAsString](...unpack(args))
+        return exports[nameAsString][funcAsString](...unrest(args))
       }
     }
 
-    const module = new WebAssembly.Module(mods.get(name) || readFileSync(`./local/scripts/${name}.wasm`))
+    const module = new WebAssembly.Module(readFileSync(`./local/scripts/${name}.wasm`))
 
     for (const element of WebAssembly.Module.imports(module)) {
       if (imports[element.module] != null) {
@@ -489,39 +563,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>, mods: Ma
   if (typeof instance.exports[func] !== "function")
     return
 
-  const argv = new Array<number | bigint | symbol>()
-
-  const cursor = new Cursor(args)
-
-  while (cursor.offset < cursor.length) {
-    const type = cursor.readUint8OrThrow()
-
-    if (type === 1) {
-      argv.push(cursor.readUint32OrThrow(true))
-      continue
-    }
-
-    if (type === 2) {
-      argv.push(cursor.readUint64OrThrow(true))
-      continue
-    }
-
-    if (type === 3) {
-      const size = cursor.readUint32OrThrow(true)
-      const data = cursor.readOrThrow(size)
-
-      const symbol = Symbol()
-
-      blobs.set(symbol, data)
-
-      argv.push(symbol)
-      continue
-    }
-
-    throw new Error("Unknown type")
-  }
-
-  instance.exports[func](...argv)
+  instance.exports[func](...decode(args))
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -530,11 +572,11 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const { params } = event.data
 
-    const [name, func, args, mods] = params as [string, string, Uint8Array<ArrayBuffer>, Map<string, Uint8Array<ArrayBuffer>>]
+    const [name, func, args] = params as [string, string, Uint8Array<ArrayBuffer>]
 
     const start = performance.now()
 
-    run(name, func, args, mods)
+    run(name, func, args)
 
     const until = performance.now()
 

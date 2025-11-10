@@ -80,11 +80,9 @@ export function serve(database: Database) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const name = form.get("name")
+        const code = form.get("code")
 
-        if (name == null)
-          return Response.json(null, { status: 400 })
-        if (typeof name !== "string")
+        if (code == null)
           return Response.json(null, { status: 400 })
 
         const func = form.get("func")
@@ -101,28 +99,18 @@ export function serve(database: Database) {
         if (typeof args === "string")
           return Response.json(null, { status: 400 })
 
-        const mods = new Map<string, Uint8Array<ArrayBuffer>>()
+        let name: string
 
-        mkdirSync(`./local/scripts`, { recursive: true })
+        if (typeof code === "string") {
+          name = code
+        } else {
+          const wasm = await code.bytes()
 
-        for (let i = 0; ; i++) {
-          const entry = form.get(`mod${i}`)
+          name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
 
-          if (entry == null)
-            break
-
-          if (typeof entry === "string")
-            continue
-
-          const wasm = await entry.bytes()
-
-          const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
+          mkdirSync(`./local/scripts`, { recursive: true })
 
           writeFileSync(`./local/scripts/${name}.wasm`, wasm)
-
-          mods.set(name, wasm)
-
-          continue
         }
 
         using stack = new DisposableStack()
@@ -150,7 +138,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, await args.bytes(), mods]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, await args.bytes()]))
 
         await future.promise
 
