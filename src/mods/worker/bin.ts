@@ -299,7 +299,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-        symlinkSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
+        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
 
         const { instance } = load(digestOfConcatAsHex)
 
