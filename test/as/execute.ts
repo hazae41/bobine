@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-const [entrypoint, ...args] = process.argv.slice(2)
+const [entrypoint, method, ...args] = process.argv.slice(2)
 
 const exitpoint = join("./bin", relative("./src", entrypoint))
 
@@ -31,7 +31,7 @@ const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
 const body = new FormData()
 
 body.append("code", new Blob([wasm]))
-body.append("func", "main")
+body.append("func", method)
 
 let length = 0
 

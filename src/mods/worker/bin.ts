@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -318,12 +318,38 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return packAsSymbol
       },
-      main: (): symbol => {
-        const nameAsSymbol = Symbol()
+      morph: (wasmAsSymbol: symbol): void => {
+        const wasmAsBytes = blobs.get(wasmAsSymbol)
 
-        blobs.set(nameAsSymbol, Uint8Array.fromHex(main))
+        if (wasmAsBytes == null)
+          throw new Error("Not found")
 
-        return nameAsSymbol
+        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
+        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+
+        mkdirSync(`./local/scripts`, { recursive: true })
+
+        writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+
+        rmSync(`./local/scripts/${name}.wasm`, { force: true })
+
+        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${name}.wasm`, "file")
+      },
+      load: (nameAsSymbol: symbol): symbol => {
+        const nameAsBytes = blobs.get(nameAsSymbol)
+
+        if (nameAsBytes == null)
+          throw new Error("Not found")
+
+        const nameAsString = nameAsBytes.toHex()
+
+        const bytes = readFileSync(`./local/scripts/${nameAsString}.wasm`)
+
+        const symbol = Symbol()
+
+        blobs.set(symbol, bytes)
+
+        return symbol
       },
       self: (): symbol => {
         const nameAsSymbol = Symbol()
