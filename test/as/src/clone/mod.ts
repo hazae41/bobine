@@ -50,7 +50,7 @@ namespace modules {
 
   // @ts-ignore: decorator
   @external("modules", "create")
-  export declare function create1<T>(code: externref, func: externref, arg0: T): void
+  export declare function create1(code: externref, salt: externref): externref
 
   // @ts-ignore: decorator
   @external("modules", "self")
@@ -58,10 +58,48 @@ namespace modules {
 
 }
 
+namespace sha256 {
+
+  // @ts-ignore: decorator
+  @external("sha256", "digest")
+  export declare function digest(payload: externref): externref
+
+}
+
+namespace bytes {
+
+  // @ts-ignore: decorator
+  @external("bytes", "equals")
+  export declare function equals(left: externref, right: externref): bool
+
+  // @ts-ignore: decorator
+  @external("bytes", "to_hex")
+  export declare function toHex(bytes: externref): externref
+
+  // @ts-ignore: decorator
+  @external("bytes", "from_hex")
+  export declare function fromHex(hex: externref): externref
+
+}
+
+namespace packs {
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create2<A, B>(arg0: A, arg1: B): externref
+
+  // @ts-ignore
+  @external("packs", "encode")
+  export declare function encode(values: externref): externref
+
+}
+
 export function main(message: externref): void {
+  if (!bytes.equals(modules.self(), sha256.digest(packs.encode(packs.create2(sha256.digest(modules.load(modules.self())), sha256.digest(message))))))
+    throw new Error("Invalid clone message")
   console.log(String.UTF8.decode(blobs.load(message)))
 }
 
 export function clone(message: externref): void {
-  modules.create1(modules.load(modules.self()), blobs.save(String.UTF8.encode("main")), message)
+  console.$log(bytes.toHex(modules.create1(modules.load(modules.self()), message)))
 }

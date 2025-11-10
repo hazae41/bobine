@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
+import { Buffer } from "node:buffer";
 import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -16,7 +17,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
   const rests = new Map<symbol, symbol>()
 
-  const encode = (args: Array<number | bigint | symbol | null>): Uint8Array => {
+  const encode = (args: Array<number | bigint | symbol | null | Uint8Array>): Uint8Array => {
     let length = 0
 
     for (const arg of args) {
@@ -37,6 +38,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           throw new Error("Not found")
 
         length += 1 + 4 + bytes.length
+        continue
+      }
+
+      if (arg instanceof Uint8Array) {
+        length += 1 + 4 + arg.length
         continue
       }
 
@@ -69,6 +75,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         cursor.writeUint8OrThrow(3)
         cursor.writeUint32OrThrow(bytes.length, true)
         cursor.writeOrThrow(bytes)
+        continue
+      }
+
+      if (arg instanceof Uint8Array) {
+        cursor.writeUint8OrThrow(3)
+        cursor.writeUint32OrThrow(arg.length, true)
+        cursor.writeOrThrow(arg)
         continue
       }
 
@@ -282,11 +295,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
         const digestOfSaltAsBytes = sha256_digest(saltAsBytes)
 
-        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfSaltAsBytes.length)
-        concatAsBytes.set(digestOfWasmAsBytes, 0)
-        concatAsBytes.set(digestOfSaltAsBytes, digestOfWasmAsBytes.length)
-
-        const digestOfConcatAsBytes = sha256_digest(concatAsBytes)
+        const digestOfConcatAsBytes = sha256_digest(encode([digestOfWasmAsBytes, digestOfSaltAsBytes]))
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
@@ -346,6 +355,20 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["bytes"] = {
+      equals: (leftAsSymbol: symbol, rightAsSymbol: symbol): boolean => {
+        const leftAsBytes = blobs.get(leftAsSymbol)
+        const rightAsBytes = blobs.get(rightAsSymbol)
+
+        if (leftAsBytes == null)
+          throw new Error("Not found")
+        if (rightAsBytes == null)
+          throw new Error("Not found")
+
+        if (leftAsBytes.length !== rightAsBytes.length)
+          return false
+
+        return !Buffer.compare(leftAsBytes, rightAsBytes)
+      },
       from_hex: (textAsSymbol: symbol): symbol => {
         const textAsBytes = blobs.get(textAsSymbol)
 
