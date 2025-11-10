@@ -295,18 +295,20 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
         const digestOfSaltAsBytes = sha256_digest(saltAsBytes)
 
+        const digestOfConcatAsBytes = sha256_digest(encode([digestOfWasmAsBytes, digestOfSaltAsBytes]))
+
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
-        const digestOfSaltAsHex = digestOfSaltAsBytes.toHex()
+        const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
 
         mkdirSync(`./local/scripts`, { recursive: true })
 
         writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfSaltAsHex}.wasm`, "file")
+        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
 
         const nameAsSymbol = Symbol()
 
-        blobs.set(nameAsSymbol, digestOfSaltAsBytes)
+        blobs.set(nameAsSymbol, digestOfConcatAsBytes)
 
         return nameAsSymbol
       },
