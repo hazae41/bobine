@@ -107,14 +107,13 @@ export function serve(database: Database) {
         const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
 
-        if (existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`))
-          return Response.json(digestOfConcatAsHex)
+        if (!existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`)) {
+          mkdirSync(`./local/scripts`, { recursive: true })
 
-        mkdirSync(`./local/scripts`, { recursive: true })
+          writeFileSync(`./local/scripts/${digestOfCodeAsHex}.wasm`, codeAsBytes)
 
-        writeFileSync(`./local/scripts/${digestOfCodeAsHex}.wasm`, codeAsBytes)
-
-        symlinkSync(`./${digestOfCodeAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`)
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`)
+        }
 
         return Response.json(digestOfConcatAsHex)
       }

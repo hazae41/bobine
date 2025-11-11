@@ -50,7 +50,7 @@ namespace modules {
 
   // @ts-ignore: decorator
   @external("modules", "create")
-  export declare function create1(code: externref, salt: externref): externref
+  export declare function create(code: externref, salt: externref): externref
 
   // @ts-ignore: decorator
   @external("modules", "self")
@@ -86,13 +86,13 @@ namespace bytes {
 
 }
 
-export function main(message: externref): void {
+export function init(message: externref): void {
   if (!bytes.equals(modules.self(), sha256.digest(bytes.concat(sha256.digest(modules.load(modules.self())), sha256.digest(message)))))
-    throw new Error("Invalid clone message")
+    throw new Error("Module integrity check failed")
+
   console.log(String.UTF8.decode(blobs.load(message)))
 }
 
-export function clone(message: externref): void {
-  console.$log(bytes.toHex(sha256.digest(bytes.concat(modules.self(), sha256.digest(message)))))
-  console.$log(bytes.toHex(modules.create1(modules.load(modules.self()), message)))
+export function clone(message: externref): externref {
+  return modules.create(modules.load(modules.self()), message)
 }

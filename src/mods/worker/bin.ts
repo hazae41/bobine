@@ -2,7 +2,7 @@
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
-import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -332,11 +332,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
 
-        mkdirSync(`./local/scripts`, { recursive: true })
+        if (!existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`)) {
+          mkdirSync(`./local/scripts`, { recursive: true })
 
-        writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+          writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
+        }
 
         const nameAsSymbol = Symbol()
 
