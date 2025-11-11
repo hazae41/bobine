@@ -1,7 +1,4 @@
 import { Cursor } from "@hazae41/cursor";
-import { execSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import { join, relative } from "node:path";
 
 declare global {
   interface Uint8Array {
@@ -13,25 +10,12 @@ declare global {
   }
 }
 
-const [entrypoint, method, ...args] = process.argv.slice(2)
-
-const exitpoint = join("./bin", relative("./src", entrypoint))
-
-const start = performance.now()
-
-execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --enable reference-types`)
-
-const end = performance.now()
-
-console.log(`Compiled in ${(end - start).toFixed(2)}ms`)
-
-const wasm = await readFile(exitpoint.replace(/\.ts$/, ".wasm"))
-const name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
+const [name, func, ...args] = process.argv.slice(2)
 
 const body = new FormData()
 
-body.append("code", new Blob([wasm]))
-body.append("func", method)
+body.append("name", name)
+body.append("func", func)
 
 let length = 0
 
@@ -63,12 +47,15 @@ for (const arg of args) {
 
 body.append("args", new Blob([bytes]))
 
-console.log(name)
-
 {
   const start = performance.now()
 
-  await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
+  const response = await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
+
+  if (!response.ok)
+    throw new Error("Failed", { cause: response })
+
+  console.log(await response.bytes())
 
   const until = performance.now()
 

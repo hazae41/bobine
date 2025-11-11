@@ -1,0 +1,45 @@
+import { execSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { join, relative } from "node:path";
+
+declare global {
+  interface Uint8Array {
+    toHex(): string;
+  }
+
+  interface Uint8ArrayConstructor {
+    fromHex(hex: string): Uint8Array<ArrayBuffer>;
+  }
+}
+
+const [entrypoint, ...args] = process.argv.slice(2)
+
+const exitpoint = join("./bin", relative("./src", entrypoint))
+
+const start = performance.now()
+
+execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --enable reference-types`)
+
+const end = performance.now()
+
+console.log(`Compiled in ${(end - start).toFixed(2)}ms`)
+
+const body = new FormData()
+
+body.append("code", new Blob([await readFile(exitpoint.replace(/\.ts$/, ".wasm"))]))
+body.append("salt", new Blob([new Uint8Array(0)]))
+
+{
+  const start = performance.now()
+
+  const response = await fetch("http://bob.localhost:8080/api/create", { method: "POST", body });
+
+  if (!response.ok)
+    throw new Error("Failed", { cause: response })
+
+  console.log(await response.json())
+
+  const until = performance.now()
+
+  console.log(`Created in ${(until - start).toFixed(2)}ms`)
+}
