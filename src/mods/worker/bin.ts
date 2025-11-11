@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
+const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(import.meta.url).search}`), { type: "module" })
 
 function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const exports: WebAssembly.Imports = {}
@@ -193,7 +193,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
-    runner.postMessage({ method: "sha256_digest", params: [payload], result })
+    helper.postMessage({ method: "sha256_digest", params: [payload], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
@@ -483,9 +483,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
+        const result = new Int32Array(new SharedArrayBuffer(4 + 32))
 
-        runner.postMessage({ method: "sha256_digest", params: [payloadAsBytes], result })
+        helper.postMessage({ method: "sha256_digest", params: [payloadAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -517,9 +517,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer((1 + 1) * 4))
+        const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-        runner.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
+        helper.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -612,6 +612,52 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           throw new Error("Not found")
 
         return exports[nameAsString][funcAsString](...unrest(args))
+      }
+    }
+
+    imports["storage"] = {
+      set: (keyAsSymbol: symbol, valueAsSymbol: symbol): void => {
+        const indexAsBytes = blobs.get(keyAsSymbol)
+        const valueAsBytes = blobs.get(valueAsSymbol)
+
+        if (indexAsBytes == null)
+          throw new Error("Not found")
+        if (valueAsBytes == null)
+          throw new Error("Not found")
+
+        const result = new Int32Array(new SharedArrayBuffer(1 * 4))
+
+        helper.postMessage({ method: "storage_set", params: [indexAsBytes, valueAsBytes], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        return
+      },
+      get: (keyAsSymbol: symbol): symbol => {
+        const indexAsBytes = blobs.get(keyAsSymbol)
+
+        if (indexAsBytes == null)
+          throw new Error("Not found")
+
+        const result = new Int32Array(new SharedArrayBuffer(4 + 4, { maxByteLength: ((4 + 4) + (1024 * 1024)) }))
+
+        helper.postMessage({ method: "storage_get", params: [indexAsBytes], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4, result[1])
+
+        const symbol = Symbol()
+
+        blobs.set(symbol, valueAsBytes.slice())
+
+        return symbol
       }
     }
 

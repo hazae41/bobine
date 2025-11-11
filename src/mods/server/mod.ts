@@ -1,9 +1,9 @@
 // deno-lint-ignore-file no-cond-assign
 /// <reference lib="deno.ns" />
 
-import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
-import { connect, type Database } from '@tursodatabase/database';
+import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -19,19 +19,32 @@ export async function serveWithEnv(prefix = "") {
 
   const database = await connect(DATABASE_PATH)
 
-  await database.exec(`CREATE TABLE IF NOT EXISTS moments (
+  await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    time INTEGER NOT NULL,
-    data JSONB NOT NULL,
-    hash TEXT NOT NULL
+    moment INTEGER NOT NULL,
+    
+    key BLOB NOT NULL,
+    value BLOB NOT NULL
   );`)
 
-  return serve(database)
+  await database.exec(`CREATE TABLE IF NOT EXISTS moments (
+    nonce INTEGER PRIMARY KEY AUTOINCREMENT,
+    
+    epoch INTEGER NOT NULL,
+
+    module BLOB NOT NULL,
+    method TEXT NOT NULL,
+    params BLOB NOT NULL
+  );`)
+
+  await database.close()
+
+  return serve(DATABASE_PATH)
 }
 
-export function serve(database: Database) {
-  const worker = new Mutex(new Worker(import.meta.resolve("@/mods/worker/bin.ts"), { name: "worker", type: "module" }))
+export function serve(database: string) {
+  const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${database}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     if (request.headers.get("Upgrade") === "websocket") {
