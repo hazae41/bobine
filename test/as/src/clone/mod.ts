@@ -69,6 +69,10 @@ namespace sha256 {
 namespace bytes {
 
   // @ts-ignore: decorator
+  @external("bytes", "concat")
+  export declare function concat(left: externref, right: externref): externref
+
+  // @ts-ignore: decorator
   @external("bytes", "equals")
   export declare function equals(left: externref, right: externref): bool
 
@@ -95,12 +99,12 @@ namespace packs {
 }
 
 export function main(message: externref): void {
-  if (!bytes.equals(modules.self(), sha256.digest(packs.encode(packs.create2(sha256.digest(modules.load(modules.self())), sha256.digest(message))))))
+  if (!bytes.equals(modules.self(), sha256.digest(bytes.concat(sha256.digest(modules.load(modules.self())), sha256.digest(message)))))
     throw new Error("Invalid clone message")
   console.log(String.UTF8.decode(blobs.load(message)))
 }
 
 export function clone(message: externref): void {
-  console.$log(bytes.toHex(sha256.digest(packs.encode(packs.create2(modules.self(), sha256.digest(message))))))
+  console.$log(bytes.toHex(sha256.digest(bytes.concat(modules.self(), sha256.digest(message)))))
   console.$log(bytes.toHex(modules.create1(modules.load(modules.self()), message)))
 }
