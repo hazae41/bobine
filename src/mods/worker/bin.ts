@@ -646,9 +646,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const { instance } = load(name)
 
   if (typeof instance.exports[func] !== "function")
-    return
+    throw new Error("Not found")
 
-  encode([instance.exports[func](...decode(args))])
+  return encode([instance.exports[func](...decode(args))])
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -661,13 +661,13 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
     const start = performance.now()
 
-    run(name, func, args)
+    const result = run(name, func, args)
 
     const until = performance.now()
 
     console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
 
-    self.postMessage(new RpcOk(id, undefined))
+    self.postMessage(new RpcOk(id, result))
   } catch (cause: unknown) {
     console.error(cause)
 

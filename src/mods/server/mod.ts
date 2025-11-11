@@ -4,7 +4,7 @@
 import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect, type Database } from '@tursodatabase/database';
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export async function serveWithEnv(prefix = "") {
@@ -107,6 +107,9 @@ export function serve(database: Database) {
         const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
 
+        if (existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`))
+          return Response.json(digestOfConcatAsHex)
+
         mkdirSync(`./local/scripts`, { recursive: true })
 
         writeFileSync(`./local/scripts/${digestOfCodeAsHex}.wasm`, codeAsBytes)
@@ -125,7 +128,7 @@ export function serve(database: Database) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const nameAsEntry = form.get("code")
+        const nameAsEntry = form.get("name")
 
         if (nameAsEntry == null)
           return Response.json(null, { status: 400 })
@@ -150,14 +153,14 @@ export function serve(database: Database) {
 
         using stack = new DisposableStack()
 
-        const future = Promise.withResolvers<void>()
+        const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
         const aborter = new AbortController()
         stack.defer(() => aborter.abort())
 
         stack.use(await worker.lockOrWait())
 
-        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<void>>) => {
+        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
           RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
         }, { signal: aborter.signal })
 
@@ -175,9 +178,7 @@ export function serve(database: Database) {
 
         worker.get().postMessage(new RpcRequest(null, "execute", [nameAsEntry, funcAsEntry, argsAsBytes]))
 
-        await future.promise
-
-        return Response.json(null)
+        return new Response(await future.promise)
       }
 
       return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
