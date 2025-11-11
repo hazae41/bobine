@@ -4,7 +4,7 @@
 import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect, type Database } from '@tursodatabase/database';
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export async function serveWithEnv(prefix = "") {
@@ -74,44 +74,79 @@ export function serve(database: Database) {
     // deno-lint-ignore no-unused-vars
     let match: URLPatternResult | null
 
+    if (match = new URLPattern("/api/create", request.url).exec(request.url)) {
+      if (request.method === "POST") {
+        const form = await request.formData()
+
+        const codeAsEntry = form.get("code")
+
+        if (codeAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof codeAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const saltAsEntry = form.get("salt")
+
+        if (saltAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof saltAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const codeAsBytes = await codeAsEntry.bytes()
+        const saltAsBytes = await saltAsEntry.bytes()
+
+        const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
+        const digestOfSaltAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", saltAsBytes))
+
+        const concatAsBytes = new Uint8Array(digestOfCodeAsBytes.length + digestOfSaltAsBytes.length)
+        concatAsBytes.set(digestOfCodeAsBytes, 0)
+        concatAsBytes.set(digestOfSaltAsBytes, digestOfCodeAsBytes.length)
+
+        const digestOfConcatAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", concatAsBytes))
+
+        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
+        const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
+
+        mkdirSync(`./local/scripts`, { recursive: true })
+
+        writeFileSync(`./local/scripts/${digestOfCodeAsHex}.wasm`, codeAsBytes)
+
+        symlinkSync(`./${digestOfCodeAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`)
+
+        return Response.json(digestOfConcatAsHex)
+      }
+
+      return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
+    }
+
     // TODO /api/simulate
 
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const code = form.get("code")
+        const nameAsEntry = form.get("code")
 
-        if (code == null)
+        if (nameAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof nameAsEntry !== "string")
           return Response.json(null, { status: 400 })
 
-        const func = form.get("func")
+        const funcAsEntry = form.get("func")
 
-        if (func == null)
+        if (funcAsEntry == null)
           return Response.json(null, { status: 400 })
-        if (typeof func !== "string")
-          return Response.json(null, { status: 400 })
-
-        const args = form.get("args")
-
-        if (args == null)
-          return Response.json(null, { status: 400 })
-        if (typeof args === "string")
+        if (typeof funcAsEntry !== "string")
           return Response.json(null, { status: 400 })
 
-        let name: string
+        const argsAsEntry = form.get("args")
 
-        if (typeof code === "string") {
-          name = code
-        } else {
-          const wasm = await code.bytes()
+        if (argsAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof argsAsEntry === "string")
+          return Response.json(null, { status: 400 })
 
-          name = new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)).toHex()
-
-          mkdirSync(`./local/scripts`, { recursive: true })
-
-          writeFileSync(`./local/scripts/${name}.wasm`, wasm)
-        }
+        const argsAsBytes = await argsAsEntry.bytes()
 
         using stack = new DisposableStack()
 
@@ -138,7 +173,7 @@ export function serve(database: Database) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [name, func, await args.bytes()]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [nameAsEntry, funcAsEntry, argsAsBytes]))
 
         await future.promise
 

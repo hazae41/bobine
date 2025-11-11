@@ -9,18 +9,16 @@ declare const self: DedicatedWorkerGlobalScope;
 const runner = new Worker(new URL("../runner/bin.ts", import.meta.url), { type: "module" })
 
 function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
-  const main = name
-
   const exports: WebAssembly.Imports = {}
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
   const rests = new Map<symbol, symbol>()
 
-  const encode = (args: Array<number | bigint | symbol | null | Uint8Array>): Uint8Array => {
+  const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
 
-    for (const arg of args) {
+    for (const arg of input) {
       if (typeof arg === "number") {
         length += 1 + 4
         continue
@@ -32,28 +30,36 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
       }
 
       if (typeof arg === "symbol") {
-        const bytes = blobs.get(arg)
+        const blob = blobs.get(arg)
 
-        if (bytes == null)
-          throw new Error("Not found")
+        if (blob != null) {
+          length += 1 + 4 + blob.length
+          continue
+        }
 
-        length += 1 + 4 + bytes.length
-        continue
+        const pack = packs.get(arg)
+
+        if (pack != null) {
+          length += 1 + 4 + size(pack)
+          continue
+        }
+
+        throw new Error("Could not resolve symbol")
       }
 
-      if (arg instanceof Uint8Array) {
-        length += 1 + 4 + arg.length
-        continue
-      }
-
-      throw new Error("Unknown type")
+      length += 1
+      continue
     }
 
-    const bytes = new Uint8Array(length)
+    return length
+  }
+
+  const encode = (input: Array<number | bigint | symbol | null>): Uint8Array => {
+    const bytes = new Uint8Array(size(input))
 
     const cursor = new Cursor(bytes)
 
-    for (const arg of args) {
+    for (const arg of input) {
       if (typeof arg === "number") {
         cursor.writeUint8OrThrow(1)
         cursor.writeUint32OrThrow(arg, true)
@@ -67,37 +73,47 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
       }
 
       if (typeof arg === "symbol") {
-        const bytes = blobs.get(arg)
+        const blob = blobs.get(arg)
 
-        if (bytes == null)
-          throw new Error("Not found")
+        if (blob != null) {
+          cursor.writeUint8OrThrow(3)
+          cursor.writeUint32OrThrow(blob.length, true)
+          cursor.writeOrThrow(blob)
+          continue
+        }
 
-        cursor.writeUint8OrThrow(3)
-        cursor.writeUint32OrThrow(bytes.length, true)
-        cursor.writeOrThrow(bytes)
-        continue
+        const pack = packs.get(arg)
+
+        if (pack != null) {
+          const encoded = encode(pack)
+
+          cursor.writeUint8OrThrow(4)
+          cursor.writeUint32OrThrow(encoded.length, true)
+          cursor.writeOrThrow(encoded)
+          continue
+        }
+
+        throw new Error("Could not resolve symbol")
       }
 
-      if (arg instanceof Uint8Array) {
-        cursor.writeUint8OrThrow(3)
-        cursor.writeUint32OrThrow(arg.length, true)
-        cursor.writeOrThrow(arg)
-        continue
-      }
-
-      throw new Error("Unknown type")
+      cursor.writeUint8OrThrow(0)
     }
 
     return bytes
   }
 
-  const decode = (bytes: Uint8Array): Array<number | bigint | symbol> => {
-    const args = new Array<number | bigint | symbol>()
+  const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
+    const args = new Array<number | bigint | symbol | null>()
 
     const cursor = new Cursor(bytes)
 
     while (cursor.offset < cursor.length) {
       const type = cursor.readUint8OrThrow()
+
+      if (type === 0) {
+        args.push(null)
+        continue
+      }
 
       if (type === 1) {
         args.push(cursor.readUint32OrThrow(true))
@@ -116,6 +132,18 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const symbol = Symbol()
 
         blobs.set(symbol, data)
+
+        args.push(symbol)
+        continue
+      }
+
+      if (type === 4) {
+        const size = cursor.readUint32OrThrow(true)
+        const data = cursor.readOrThrow(size)
+
+        const symbol = Symbol()
+
+        packs.set(symbol, decode(data))
 
         args.push(symbol)
         continue
@@ -295,7 +323,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
         const digestOfSaltAsBytes = sha256_digest(saltAsBytes)
 
-        const digestOfConcatAsBytes = sha256_digest(encode([digestOfWasmAsBytes, digestOfSaltAsBytes]))
+        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfSaltAsBytes.length)
+        concatAsBytes.set(digestOfWasmAsBytes, 0)
+        concatAsBytes.set(digestOfSaltAsBytes, digestOfWasmAsBytes.length)
+
+        const digestOfConcatAsBytes = sha256_digest(concatAsBytes)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
@@ -355,6 +387,25 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["bytes"] = {
+      concat: (leftAsSymbol: symbol, rightAsSymbol: symbol): symbol => {
+        const leftAsBytes = blobs.get(leftAsSymbol)
+        const rightAsBytes = blobs.get(rightAsSymbol)
+
+        if (leftAsBytes == null)
+          throw new Error("Not found")
+        if (rightAsBytes == null)
+          throw new Error("Not found")
+
+        const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
+        concatAsBytes.set(leftAsBytes, 0)
+        concatAsBytes.set(rightAsBytes, leftAsBytes.length)
+
+        const symbol = Symbol()
+
+        blobs.set(symbol, concatAsBytes)
+
+        return symbol
+      },
       equals: (leftAsSymbol: symbol, rightAsSymbol: symbol): boolean => {
         const leftAsBytes = blobs.get(leftAsSymbol)
         const rightAsBytes = blobs.get(rightAsSymbol)
@@ -597,7 +648,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   if (typeof instance.exports[func] !== "function")
     return
 
-  instance.exports[func](...decode(args))
+  encode([instance.exports[func](...decode(args))])
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
