@@ -55,7 +55,7 @@ body.append("args", new Blob([bytes]))
   if (!response.ok)
     throw new Error("Failed", { cause: response })
 
-  console.log(await response.bytes())
+  console.log(await response.bytes().then(r => r.toHex()))
 
   const until = performance.now()
 

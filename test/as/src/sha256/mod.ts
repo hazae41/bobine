@@ -63,9 +63,11 @@ namespace sha256 {
 
 }
 
-export function main(): void {
+export function main(): externref {
   const data = blobs.save(String.UTF8.encode("hello world"))
   const hash = sha256.digest(data)
 
   console.$log(bytes.toHex(hash))
+
+  return hash
 }
