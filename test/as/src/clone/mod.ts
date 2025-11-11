@@ -86,18 +86,6 @@ namespace bytes {
 
 }
 
-namespace packs {
-
-  // @ts-ignore
-  @external("packs", "create")
-  export declare function create2<A, B>(arg0: A, arg1: B): externref
-
-  // @ts-ignore
-  @external("packs", "encode")
-  export declare function encode(values: externref): externref
-
-}
-
 export function main(message: externref): void {
   if (!bytes.equals(modules.self(), sha256.digest(bytes.concat(sha256.digest(modules.load(modules.self())), sha256.digest(message)))))
     throw new Error("Invalid clone message")
