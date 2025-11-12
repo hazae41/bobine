@@ -102,6 +102,10 @@ namespace packs {
 
   // @ts-ignore
   @external("packs", "create")
+  export declare function create1<A>(arg0: A): externref
+
+  // @ts-ignore
+  @external("packs", "create")
   export declare function create2<A, B>(arg0: A, arg1: B): externref
 
   // @ts-ignore
@@ -117,11 +121,16 @@ namespace packs {
 namespace nonces {
 
   export function get(address: externref): u64 {
-    return packs.get<u64>(packs.decode(storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))), 0)
+    const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)))
+
+    if (!result)
+      return 0
+
+    return packs.get<u64>(packs.decode(result), 0)
   }
 
   export function set(address: externref, amount: u64): void {
-    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create2<u64, externref>(amount, address)))
+    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create1(amount)))
   }
 
 }

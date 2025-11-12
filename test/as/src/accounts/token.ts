@@ -126,6 +126,10 @@ namespace packs {
 
   // @ts-ignore
   @external("packs", "create")
+  export declare function create1<A>(arg0: A): externref
+
+  // @ts-ignore
+  @external("packs", "create")
   export declare function create2<A, B>(arg0: A, arg1: B): externref
 
   // @ts-ignore
@@ -139,11 +143,16 @@ namespace packs {
 namespace balances {
 
   export function get(address: externref): u64 {
-    return packs.get<u64>(packs.decode(storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))), 0)
+    const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))
+
+    if (!result)
+      return 0
+
+    return packs.get<u64>(packs.decode(result), 0)
   }
 
   export function set(address: externref, amount: u64): void {
-    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)), packs.encode(packs.create2<u64, externref>(amount, address)))
+    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)), packs.encode(packs.create1(amount)))
   }
 
 }
@@ -152,8 +161,13 @@ export function balance(address: externref): u64 {
   return balances.get(address)
 }
 
-export function mint(address: externref, amount: usize): void {
-  balances.set(address, balances.get(address) + amount)
+export function mint(module: externref, session: externref, target: externref, amount: u64): void {
+  const sender = address(module, accounts.verify(module, session))
+
+  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("3a7f20e5587a6a8c200f68827feaaa12312de74f")))))
+    throw new Error("Unauthorized")
+
+  balances.set(target, balances.get(target) + amount)
 }
 
 export function address(module: externref, modulus: externref): externref {

@@ -37,18 +37,27 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
 
       const row = await database.prepare(`SELECT value FROM events WHERE key = ?;`).get(keyAsBytes)
 
-      if (row == null)
-        throw new Error("Not found")
+      if (row == null) {
+        result[0] = 1
+
+        result[1] = 2
+
+        Atomics.notify(result, 0)
+
+        return
+      }
 
       const valueAsBytes = new Uint8Array(row.value)
 
       result[0] = 1
 
-      result[1] = valueAsBytes.length
+      result[1] = 1
+
+      result[2] = valueAsBytes.length
 
       result.buffer.grow(result.buffer.byteLength + valueAsBytes.length)
 
-      new Uint8Array(result.buffer).set(valueAsBytes, 4 + 4)
+      new Uint8Array(result.buffer).set(valueAsBytes, 4 + 4 + 4)
 
       Atomics.notify(result, 0)
 

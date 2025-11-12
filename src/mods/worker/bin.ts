@@ -617,7 +617,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return
       },
-      get: (keyAsSymbol: symbol): symbol => {
+      get: (keyAsSymbol: symbol): symbol | null => {
         const keyAsBytes = blobs.get(keyAsSymbol)
 
         if (keyAsBytes == null)
@@ -628,7 +628,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (staleValueAsSymbol != null)
           return staleValueAsSymbol
 
-        const result = new Int32Array(new SharedArrayBuffer(4 + 4, { maxByteLength: ((4 + 4) + (1024 * 1024)) }))
+        const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
         helper.postMessage({ method: "storage_get", params: [keyAsBytes], result })
 
@@ -637,7 +637,10 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (result[0] === 2)
           throw new Error("Internal error")
 
-        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4, result[1]).slice()
+        if (result[1] === 2)
+          return null
+
+        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[1]).slice()
         const valueAsSymbol = Symbol()
 
         blobs.set(valueAsSymbol, valueAsBytes)

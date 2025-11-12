@@ -97,11 +97,13 @@ const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeL
 
 const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uint8Array.fromHex(ed25519), verifier]))).slice(-20)
 
-const submodule = Uint8Array.fromHex("bdbcc34d114971faba8d05be65fe1993e955177784a381e139a8838002cd0da9")
-const submethod = new TextEncoder().encode("transfer")
-const subargs = encode([Uint8Array.fromHex("deadbeef"), 42n])
+console.log(address.toHex())
 
-const message = encode([submodule, submethod, subargs, 1n])
+const submodule = Uint8Array.fromHex("bdbcc34d114971faba8d05be65fe1993e955177784a381e139a8838002cd0da9")
+const submethod = new TextEncoder().encode("mint")
+const subargs = encode([address, 100n])
+
+const message = encode([submodule, submethod, subargs, 0n])
 const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
 const args = encode([submodule, submethod, subargs, verifier, signature])
