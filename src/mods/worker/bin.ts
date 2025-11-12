@@ -15,10 +15,9 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
   const rests = new Map<symbol, symbol>()
 
-  const storage = new Map<symbol, symbol>()
+  const cache = new Map<symbol, symbol>()
 
-  const inputs = new Set<symbol>()
-  const outputs = new Set<symbol>()
+  const writes = new Map<Uint8Array, Uint8Array>()
 
   const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
@@ -613,9 +612,8 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (valueAsBytes == null)
           throw new Error("Not found")
 
-        storage.set(keyAsSymbol, valueAsSymbol)
-
-        outputs.add(keyAsSymbol)
+        cache.set(keyAsSymbol, valueAsSymbol)
+        writes.set(keyAsBytes, valueAsBytes)
 
         return
       },
@@ -625,7 +623,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (keyAsBytes == null)
           throw new Error("Not found")
 
-        const staleValueAsSymbol = storage.get(keyAsSymbol)
+        const staleValueAsSymbol = cache.get(keyAsSymbol)
 
         if (staleValueAsSymbol != null)
           return staleValueAsSymbol
@@ -639,15 +637,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (result[0] === 2)
           throw new Error("Internal error")
 
-        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4, result[1])
+        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4, result[1]).slice()
+        const valueAsSymbol = Symbol()
 
-        const symbol = Symbol()
+        blobs.set(valueAsSymbol, valueAsBytes)
+        cache.set(keyAsSymbol, valueAsSymbol)
 
-        blobs.set(symbol, valueAsBytes.slice())
-
-        inputs.add(keyAsSymbol)
-
-        return symbol
+        return valueAsSymbol
       }
     }
 
@@ -688,30 +684,17 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
   const result = encode([instance.exports[func](...decode(args))])
 
-  for (const keyAsSymbol of outputs) {
-    const valueAsSymbol = storage.get(keyAsSymbol)
+  if (writes.size) {
+    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-    if (valueAsSymbol == null)
-      continue
-
-    const keyAsBytes = blobs.get(keyAsSymbol)
-    const valueAsBytes = blobs.get(valueAsSymbol)
-
-    if (keyAsBytes == null)
-      continue
-    if (valueAsBytes == null)
-      continue
-
-    const result = new Int32Array(new SharedArrayBuffer(1 * 4))
-
-    helper.postMessage({ method: "storage_set", params: [keyAsBytes, valueAsBytes], result })
+    helper.postMessage({ method: "storage_set", params: [name, func, args, [...writes]], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
     if (result[0] === 2)
       throw new Error("Internal error")
 
-    continue
+    console.log(result[1])
   }
 
   return result

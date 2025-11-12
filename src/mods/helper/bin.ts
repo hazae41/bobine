@@ -1,5 +1,6 @@
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
+import { runAsImmediateOrThrow } from "../../libs/sql/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -10,11 +11,21 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     const { method, params, result } = event.data
 
     if (method === "storage_set") {
-      const [keyAsBytes, valueAsBytes] = params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+      const [name, func, args, writes] = params as [string, string, Uint8Array<ArrayBuffer>, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][], [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
 
-      await database.prepare(`INSERT INTO events (moment, key, value) VALUES (0, ?, ?);`).run(keyAsBytes, valueAsBytes)
+      const moment = await runAsImmediateOrThrow(database, async (database) => {
+        const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(name, func, args)
+
+        const writer = database.prepare(`INSERT INTO events (moment, key, value) VALUES (?, ?, ?);`)
+
+        for (const [key, value] of writes)
+          writer.run(moment.lastInsertRowid, key, value)
+
+        return moment.lastInsertRowid
+      })
 
       result[0] = 1
+      result[1] = moment
 
       Atomics.notify(result, 0)
 
@@ -47,8 +58,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (method === "sha256_digest") {
       const [payloadAsBytes] = params as [Uint8Array<ArrayBuffer>]
 
-      const digestAsBuffer = await crypto.subtle.digest("SHA-256", payloadAsBytes)
-      const digestAsBytes = new Uint8Array(digestAsBuffer)
+      const digestAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", payloadAsBytes))
 
       result[0] = 1
 

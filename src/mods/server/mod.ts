@@ -33,7 +33,7 @@ export async function serveWithEnv(prefix = "") {
     
     epoch INTEGER NOT NULL,
 
-    module BLOB NOT NULL,
+    module TEXT NOT NULL,
     method TEXT NOT NULL,
     params BLOB NOT NULL
   );`)
