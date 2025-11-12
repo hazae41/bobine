@@ -101,7 +101,7 @@ const submodule = Uint8Array.fromHex("bdbcc34d114971faba8d05be65fe1993e955177784
 const submethod = new TextEncoder().encode("transfer")
 const subargs = encode([Uint8Array.fromHex("deadbeef"), 42n])
 
-const message = encode([submodule, submethod, subargs, 1n])
+const message = encode([submodule, submethod, subargs, 0n])
 const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
 const args = encode([submodule, submethod, subargs, verifier, signature])

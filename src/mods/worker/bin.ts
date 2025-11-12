@@ -636,11 +636,10 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           throw new Error("Failed to wait")
         if (result[0] === 2)
           throw new Error("Internal error")
-
         if (result[1] === 2)
           return null
 
-        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[1]).slice()
+        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
         const valueAsSymbol = Symbol()
 
         blobs.set(valueAsSymbol, valueAsBytes)
