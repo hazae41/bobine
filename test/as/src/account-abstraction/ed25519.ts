@@ -58,18 +58,6 @@ namespace modules {
 
 }
 
-namespace bytes {
-
-  // @ts-ignore: decorator
-  @external("bytes", "to_hex")
-  export declare function toHex(bytes: externref): externref
-
-  // @ts-ignore: decorator
-  @external("bytes", "from_hex")
-  export declare function fromHex(hex: externref): externref
-
-}
-
 namespace ed25519 {
 
   // @ts-ignore: decorator
