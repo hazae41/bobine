@@ -136,7 +136,6 @@ namespace packs {
 
 // token.ts
 
-
 namespace balances {
 
   export function get(address: externref): u64 {
