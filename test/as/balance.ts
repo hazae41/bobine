@@ -100,8 +100,8 @@ const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uin
 const body = new FormData()
 body.append("name", "bdbcc34d114971faba8d05be65fe1993e955177784a381e139a8838002cd0da9")
 body.append("func", "balance")
-// body.append("args", new Blob([encode([address])]))
-body.append("args", new Blob([encode([Uint8Array.fromHex("deadbeef")])]))
+body.append("args", new Blob([encode([address])]))
+// body.append("args", new Blob([encode([Uint8Array.fromHex("deadbeef")])]))
 
 {
   const start = performance.now()

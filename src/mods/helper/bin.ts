@@ -21,10 +21,12 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
         const writer = database.prepare(`INSERT INTO events (moment, key, value) VALUES (?, ?, ?);`)
 
         for (const [key, value] of writes)
-          writer.run(moment.lastInsertRowid, key, value)
+          await writer.run(moment.lastInsertRowid, key, value)
 
         return moment.lastInsertRowid
       })
+
+      console.log(moment)
 
       result[0] = 1
       result[1] = moment
@@ -37,9 +39,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (method === "storage_get") {
       const [keyAsBytes] = params as [Uint8Array<ArrayBuffer>]
 
-      const row = await database.prepare(`SELECT value FROM events WHERE key = ?;`).get(keyAsBytes)
-
-      console.log(row)
+      const row = await database.prepare(`SELECT value FROM events WHERE key = ? ORDER BY moment DESC LIMIT 1;`).get(keyAsBytes)
 
       if (row == null) {
         result[0] = 1
