@@ -15,6 +15,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
   const rests = new Map<symbol, symbol>()
 
+  const storage = new Map<symbol, symbol>()
+
+  const inputs = new Set<symbol>()
+  const outputs = new Set<symbol>()
+
   const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
 
@@ -617,34 +622,34 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
     imports["storage"] = {
       set: (keyAsSymbol: symbol, valueAsSymbol: symbol): void => {
-        const indexAsBytes = blobs.get(keyAsSymbol)
+        const keyAsBytes = blobs.get(keyAsSymbol)
         const valueAsBytes = blobs.get(valueAsSymbol)
 
-        if (indexAsBytes == null)
+        if (keyAsBytes == null)
           throw new Error("Not found")
         if (valueAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer(1 * 4))
+        storage.set(keyAsSymbol, valueAsSymbol)
 
-        helper.postMessage({ method: "storage_set", params: [indexAsBytes, valueAsBytes], result })
-
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
+        outputs.add(keyAsSymbol)
 
         return
       },
       get: (keyAsSymbol: symbol): symbol => {
-        const indexAsBytes = blobs.get(keyAsSymbol)
+        const keyAsBytes = blobs.get(keyAsSymbol)
 
-        if (indexAsBytes == null)
+        if (keyAsBytes == null)
           throw new Error("Not found")
+
+        const staleValueAsSymbol = storage.get(keyAsSymbol)
+
+        if (staleValueAsSymbol != null)
+          return staleValueAsSymbol
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4, { maxByteLength: ((4 + 4) + (1024 * 1024)) }))
 
-        helper.postMessage({ method: "storage_get", params: [indexAsBytes], result })
+        helper.postMessage({ method: "storage_get", params: [keyAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -656,6 +661,8 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const symbol = Symbol()
 
         blobs.set(symbol, valueAsBytes.slice())
+
+        inputs.add(keyAsSymbol)
 
         return symbol
       }
@@ -696,7 +703,35 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   if (typeof instance.exports[func] !== "function")
     throw new Error("Not found")
 
-  return encode([instance.exports[func](...decode(args))])
+  const result = encode([instance.exports[func](...decode(args))])
+
+  for (const keyAsSymbol of outputs) {
+    const valueAsSymbol = storage.get(keyAsSymbol)
+
+    if (valueAsSymbol == null)
+      continue
+
+    const keyAsBytes = blobs.get(keyAsSymbol)
+    const valueAsBytes = blobs.get(valueAsSymbol)
+
+    if (keyAsBytes == null)
+      continue
+    if (valueAsBytes == null)
+      continue
+
+    const result = new Int32Array(new SharedArrayBuffer(1 * 4))
+
+    helper.postMessage({ method: "storage_set", params: [keyAsBytes, valueAsBytes], result })
+
+    if (Atomics.wait(result, 0, 0) !== "ok")
+      throw new Error("Failed to wait")
+    if (result[0] === 2)
+      throw new Error("Internal error")
+
+    continue
+  }
+
+  return result
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
