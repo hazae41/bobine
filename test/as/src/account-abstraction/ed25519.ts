@@ -84,6 +84,10 @@ namespace packs {
   @external("packs", "decode")
   export declare function decode(bytes: externref): externref
 
+  // @ts-ignore
+  @external("packs", "encode")
+  export declare function encode(pack: externref): externref
+
 }
 
 namespace dynamic {

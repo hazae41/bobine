@@ -69,6 +69,14 @@ namespace sha256 {
 namespace bytes {
 
   // @ts-ignore: decorator
+  @external("bytes", "concat")
+  export declare function concat(left: externref, right: externref): externref
+
+  // @ts-ignore: decorator
+  @external("bytes", "equals")
+  export declare function equals(left: externref, right: externref): bool
+
+  // @ts-ignore: decorator
   @external("bytes", "to_hex")
   export declare function toHex(bytes: externref): externref
 
@@ -94,24 +102,59 @@ namespace accounts {
 
 }
 
-// token.ts
+namespace storage {
 
-const balances = new Map<usize, u64>()
+  // @ts-ignore: decorator
+  @external("storage", "get")
+  export declare function get(key: externref): externref;
 
-export function balance(address: externref): u64 {
-  return $balance(symbols.numerize(address))
+  // @ts-ignore: decorator
+  @external("storage", "set")
+  export declare function set(key: externref, value: externref): void;
+
 }
 
-export function $balance(address: usize): u64 {
-  return balances.has(address) ? balances.get(address) : 0
+namespace packs {
+
+  // @ts-ignore
+  @external("packs", "decode")
+  export declare function decode(bytes: externref): externref
+
+  // @ts-ignore
+  @external("packs", "encode")
+  export declare function encode(pack: externref): externref
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create2<A, B>(arg0: A, arg1: B): externref
+
+  // @ts-ignore
+  @external("packs", "get")
+  export declare function get<T>(pack: externref, index: usize): T
+
+}
+
+// token.ts
+
+
+namespace balances {
+
+  export function get(address: externref): u64 {
+    return packs.get<u64>(packs.decode(storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))), 0)
+  }
+
+  export function set(address: externref, amount: u64): void {
+    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)), packs.encode(packs.create2<u64, externref>(amount, address)))
+  }
+
+}
+
+export function balance(address: externref): u64 {
+  return balances.get(address)
 }
 
 export function mint(address: externref, amount: usize): void {
-  return $mint(symbols.numerize(address), amount)
-}
-
-export function $mint(address: usize, amount: usize): void {
-  balances.set(address, $balance(address) + amount)
+  balances.set(address, balances.get(address) + amount)
 }
 
 export function address(module: externref, modulus: externref): externref {
@@ -130,19 +173,14 @@ export function address(module: externref, modulus: externref): externref {
 export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address(module, accounts.verify(module, session))
 
-  const isender = symbols.numerize(sender)
-  const itarget = symbols.numerize(target)
-
-  $mint(isender, 100)
-
-  const sender64 = $balance(isender)
-  const target64 = $balance(itarget)
+  const sender64 = balances.get(sender)
+  const target64 = balances.get(target)
 
   if (sender64 < amount)
     throw new Error("Insufficient balance")
 
-  balances.set(isender, sender64 - amount)
-  balances.set(itarget, target64 + amount)
+  balances.set(sender, sender64 - amount)
+  balances.set(target, target64 + amount)
 
   console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(bytes.toHex(target)))}`)
 }
