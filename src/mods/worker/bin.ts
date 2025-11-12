@@ -2,7 +2,7 @@
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
-import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -350,23 +350,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         blobs.set(nameAsSymbol, digestOfConcatAsBytes)
 
         return nameAsSymbol
-      },
-      morph: (wasmAsSymbol: symbol): void => {
-        const wasmAsBytes = blobs.get(wasmAsSymbol)
-
-        if (wasmAsBytes == null)
-          throw new Error("Not found")
-
-        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
-        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
-
-        mkdirSync(`./local/scripts`, { recursive: true })
-
-        writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
-
-        rmSync(`./local/scripts/${name}.wasm`, { force: true })
-
-        symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${name}.wasm`, "file")
       },
       load: (nameAsSymbol: symbol): symbol => {
         const nameAsBytes = blobs.get(nameAsSymbol)
