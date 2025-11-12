@@ -157,14 +157,9 @@ export function mint(address: externref, amount: usize): void {
 }
 
 export function address(module: externref, modulus: externref): externref {
-  const bmodule = Uint8Array.wrap(blobs.load(module))
-  const bmodulus = Uint8Array.wrap(blobs.load(modulus))
+  const payload = packs.encode(packs.create2(module, modulus))
 
-  const payload = new Uint8Array(bmodule.length + bmodulus.length)
-  payload.set(bmodule, 0)
-  payload.set(bmodulus, bmodule.length)
-
-  const digest = blobs.load(sha256.digest(blobs.save(payload.buffer)))
+  const digest = blobs.load(sha256.digest(payload))
 
   return blobs.save(digest.slice(12))
 }

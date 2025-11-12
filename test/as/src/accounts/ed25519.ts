@@ -105,6 +105,10 @@ namespace packs {
   export declare function create2<A, B>(arg0: A, arg1: B): externref
 
   // @ts-ignore
+  @external("packs", "create")
+  export declare function create4<A, B, C, D>(arg0: A, arg1: B, arg2: C, arg3: D): externref
+
+  // @ts-ignore
   @external("packs", "get")
   export declare function get<T>(pack: externref, index: usize): T
 
@@ -144,23 +148,9 @@ export function verify(session: externref): externref {
 export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): void {
   const nonce = nonces.get(modulus)
 
-  const bmodule = blobs.load(module)
-  const bmethod = blobs.load(method)
-  const bpayload = blobs.load(payload)
+  const message = packs.encode(packs.create4(module, method, payload, nonce))
 
-  const bmessage = new ArrayBuffer(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength + 8)
-
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmodule), 0)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bmethod), bmodule.byteLength)
-  Uint8Array.wrap(bmessage).set(Uint8Array.wrap(bpayload), bmodule.byteLength + bmethod.byteLength)
-
-  new DataView(bmessage).setUint64(bmodule.byteLength + bmethod.byteLength + bpayload.byteLength, nonce, true)
-
-  const message = blobs.save(bmessage)
-
-  const verified = ed25519.verify(modulus, signature, message)
-
-  if (!verified)
+  if (!ed25519.verify(modulus, signature, message))
     throw new Error("Invalid signature")
 
   nonces.set(modulus, nonce + 1)
