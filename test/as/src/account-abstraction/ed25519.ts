@@ -78,18 +78,6 @@ namespace ed25519 {
 
 }
 
-namespace packs {
-
-  // @ts-ignore
-  @external("packs", "decode")
-  export declare function decode(bytes: externref): externref
-
-  // @ts-ignore
-  @external("packs", "encode")
-  export declare function encode(pack: externref): externref
-
-}
-
 namespace dynamic {
 
   // @ts-ignore
@@ -102,17 +90,56 @@ namespace dynamic {
 
 }
 
+namespace storage {
+
+  // @ts-ignore: decorator
+  @external("storage", "get")
+  export declare function get(key: externref): externref;
+
+  // @ts-ignore: decorator
+  @external("storage", "set")
+  export declare function set(key: externref, value: externref): void;
+
+}
+
+namespace packs {
+
+  // @ts-ignore
+  @external("packs", "decode")
+  export declare function decode(bytes: externref): externref
+
+  // @ts-ignore
+  @external("packs", "encode")
+  export declare function encode(pack: externref): externref
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create2<A, B>(arg0: A, arg1: B): externref
+
+  // @ts-ignore
+  @external("packs", "get")
+  export declare function get<T>(pack: externref, index: usize): T
+
+}
+
+namespace nonces {
+
+  export function get(address: externref): u64 {
+    return packs.get<u64>(packs.decode(storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))), 0)
+  }
+
+  export function set(address: externref, amount: u64): void {
+    storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create2<u64, externref>(amount, address)))
+  }
+
+}
+
 // account.ts 
 
-const nonces = new Map<usize, u64>()
 const sessions = new Map<usize, usize>()
 
 export function nonce(modulus: externref): u64 {
-  return $nonce(symbols.numerize(modulus))
-}
-
-export function $nonce(modulus: usize): u64 {
-  return nonces.has(modulus) ? nonces.get(modulus) : 0
+  return nonces.get(modulus)
 }
 
 export function verify(session: externref): externref {
@@ -126,10 +153,8 @@ export function verify(session: externref): externref {
   return symbols.denumerize(imodulus)
 }
 
-export function main(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): void {
-  const imodulus = symbols.numerize(pubkey)
-
-  const nonce = $nonce(imodulus)
+export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): void {
+  const nonce = nonces.get(modulus)
 
   const bmodule = blobs.load(module)
   const bmethod = blobs.load(method)
@@ -145,16 +170,16 @@ export function main(module: externref, method: externref, payload: externref, p
 
   const message = blobs.save(bmessage)
 
-  const verified = ed25519.verify(pubkey, signature, message)
+  const verified = ed25519.verify(modulus, signature, message)
 
   if (!verified)
     throw new Error("Invalid signature")
 
-  nonces.set(imodulus, nonce + 1)
+  nonces.set(modulus, nonce + 1)
 
   const session = symbols.create()
 
-  sessions.set(symbols.numerize(session), imodulus)
+  sessions.set(symbols.numerize(session), symbols.numerize(modulus))
 
   dynamic.call3(module, method, modules.self(), session, dynamic.rest(packs.decode(payload)))
 }
