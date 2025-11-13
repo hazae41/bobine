@@ -103,7 +103,7 @@ const submodule = Uint8Array.fromHex("caf074865d4492f82ff4e77a88e078415c7f50b220
 const submethod = new TextEncoder().encode("mint")
 const subargs = encode([address, 100n])
 
-const message = encode([submodule, submethod, subargs, 2n])
+const message = encode([submodule, submethod, subargs, 3n])
 const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
 const args = encode([submodule, submethod, subargs, verifier, signature])
