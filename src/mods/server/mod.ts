@@ -23,6 +23,8 @@ export async function serveWithEnv(prefix = "") {
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
 
     moment INTEGER NOT NULL,
+
+    module TEXT NOT NULL,
     
     key BLOB NOT NULL,
     value BLOB NOT NULL

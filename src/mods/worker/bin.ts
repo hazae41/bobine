@@ -17,7 +17,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
   const cache = new Map<symbol, symbol>()
 
-  const writes = new Map<Uint8Array, Uint8Array>()
+  const events = new Array<[string, Uint8Array, Uint8Array]>()
 
   const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
@@ -606,7 +606,8 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           throw new Error("Not found")
 
         cache.set(keyAsBlob, valueAsBlob)
-        writes.set(keyAsBytes, valueAsBytes)
+
+        events.push([name, keyAsBytes, valueAsBytes])
 
         return
       },
@@ -689,17 +690,17 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
   const result = encode([instance.exports[func](...decode(args))])
 
-  if (writes.size) {
+  if (events.length) {
     const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-    helper.postMessage({ method: "storage_set", params: [name, func, args, [...writes]], result })
+    helper.postMessage({ method: "storage_set", params: [name, func, args, events], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
     if (result[0] === 2)
       throw new Error("Internal error")
 
-    console.log(result[1])
+    // NOOP
   }
 
   return result

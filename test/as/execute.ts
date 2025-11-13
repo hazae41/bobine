@@ -151,8 +151,6 @@ function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
   return pack
 }
 
-const [module, method, ...args] = process.argv.slice(2)
-
 async function execute(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
   const body = new FormData()
   body.append("name", module)
@@ -176,5 +174,7 @@ async function execute(module: string, method: string, args: Uint8Array<ArrayBuf
 
   return result
 }
+
+const [module, method, ...args] = process.argv.slice(2)
 
 await execute(module, method, encode(parse(args)))

@@ -183,15 +183,14 @@ async function ed25519(module: string, method: string, args: Uint8Array<ArrayBuf
 
   const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uint8Array.fromHex(ed25519), verifier]))).slice(-20)
 
-  const submoduleAsBytes = Uint8Array.fromHex(module)
-  const submethodAsBytes = new TextEncoder().encode(method)
+  console.log(address.toHex())
 
   const [nonce] = await execute(ed25519, "get_nonce", encode([address]))
 
-  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), submoduleAsBytes, submethodAsBytes, args, nonce])
+  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), Uint8Array.fromHex(module), new TextEncoder().encode(method), args, nonce])
   const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
-  await execute(ed25519, "call", encode([submoduleAsBytes, submethodAsBytes, args, verifier, signature]));
+  await execute(ed25519, "call", encode([Uint8Array.fromHex(module), new TextEncoder().encode(method), args, verifier, signature]));
 }
 
 const [module, method, ...args] = process.argv.slice(2)

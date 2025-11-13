@@ -12,14 +12,14 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
 
     if (method === "storage_set") {
       return await runAsImmediateOrThrow(database, async (database) => {
-        const [name, func, args, writes] = params as [string, string, Uint8Array<ArrayBuffer>, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][], [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
+        const [module, method, args, events] = params as [string, string, Uint8Array<ArrayBuffer>, [string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
 
-        const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(name, func, args)
+        const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(module, method, args)
 
-        const writer = database.prepare(`INSERT INTO events (moment, key, value) VALUES (?, ?, ?);`)
+        const writer = database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
 
-        for (const [key, value] of writes)
-          await writer.run(moment.lastInsertRowid, key, value)
+        for (const [module, key, value] of events)
+          await writer.run(moment.lastInsertRowid, module, key, value)
 
         result[0] = 1
         result[1] = moment.lastInsertRowid
@@ -31,9 +31,9 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     }
 
     if (method === "storage_get") {
-      const [moduleAsString, keyAsBytes] = params as [string, Uint8Array<ArrayBuffer>]
+      const [module, key] = params as [string, Uint8Array<ArrayBuffer>]
 
-      const row = await database.prepare(`SELECT value FROM events event JOIN moments moment ON event.moment = moment.nonce WHERE event.key = ? AND moment.module = ? ORDER BY event.moment DESC LIMIT 1;`).get(keyAsBytes, moduleAsString)
+      const row = await database.prepare(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.moment DESC LIMIT 1;`).get(module, key)
 
       if (row == null) {
         result[0] = 1

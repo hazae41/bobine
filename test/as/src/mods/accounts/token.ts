@@ -41,6 +41,8 @@ namespace balances {
 }
 
 export function get_balance(target: blobs.blob): u64 {
+  console.logAsString(`Getting balance for 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
+
   return balances.get(target)
 }
 
@@ -49,6 +51,8 @@ export function init(creator: blobs.blob): void {
     throw new Error("Module integrity check failed")
 
   owner.set(creator)
+
+  return
 }
 
 export function mint(session: packs.pack, target: blobs.blob, amount: u64): void {
@@ -56,6 +60,8 @@ export function mint(session: packs.pack, target: blobs.blob, amount: u64): void
 
   if (!blobs.equals(sender, owner.get()))
     throw new Error("Unauthorized")
+
+  console.logAsString(`Minted ${amount.toString()} tokens to 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
 
   balances.set(target, balances.get(target) + amount)
 }
