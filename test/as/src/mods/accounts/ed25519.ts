@@ -1,3 +1,4 @@
+import { addresses } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
 import { chain } from "../../libs/chain/mod"
 import { dynamic } from "../../libs/dynamic/mod"
@@ -24,36 +25,31 @@ namespace nonces {
 
 }
 
-const sessions = new Map<usize, usize>()
-
-export function nonce(modulus: externref): u64 {
-  return nonces.get(modulus)
+export function get_nonce(address: externref): u64 {
+  return nonces.get(address)
 }
 
-export function verify(session: externref): externref {
-  const isession = symbols.numerize(session)
+const sessions = new Set<usize>()
 
-  if (!sessions.has(isession))
-    throw new Error("Not found")
-
-  const imodulus = sessions.get(isession)
-
-  return symbols.denumerize(imodulus)
+export function verify(session: packs.pack): bool {
+  return sessions.has(symbols.numerize(session))
 }
 
-export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): packs.pack {
-  const nonce = nonces.get(modulus)
+export function call(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): packs.pack {
+  const address = addresses.compute(modules.self(), pubkey)
+
+  const nonce = nonces.get(address)
 
   const message = packs.encode(packs.create5(chain.uuid(), module, method, payload, nonce))
 
-  if (!ed25519.verify(modulus, signature, message))
+  if (!ed25519.verify(pubkey, signature, message))
     throw new Error("Invalid signature")
 
-  nonces.set(modulus, nonce + 1)
+  nonces.set(address, nonce + 1)
 
-  const session = symbols.create()
+  const session = packs.create2(modules.self(), pubkey)
 
-  sessions.set(symbols.numerize(session), symbols.numerize(modulus))
+  sessions.add(symbols.numerize(session))
 
-  return dynamic.call3(module, method, modules.self(), session, dynamic.rest(packs.decode(payload)))
+  return dynamic.call2(module, method, session, dynamic.rest(packs.decode(payload)))
 }

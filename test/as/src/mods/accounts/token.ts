@@ -1,11 +1,25 @@
-import { accounts } from "../../libs/accounts/mod"
-import { address } from "../../libs/address/mod"
+import { addresses } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
 import { console } from "../../libs/console/mod"
 import { packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
 
-// token.ts
+namespace owner {
+
+  export function get(): blobs.blob {
+    const result = storage.get(packs.encode(packs.create1(blobs.save(String.UTF8.encode("owner")))))
+
+    if (!result)
+      return blobs.fromHex(blobs.save(String.UTF8.encode("0000000000000000000000000000000000000000")))
+
+    return packs.get<blobs.blob>(packs.decode(result), 0)
+  }
+
+  export function set(address: externref): void {
+    storage.set(packs.encode(packs.create1(blobs.save(String.UTF8.encode("owner")))), packs.encode(packs.create1(address)))
+  }
+
+}
 
 namespace balances {
 
@@ -24,21 +38,21 @@ namespace balances {
 
 }
 
-export function get_balance(address: externref): u64 {
-  return balances.get(address)
+export function get_balance(target: blobs.blob): u64 {
+  return balances.get(target)
 }
 
-export function mint(module: externref, session: externref, target: externref, amount: u64): void {
-  const sender = address.compute(module, accounts.verify(module, session))
+export function mint(session: packs.pack, target: blobs.blob, amount: u64): void {
+  const sender = addresses.verify(session)
 
-  if (!blobs.equals(sender, blobs.fromHex(blobs.save(String.UTF8.encode("80c628865256f8abd98808b0952ae420970921fd")))))
+  if (!blobs.equals(sender, owner.get()))
     throw new Error("Unauthorized")
 
   balances.set(target, balances.get(target) + amount)
 }
 
-export function transfer(module: externref, session: externref, target: externref, amount: u64): void {
-  const sender = address.compute(module, accounts.verify(module, session))
+export function transfer(session: packs.pack, target: blobs.blob, amount: u64): void {
+  const sender = addresses.verify(session)
 
   const sender64 = balances.get(sender)
   const target64 = balances.get(target)
