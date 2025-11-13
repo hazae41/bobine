@@ -39,10 +39,6 @@ namespace balances {
 
 }
 
-export function get_balance(target: blobs.blob): u64 {
-  return balances.get(target)
-}
-
 export function init(creator: blobs.blob): void {
   if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(creator)))))
     throw new Error("Invalid creator")
@@ -50,6 +46,10 @@ export function init(creator: blobs.blob): void {
   owner.set(creator)
 
   return
+}
+
+export function get_balance(target: blobs.blob): u64 {
+  return balances.get(target)
 }
 
 export function mint(session: packs.pack, target: blobs.blob, amount: u64): void {
