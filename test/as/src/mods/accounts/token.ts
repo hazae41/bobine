@@ -1,7 +1,6 @@
 import { accounts } from "../../libs/accounts/mod"
 import { address } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
-import { bytes } from "../../libs/bytes/mod"
 import { console } from "../../libs/console/mod"
 import { packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
@@ -32,7 +31,7 @@ export function get_balance(address: externref): u64 {
 export function mint(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address.compute(module, accounts.verify(module, session))
 
-  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("80c628865256f8abd98808b0952ae420970921fd")))))
+  if (!blobs.equals(sender, blobs.fromHex(blobs.save(String.UTF8.encode("80c628865256f8abd98808b0952ae420970921fd")))))
     throw new Error("Unauthorized")
 
   balances.set(target, balances.get(target) + amount)
@@ -50,5 +49,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(sender, sender64 - amount)
   balances.set(target, target64 + amount)
 
-  console.logAsString(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(bytes.toHex(target)))}`)
+  console.logAsString(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(blobs.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
 }

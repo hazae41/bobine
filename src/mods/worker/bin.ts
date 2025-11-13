@@ -280,6 +280,87 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const slice = new Uint8Array(memory.buffer, offset, bytes.length)
 
         slice.set(bytes)
+      },
+      concat: (leftAsBlob: symbol, rightAsBlob: symbol): symbol => {
+        const leftAsBytes = blobs.get(leftAsBlob)
+        const rightAsBytes = blobs.get(rightAsBlob)
+
+        if (leftAsBytes == null)
+          throw new Error("Not found")
+        if (rightAsBytes == null)
+          throw new Error("Not found")
+
+        const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
+        concatAsBytes.set(leftAsBytes, 0)
+        concatAsBytes.set(rightAsBytes, leftAsBytes.length)
+
+        const concatAsBlob = Symbol()
+
+        blobs.set(concatAsBlob, concatAsBytes)
+
+        return concatAsBlob
+      },
+      equals: (leftAsBlob: symbol, rightAsBlob: symbol): boolean => {
+        const leftAsBytes = blobs.get(leftAsBlob)
+        const rightAsBytes = blobs.get(rightAsBlob)
+
+        if (leftAsBytes == null)
+          throw new Error("Not found")
+        if (rightAsBytes == null)
+          throw new Error("Not found")
+
+        if (leftAsBytes.length !== rightAsBytes.length)
+          return false
+
+        return !Buffer.compare(leftAsBytes, rightAsBytes)
+      },
+      from_hex: (textAsBlob: symbol): symbol => {
+        const textAsBytes = blobs.get(textAsBlob)
+
+        if (textAsBytes == null)
+          throw new Error("Not found")
+
+        const outputAsBlob = Symbol()
+
+        blobs.set(outputAsBlob, Uint8Array.fromHex(new TextDecoder().decode(textAsBytes)))
+
+        return outputAsBlob
+      },
+      from_base64: (inputAsBlob: symbol): symbol => {
+        const inputAsBytes = blobs.get(inputAsBlob)
+
+        if (inputAsBytes == null)
+          throw new Error("Not found")
+
+        const outputAsBlob = Symbol()
+
+        blobs.set(outputAsBlob, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
+
+        return outputAsBlob
+      },
+      to_hex: (inputAsBlob: symbol): symbol => {
+        const inputAsBytes = blobs.get(inputAsBlob)
+
+        if (inputAsBytes == null)
+          throw new Error("Not found")
+
+        const outputAsBlob = Symbol()
+
+        blobs.set(outputAsBlob, new TextEncoder().encode(inputAsBytes.toHex()))
+
+        return outputAsBlob
+      },
+      to_base64: (inputAsBlob: symbol): symbol => {
+        const inputsAsBytes = blobs.get(inputAsBlob)
+
+        if (inputsAsBytes == null)
+          throw new Error("Not found")
+
+        const outputAsBlob = Symbol()
+
+        blobs.set(outputAsBlob, new TextEncoder().encode(inputsAsBytes.toBase64()))
+
+        return outputAsBlob
       }
     }
 
@@ -368,90 +449,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         blobs.set(blob, Uint8Array.fromHex(name))
 
         return blob
-      }
-    }
-
-    imports["bytes"] = {
-      concat: (leftAsBlob: symbol, rightAsBlob: symbol): symbol => {
-        const leftAsBytes = blobs.get(leftAsBlob)
-        const rightAsBytes = blobs.get(rightAsBlob)
-
-        if (leftAsBytes == null)
-          throw new Error("Not found")
-        if (rightAsBytes == null)
-          throw new Error("Not found")
-
-        const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
-        concatAsBytes.set(leftAsBytes, 0)
-        concatAsBytes.set(rightAsBytes, leftAsBytes.length)
-
-        const concatAsBlob = Symbol()
-
-        blobs.set(concatAsBlob, concatAsBytes)
-
-        return concatAsBlob
-      },
-      equals: (leftAsBlob: symbol, rightAsBlob: symbol): boolean => {
-        const leftAsBytes = blobs.get(leftAsBlob)
-        const rightAsBytes = blobs.get(rightAsBlob)
-
-        if (leftAsBytes == null)
-          throw new Error("Not found")
-        if (rightAsBytes == null)
-          throw new Error("Not found")
-
-        if (leftAsBytes.length !== rightAsBytes.length)
-          return false
-
-        return !Buffer.compare(leftAsBytes, rightAsBytes)
-      },
-      from_hex: (textAsBlob: symbol): symbol => {
-        const textAsBytes = blobs.get(textAsBlob)
-
-        if (textAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlob = Symbol()
-
-        blobs.set(outputAsBlob, Uint8Array.fromHex(new TextDecoder().decode(textAsBytes)))
-
-        return outputAsBlob
-      },
-      from_base64: (inputAsBlob: symbol): symbol => {
-        const inputAsBytes = blobs.get(inputAsBlob)
-
-        if (inputAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlob = Symbol()
-
-        blobs.set(outputAsBlob, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
-
-        return outputAsBlob
-      },
-      to_hex: (inputAsBlob: symbol): symbol => {
-        const inputAsBytes = blobs.get(inputAsBlob)
-
-        if (inputAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlob = Symbol()
-
-        blobs.set(outputAsBlob, new TextEncoder().encode(inputAsBytes.toHex()))
-
-        return outputAsBlob
-      },
-      to_base64: (inputAsBlob: symbol): symbol => {
-        const inputsAsBytes = blobs.get(inputAsBlob)
-
-        if (inputsAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlob = Symbol()
-
-        blobs.set(outputAsBlob, new TextEncoder().encode(inputsAsBytes.toBase64()))
-
-        return outputAsBlob
       }
     }
 
