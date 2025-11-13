@@ -11,5 +11,5 @@ export function main(): void {
 }
 
 export function log(message: blobs.blob): void {
-  console.log(message);
+  console.logAsBlob(message);
 }

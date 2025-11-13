@@ -2,6 +2,7 @@ import { accounts } from "../../libs/accounts/mod"
 import { address } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
 import { bytes } from "../../libs/bytes/mod"
+import { console } from "../../libs/console/mod"
 import { packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
 
@@ -49,5 +50,5 @@ export function transfer(module: externref, session: externref, target: externre
   balances.set(sender, sender64 - amount)
   balances.set(target, target64 + amount)
 
-  console.log(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(bytes.toHex(target)))}`)
+  console.logAsString(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(bytes.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(bytes.toHex(target)))}`)
 }
