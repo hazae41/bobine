@@ -1,6 +1,5 @@
 import { addresses } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
-import { console } from "../../libs/console/mod"
 import { modules } from "../../libs/modules/mod"
 import { packs } from "../../libs/packs/mod"
 import { sha256 } from "../../libs/sha256/mod"
@@ -41,14 +40,12 @@ namespace balances {
 }
 
 export function get_balance(target: blobs.blob): u64 {
-  console.logAsString(`Getting balance for 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
-
   return balances.get(target)
 }
 
 export function init(creator: blobs.blob): void {
   if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(creator)))))
-    throw new Error("Module integrity check failed")
+    throw new Error("Invalid creator")
 
   owner.set(creator)
 
@@ -79,6 +76,4 @@ export function transfer(session: packs.pack, target: blobs.blob, amount: u64): 
   balances.set(target, btarget + amount)
 
   storage.set(blobs.save(String.UTF8.encode("transfer")), packs.encode(packs.create3(sender, target, amount)))
-
-  console.logAsString(`Transferred ${amount.toString()} tokens from 0x${String.UTF8.decode(blobs.load(blobs.toHex(sender)))} to 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
 }
