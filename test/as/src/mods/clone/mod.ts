@@ -7,7 +7,7 @@ export function init(message: blobs.blob): void {
   if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(message)))))
     throw new Error("Module integrity check failed")
 
-  console.logAsBlob(message)
+  console.log(message)
 }
 
 export function clone(message: blobs.blob): externref {
