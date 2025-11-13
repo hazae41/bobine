@@ -159,7 +159,7 @@ async function execute(module: string, method: string, args: Uint8Array<ArrayBuf
 
   const start = performance.now()
 
-  const response = await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
+  const response = await fetch("http://localhost:8080/api/execute", { method: "POST", body });
 
   const until = performance.now()
 

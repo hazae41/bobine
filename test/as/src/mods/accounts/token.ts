@@ -39,6 +39,11 @@ namespace balances {
 
 }
 
+/**
+ * Initialize the token with a specific owner
+ * @param creator 
+ * @returns nothing
+ */
 export function init(creator: blobs.blob): void {
   if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(creator)))))
     throw new Error("Invalid creator")
@@ -48,10 +53,21 @@ export function init(creator: blobs.blob): void {
   return
 }
 
+/**
+ * Get the balance of a specific address
+ * @param target 
+ * @returns u64
+ */
 export function get_balance(target: blobs.blob): u64 {
   return balances.get(target)
 }
 
+/**
+ * Use the owner session to mint tokens to a specific address
+ * @param session 
+ * @param target 
+ * @param amount 
+ */
 export function mint(session: packs.pack, target: blobs.blob, amount: u64): void {
   const sender = addresses.verify(session)
 
@@ -63,6 +79,12 @@ export function mint(session: packs.pack, target: blobs.blob, amount: u64): void
   storage.set(blobs.save(String.UTF8.encode("mint")), packs.encode(packs.create2(target, amount)))
 }
 
+/**
+ * Use some session to transfer tokens to a specific address
+ * @param session 
+ * @param target 
+ * @param amount 
+ */
 export function transfer(session: packs.pack, target: blobs.blob, amount: u64): void {
   const sender = addresses.verify(session)
 

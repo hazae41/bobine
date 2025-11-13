@@ -32,7 +32,7 @@ body.append("salt", new Blob([Uint8Array.fromHex(salt.slice(2))]))
 {
   const start = performance.now()
 
-  const response = await fetch("http://bob.localhost:8080/api/create", { method: "POST", body });
+  const response = await fetch("http://localhost:8080/api/create", { method: "POST", body });
 
   if (!response.ok)
     throw new Error("Failed", { cause: response })
