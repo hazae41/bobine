@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-const [entrypoint, ...args] = process.argv.slice(2)
+const [entrypoint, salt = ""] = process.argv.slice(2)
 
 const exitpoint = join("./bin", relative("./src", entrypoint))
 
@@ -27,7 +27,7 @@ console.log(`Compiled in ${(end - start).toFixed(2)}ms`)
 const body = new FormData()
 
 body.append("code", new Blob([await readFile(exitpoint.replace(/\.ts$/, ".wasm"))]))
-body.append("salt", new Blob([new Uint8Array(0)]))
+body.append("salt", new Blob([Uint8Array.fromHex(salt.slice(2))]))
 
 {
   const start = performance.now()

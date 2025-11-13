@@ -90,6 +90,27 @@ function encode(input: Pack): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
+function parse(args: string[]): Pack {
+  const pack: Pack = []
+
+  for (const arg of args) {
+    if (arg.startsWith("0x")) {
+      pack.push(Uint8Array.fromHex(arg.slice(2)))
+      continue
+    }
+
+    if (arg.endsWith("n")) {
+      pack.push(BigInt(arg.slice(0, -1)))
+      continue
+    }
+
+    pack.push(Number(arg))
+    continue
+  }
+
+  return pack
+}
+
 function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
   const pack = []
 
@@ -130,13 +151,6 @@ function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
   return pack
 }
 
-const ed25519 = "38903647f7edf7092297ce144c4704a495b57683ca8ef2c0a1cefc0a2bc01967"
-
-const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
-const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeLSvQ=")
-
-const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uint8Array.fromHex(ed25519), verifier]))).slice(-20)
-
 async function execute(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
   const body = new FormData()
   body.append("name", module)
@@ -161,16 +175,25 @@ async function execute(module: string, method: string, args: Uint8Array<ArrayBuf
   return result
 }
 
-async function signAndExecute(submodule: string, submethod: string, subargs: Uint8Array<ArrayBuffer>) {
-  const submoduleAsBytes = Uint8Array.fromHex(submodule)
-  const submethodAsBytes = new TextEncoder().encode(submethod)
+async function ed25519(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
+  const ed25519 = "104b3e40d750d6b1b2427b5c7d547bc6549c46642036cef5d0c901dc1b3b02d6"
 
-  const [nonce] = await execute(ed25519, "nonce", encode([address]))
+  const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
+  const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeLSvQ=")
 
-  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), submoduleAsBytes, submethodAsBytes, subargs, nonce])
+  const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uint8Array.fromHex(ed25519), verifier]))).slice(-20)
+
+  const submoduleAsBytes = Uint8Array.fromHex(module)
+  const submethodAsBytes = new TextEncoder().encode(method)
+
+  const [nonce] = await execute(ed25519, "get_nonce", encode([address]))
+
+  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), submoduleAsBytes, submethodAsBytes, args, nonce])
   const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
-  await execute(ed25519, "main", encode([submoduleAsBytes, submethodAsBytes, subargs, verifier, signature]));
+  await execute(ed25519, "call", encode([submoduleAsBytes, submethodAsBytes, args, verifier, signature]));
 }
 
-await signAndExecute("43895e5c28214e2cc638c7586fdd8d2c09c706df2b70dfe58b01b4e2cc1af521", "transfer", encode([Uint8Array.fromHex("deadbeef"), 42n]))
+const [module, method, ...args] = process.argv.slice(2)
+
+await ed25519(module, method, encode(parse(args)))

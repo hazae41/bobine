@@ -8,56 +8,173 @@ declare global {
   interface Uint8ArrayConstructor {
     fromHex(hex: string): Uint8Array<ArrayBuffer>;
   }
+
+  interface Uint8Array {
+    toBase64(): string;
+  }
+
+  interface Uint8ArrayConstructor {
+    fromBase64(base64: string): Uint8Array<ArrayBuffer>;
+  }
 }
 
-const [name, func, ...args] = process.argv.slice(2)
+type Pack = Array<number | bigint | Uint8Array | Pack | null>
 
-const body = new FormData()
+function size(input: Pack): number {
+  let length = 0
 
-body.append("name", name)
-body.append("func", func)
+  for (const arg of input) {
+    if (typeof arg === "number") {
+      length += 1 + 4
+      continue
+    }
 
-let length = 0
+    if (typeof arg === "bigint") {
+      length += 1 + 8
+      continue
+    }
 
-for (const arg of args) {
-  const bytes = Uint8Array.fromHex(arg)
+    if (arg instanceof Uint8Array) {
+      length += 1 + 4 + arg.length
+      continue
+    }
 
-  if (bytes == null)
-    throw new Error("Not found")
+    if (Array.isArray(arg)) {
+      length += 1 + 4 + size(arg)
+      continue
+    }
 
-  length += 1 + 4 + bytes.length
-  continue
+    length += 1
+    continue
+  }
+
+  return length
 }
 
-const bytes = new Uint8Array(length)
+function encode(input: Pack): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(size(input))
 
-const cursor = new Cursor(bytes)
+  const cursor = new Cursor(bytes)
 
-for (const arg of args) {
-  const bytes = Uint8Array.fromHex(arg)
+  for (const arg of input) {
+    if (typeof arg === "number") {
+      cursor.writeUint8OrThrow(1)
+      cursor.writeUint32OrThrow(arg, true)
+      continue
+    }
 
-  if (bytes == null)
-    throw new Error("Not found")
+    if (typeof arg === "bigint") {
+      cursor.writeUint8OrThrow(2)
+      cursor.writeUint64OrThrow(arg, true)
+      continue
+    }
 
-  cursor.writeUint8OrThrow(3)
-  cursor.writeUint32OrThrow(bytes.length, true)
-  cursor.writeOrThrow(bytes)
-  continue
+    if (arg instanceof Uint8Array) {
+      cursor.writeUint8OrThrow(3)
+      cursor.writeUint32OrThrow(arg.length, true)
+      cursor.writeOrThrow(arg)
+      continue
+    }
+
+    if (Array.isArray(arg)) {
+      cursor.writeUint8OrThrow(4)
+      const packed = encode(arg)
+      cursor.writeUint32OrThrow(packed.length, true)
+      cursor.writeOrThrow(packed)
+      continue
+    }
+
+    cursor.writeUint8OrThrow(0)
+  }
+
+  return bytes
 }
 
-body.append("args", new Blob([bytes]))
+function parse(args: string[]): Pack {
+  const pack: Pack = []
 
-{
+  for (const arg of args) {
+    if (arg.startsWith("0x")) {
+      pack.push(Uint8Array.fromHex(arg.slice(2)))
+      continue
+    }
+
+    if (arg.endsWith("n")) {
+      pack.push(BigInt(arg.slice(0, -1)))
+      continue
+    }
+
+    pack.push(Number(arg))
+    continue
+  }
+
+  return pack
+}
+
+function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
+  const pack = []
+
+  const cursor = new Cursor(bytes)
+
+  while (cursor.offset < cursor.length) {
+    const type = cursor.readUint8OrThrow()
+
+    if (type === 0) {
+      pack.push(null)
+      continue
+    }
+
+    if (type === 1) {
+      pack.push(cursor.readUint32OrThrow(true))
+      continue
+    }
+
+    if (type === 2) {
+      pack.push(cursor.readUint64OrThrow(true))
+      continue
+    }
+
+    if (type === 3) {
+      const length = cursor.readUint32OrThrow(true)
+      pack.push(cursor.readOrThrow(length))
+      continue
+    }
+
+    if (type === 4) {
+      const length = cursor.readUint32OrThrow(true)
+      const subbytes = cursor.readOrThrow(length)
+      pack.push(decode(subbytes))
+      continue
+    }
+  }
+
+  return pack
+}
+
+const [module, method, ...args] = process.argv.slice(2)
+
+async function execute(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
+  const body = new FormData()
+  body.append("name", module)
+  body.append("func", method)
+  body.append("args", new Blob([args]))
+
   const start = performance.now()
 
   const response = await fetch("http://bob.localhost:8080/api/execute", { method: "POST", body });
 
+  const until = performance.now()
+
   if (!response.ok)
     throw new Error("Failed", { cause: response })
 
-  console.log(await response.bytes().then(r => r.toHex()))
+  const result = decode(await response.bytes())
 
-  const until = performance.now()
+  console.log(result)
 
   console.log(`Executed in ${(until - start).toFixed(2)}ms`)
+
+  return result
 }
+
+await execute(module, method, encode(parse(args)))

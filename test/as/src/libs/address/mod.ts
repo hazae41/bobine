@@ -9,7 +9,7 @@ export namespace addresses {
     return blobs.save(blobs.load(sha256.digest(packs.encode(packs.create2(module, pubkey)))).slice(12))
   }
 
-  export function verify(session: packs.pack) {
+  export function verify(session: packs.pack): blobs.blob {
     const module = packs.get<blobs.blob>(session, 0)
     const pubkey = packs.get<blobs.blob>(session, 1)
 
