@@ -90,7 +90,7 @@ const encode = (input: Pack): Uint8Array<ArrayBuffer> => {
   return bytes
 }
 
-const ed25519 = "a681af595fd3ea65e8eaf698d17c554bb48102ded02cd8ea74c596db725955e1"
+const ed25519 = "38903647f7edf7092297ce144c4704a495b57683ca8ef2c0a1cefc0a2bc01967"
 
 const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
 const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeLSvQ=")
@@ -98,7 +98,7 @@ const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeL
 const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uint8Array.fromHex(ed25519), verifier]))).slice(-20)
 
 const body = new FormData()
-body.append("name", "bdbcc34d114971faba8d05be65fe1993e955177784a381e139a8838002cd0da9")
+body.append("name", "43895e5c28214e2cc638c7586fdd8d2c09c706df2b70dfe58b01b4e2cc1af521")
 body.append("func", "balance")
 body.append("args", new Blob([encode([address])]))
 // body.append("args", new Blob([encode([Uint8Array.fromHex("deadbeef")])]))

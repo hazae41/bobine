@@ -208,7 +208,7 @@ export function balance(address: externref): u64 {
 export function mint(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address(module, accounts.verify(module, session))
 
-  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("4276e7da462969090df31d00afe7b0ffeea1fdc5")))))
+  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("80c628865256f8abd98808b0952ae420970921fd")))))
     throw new Error("Unauthorized")
 
   balances.set(target, balances.get(target) + amount)

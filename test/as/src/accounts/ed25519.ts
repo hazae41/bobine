@@ -77,6 +77,10 @@ namespace packs {
   export declare function create4<A, B, C, D>(arg0: A, arg1: B, arg2: C, arg3: D): packs.pack
 
   // @ts-ignore
+  @external("packs", "create")
+  export declare function create5<A, B, C, D, E>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E): packs.pack
+
+  // @ts-ignore
   @external("packs", "get")
   export declare function get<T>(pack: packs.pack, index: usize): T
 
@@ -138,6 +142,14 @@ namespace storage {
 
 }
 
+namespace chain {
+
+  // @ts-ignore: decorator
+  @external("chain", "uuid")
+  export declare function uuid(): blobs.blob
+
+}
+
 namespace nonces {
 
   export function get(address: externref): u64 {
@@ -177,7 +189,7 @@ export function verify(session: externref): externref {
 export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): packs.pack {
   const nonce = nonces.get(modulus)
 
-  const message = packs.encode(packs.create4(module, method, payload, nonce))
+  const message = packs.encode(packs.create5(chain.uuid(), module, method, payload, nonce))
 
   if (!ed25519.verify(modulus, signature, message))
     throw new Error("Invalid signature")

@@ -90,7 +90,7 @@ const encode = (input: Pack): Uint8Array<ArrayBuffer> => {
   return bytes
 }
 
-const ed25519 = "c8585139ab3cbc7fbc5c93a940cd17422a4b1c4ffd3462088583162b78951e1e"
+const ed25519 = "38903647f7edf7092297ce144c4704a495b57683ca8ef2c0a1cefc0a2bc01967"
 
 const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
 const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeLSvQ=")
@@ -99,11 +99,11 @@ const address = new Uint8Array(await crypto.subtle.digest("SHA-256", encode([Uin
 
 console.log(address.toHex())
 
-const submodule = Uint8Array.fromHex("caf074865d4492f82ff4e77a88e078415c7f50b22003ecd7b14dfa066892a170")
+const submodule = Uint8Array.fromHex("43895e5c28214e2cc638c7586fdd8d2c09c706df2b70dfe58b01b4e2cc1af521")
 const submethod = new TextEncoder().encode("mint")
 const subargs = encode([address, 100n])
 
-const message = encode([submodule, submethod, subargs, 3n])
+const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), submodule, submethod, subargs, 0n])
 const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
 const args = encode([submodule, submethod, subargs, verifier, signature])
