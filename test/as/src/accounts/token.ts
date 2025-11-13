@@ -16,19 +16,21 @@ namespace symbols {
 
 namespace blobs {
 
+  export type blob = externref
+
   // @ts-ignore: decorator
   @external("blobs", "save")
-  export declare function $save(offset: usize, length: usize): externref
+  export declare function $save(offset: usize, length: usize): blobs.blob
 
   // @ts-ignore: decorator
   @external("blobs", "size")
-  export declare function $size(reference: externref): usize
+  export declare function $size(blob: blobs.blob): usize
 
   // @ts-ignore: decorator
   @external("blobs", "load")
-  export declare function $load(reference: externref, offset: usize): void
+  export declare function $load(blob: blobs.blob, offset: usize): void
 
-  export function save(buffer: ArrayBuffer): externref {
+  export function save(buffer: ArrayBuffer): blob {
     const bytes = Uint8Array.wrap(buffer)
 
     const reference = $save(bytes.dataStart, bytes.length)
@@ -36,13 +38,83 @@ namespace blobs {
     return reference
   }
 
-  export function load(reference: externref): ArrayBuffer {
-    const bytes = new Uint8Array(<i32>$size(reference))
+  export function load(blob: blobs.blob): ArrayBuffer {
+    const bytes = new Uint8Array(<i32>$size(blob))
 
-    $load(reference, bytes.dataStart)
+    $load(blob, bytes.dataStart)
 
     return bytes.buffer
   }
+
+}
+
+namespace bytes {
+
+  // @ts-ignore: decorator
+  @external("bytes", "concat")
+  export declare function concat(left: blobs.blob, right: blobs.blob): externref
+
+  // @ts-ignore: decorator
+  @external("bytes", "equals")
+  export declare function equals(left: blobs.blob, right: blobs.blob): bool
+
+  // @ts-ignore: decorator
+  @external("bytes", "to_hex")
+  export declare function toHex(bytes: blobs.blob): blobs.blob
+
+  // @ts-ignore: decorator
+  @external("bytes", "from_hex")
+  export declare function fromHex(hex: blobs.blob): blobs.blob
+
+}
+
+namespace packs {
+
+  export type pack = externref
+
+  // @ts-ignore
+  @external("packs", "decode")
+  export declare function decode(blob: blobs.blob): externref
+
+  // @ts-ignore
+  @external("packs", "encode")
+  export declare function encode(pack: packs.pack): blobs.blob
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create1<A>(arg0: A): packs.pack
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create2<A, B>(arg0: A, arg1: B): packs.pack
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create4<A, B, C, D>(arg0: A, arg1: B, arg2: C, arg3: D): packs.pack
+
+  // @ts-ignore
+  @external("packs", "get")
+  export declare function get<T>(pack: packs.pack, index: usize): T
+
+}
+
+namespace dynamic {
+
+  // @ts-ignore
+  @external("dynamic", "rest")
+  export declare function rest(pack: packs.pack): externref
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call1<A>(module: blobs.blob, name: blobs.blob, arg0: A): packs.pack
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call2<A, B>(module: blobs.blob, name: blobs.blob, arg0: A, arg1: B): packs.pack
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call3<A, B, C>(module: blobs.blob, name: blobs.blob, arg0: A, arg1: B, arg2: C): packs.pack
 
 }
 
@@ -62,42 +134,14 @@ namespace sha256 {
 
   // @ts-ignore: decorator
   @external("sha256", "digest")
-  export declare function digest(payload: externref): externref
-
-}
-
-namespace bytes {
-
-  // @ts-ignore: decorator
-  @external("bytes", "concat")
-  export declare function concat(left: externref, right: externref): externref
-
-  // @ts-ignore: decorator
-  @external("bytes", "equals")
-  export declare function equals(left: externref, right: externref): bool
-
-  // @ts-ignore: decorator
-  @external("bytes", "to_hex")
-  export declare function toHex(bytes: externref): externref
-
-  // @ts-ignore: decorator
-  @external("bytes", "from_hex")
-  export declare function fromHex(hex: externref): externref
-
-}
-
-namespace dynamic {
-
-  // @ts-ignore
-  @external("dynamic", "call")
-  export declare function call1<A>(module: externref, name: externref, arg0: A): externref
+  export declare function digest(payload: blobs.blob): blobs.blob
 
 }
 
 namespace accounts {
 
-  export function verify(module: externref, session: externref): externref {
-    return dynamic.call1(module, blobs.save(String.UTF8.encode("verify")), session)
+  export function verify(module: blobs.blob, session: externref): blobs.blob {
+    return packs.get<blobs.blob>(dynamic.call1(module, blobs.save(String.UTF8.encode("verify")), session), 0)
   }
 
 }
@@ -164,7 +208,7 @@ export function balance(address: externref): u64 {
 export function mint(module: externref, session: externref, target: externref, amount: u64): void {
   const sender = address(module, accounts.verify(module, session))
 
-  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("3a7f20e5587a6a8c200f68827feaaa12312de74f")))))
+  if (!bytes.equals(sender, bytes.fromHex(blobs.save(String.UTF8.encode("4276e7da462969090df31d00afe7b0ffeea1fdc5")))))
     throw new Error("Unauthorized")
 
   balances.set(target, balances.get(target) + amount)

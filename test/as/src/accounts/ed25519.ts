@@ -16,19 +16,21 @@ namespace symbols {
 
 namespace blobs {
 
+  export type blob = externref
+
   // @ts-ignore: decorator
   @external("blobs", "save")
-  export declare function $save(offset: usize, length: usize): externref
+  export declare function $save(offset: usize, length: usize): blob
 
   // @ts-ignore: decorator
   @external("blobs", "size")
-  export declare function $size(reference: externref): usize
+  export declare function $size(blob: blob): usize
 
   // @ts-ignore: decorator
   @external("blobs", "load")
-  export declare function $load(reference: externref, offset: usize): void
+  export declare function $load(blob: blob, offset: usize): void
 
-  export function save(buffer: ArrayBuffer): externref {
+  export function save(buffer: ArrayBuffer): blob {
     const bytes = Uint8Array.wrap(buffer)
 
     const reference = $save(bytes.dataStart, bytes.length)
@@ -36,33 +38,47 @@ namespace blobs {
     return reference
   }
 
-  export function load(reference: externref): ArrayBuffer {
-    const bytes = new Uint8Array(<i32>$size(reference))
+  export function load(blob: blob): ArrayBuffer {
+    const bytes = new Uint8Array(<i32>$size(blob))
 
-    $load(reference, bytes.dataStart)
+    $load(blob, bytes.dataStart)
 
     return bytes.buffer
   }
 
 }
 
-namespace modules {
+namespace packs {
+
+  export type pack = externref
 
   // @ts-ignore
-  @external("modules", "main")
-  export declare function main(): externref
+  @external("packs", "decode")
+  export declare function decode(blob: blobs.blob): externref
 
   // @ts-ignore
-  @external("modules", "self")
-  export declare function self(): externref
+  @external("packs", "encode")
+  export declare function encode(pack: packs.pack): blobs.blob
 
-}
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create1<A>(arg0: A): packs.pack
 
-namespace ed25519 {
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create2<A, B>(arg0: A, arg1: B): packs.pack
 
-  // @ts-ignore: decorator
-  @external("ed25519", "verify")
-  export declare function verify(pubkey: externref, signature: externref, payload: externref): boolean
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create3<A, B, C>(arg0: A, arg1: B, arg2: C): packs.pack
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create4<A, B, C, D>(arg0: A, arg1: B, arg2: C, arg3: D): packs.pack
+
+  // @ts-ignore
+  @external("packs", "get")
+  export declare function get<T>(pack: packs.pack, index: usize): T
 
 }
 
@@ -70,11 +86,43 @@ namespace dynamic {
 
   // @ts-ignore
   @external("dynamic", "rest")
-  export declare function rest(pack: externref): externref
+  export declare function rest(pack: packs.pack): externref
 
   // @ts-ignore
   @external("dynamic", "call")
-  export declare function call3<A, B, C>(module: externref, name: externref, arg0: A, arg1: B, arg2: C): externref
+  export declare function call1<A>(module: blobs.blob, name: blobs.blob, arg0: A): packs.pack
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call2<A, B>(module: blobs.blob, name: blobs.blob, arg0: A, arg1: B): packs.pack
+
+  // @ts-ignore
+  @external("dynamic", "call")
+  export declare function call3<A, B, C>(module: blobs.blob, name: blobs.blob, arg0: A, arg1: B, arg2: C): packs.pack
+
+}
+
+namespace modules {
+
+  // @ts-ignore: decorator
+  @external("modules", "load")
+  export declare function load(name: blobs.blob): blobs.blob
+
+  // @ts-ignore: decorator
+  @external("modules", "create")
+  export declare function create(code: blobs.blob, salt: blobs.blob): blobs.blob
+
+  // @ts-ignore: decorator
+  @external("modules", "self")
+  export declare function self(): blobs.blob
+
+}
+
+namespace ed25519 {
+
+  // @ts-ignore: decorator
+  @external("ed25519", "verify")
+  export declare function verify(pubkey: blobs.blob, signature: blobs.blob, payload: blobs.blob): boolean
 
 }
 
@@ -87,34 +135,6 @@ namespace storage {
   // @ts-ignore: decorator
   @external("storage", "set")
   export declare function set(key: externref, value: externref): void;
-
-}
-
-namespace packs {
-
-  // @ts-ignore
-  @external("packs", "decode")
-  export declare function decode(bytes: externref): externref
-
-  // @ts-ignore
-  @external("packs", "encode")
-  export declare function encode(pack: externref): externref
-
-  // @ts-ignore
-  @external("packs", "create")
-  export declare function create1<A>(arg0: A): externref
-
-  // @ts-ignore
-  @external("packs", "create")
-  export declare function create2<A, B>(arg0: A, arg1: B): externref
-
-  // @ts-ignore
-  @external("packs", "create")
-  export declare function create4<A, B, C, D>(arg0: A, arg1: B, arg2: C, arg3: D): externref
-
-  // @ts-ignore
-  @external("packs", "get")
-  export declare function get<T>(pack: externref, index: usize): T
 
 }
 
@@ -154,7 +174,7 @@ export function verify(session: externref): externref {
   return symbols.denumerize(imodulus)
 }
 
-export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): void {
+export function main(module: externref, method: externref, payload: externref, modulus: externref, signature: externref): packs.pack {
   const nonce = nonces.get(modulus)
 
   const message = packs.encode(packs.create4(module, method, payload, nonce))
@@ -168,5 +188,5 @@ export function main(module: externref, method: externref, payload: externref, m
 
   sessions.set(symbols.numerize(session), symbols.numerize(modulus))
 
-  dynamic.call3(module, method, modules.self(), session, dynamic.rest(packs.decode(payload)))
+  return dynamic.call3(module, method, modules.self(), session, dynamic.rest(packs.decode(payload)))
 }

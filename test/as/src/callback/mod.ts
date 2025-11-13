@@ -48,11 +48,15 @@ namespace console {
 
 namespace modules {
 
-  // @ts-ignore
-  @external("modules", "main")
-  export declare function main(): externref
+  // @ts-ignore: decorator
+  @external("modules", "load")
+  export declare function load(name: externref): externref
 
-  // @ts-ignore
+  // @ts-ignore: decorator
+  @external("modules", "create")
+  export declare function create(code: externref, salt: externref): externref
+
+  // @ts-ignore: decorator
   @external("modules", "self")
   export declare function self(): externref
 

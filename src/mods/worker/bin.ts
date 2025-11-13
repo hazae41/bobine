@@ -133,11 +133,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const size = cursor.readUint32OrThrow(true)
         const data = cursor.readOrThrow(size)
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, data)
+        blobs.set(blob, data)
 
-        args.push(symbol)
+        args.push(blob)
         continue
       }
 
@@ -145,11 +145,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         const size = cursor.readUint32OrThrow(true)
         const data = cursor.readOrThrow(size)
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        packs.set(symbol, decode(data))
+        packs.set(blob, decode(data))
 
-        args.push(symbol)
+        args.push(blob)
         continue
       }
 
@@ -253,13 +253,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
       save: (offset: number, length: number): symbol => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
         const slice = new Uint8Array(memory.buffer, offset, length)
 
-        blobs.set(symbol, slice.slice())
+        blobs.set(blob, slice.slice())
 
-        return symbol
+        return blob
       },
       size: (symbol: symbol): number => {
         const bytes = blobs.get(symbol)
@@ -358,13 +358,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const nameAsString = nameAsBytes.toHex()
 
-        const bytes = readFileSync(`./local/scripts/${nameAsString}.wasm`)
+        const blob = Symbol()
 
-        const symbol = Symbol()
+        blobs.set(blob, readFileSync(`./local/scripts/${nameAsString}.wasm`))
 
-        blobs.set(symbol, bytes)
-
-        return symbol
+        return blob
       },
       self: (): symbol => {
         const nameAsSymbol = Symbol()
@@ -389,11 +387,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         concatAsBytes.set(leftAsBytes, 0)
         concatAsBytes.set(rightAsBytes, leftAsBytes.length)
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, concatAsBytes)
+        blobs.set(blob, concatAsBytes)
 
-        return symbol
+        return blob
       },
       equals: (leftAsSymbol: symbol, rightAsSymbol: symbol): boolean => {
         const leftAsBytes = blobs.get(leftAsSymbol)
@@ -417,11 +415,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const textAsString = new TextDecoder().decode(textAsBytes)
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, Uint8Array.fromHex(textAsString))
+        blobs.set(blob, Uint8Array.fromHex(textAsString))
 
-        return symbol
+        return blob
       },
       from_base64: (textAsSymbol: symbol): symbol => {
         const textAsBytes = blobs.get(textAsSymbol)
@@ -431,11 +429,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const textAsString = new TextDecoder().decode(textAsBytes)
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, Uint8Array.fromBase64(textAsString))
+        blobs.set(blob, Uint8Array.fromBase64(textAsString))
 
-        return symbol
+        return blob
       },
       to_hex: (bytesAsSymbol: symbol): symbol => {
         const bytesAsBytes = blobs.get(bytesAsSymbol)
@@ -443,11 +441,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (bytesAsBytes == null)
           throw new Error("Not found")
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, new TextEncoder().encode(bytesAsBytes.toHex()))
+        blobs.set(blob, new TextEncoder().encode(bytesAsBytes.toHex()))
 
-        return symbol
+        return blob
       },
       to_base64: (bytesAsSymbol: symbol): symbol => {
         const bytesAsBytes = blobs.get(bytesAsSymbol)
@@ -455,11 +453,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (bytesAsBytes == null)
           throw new Error("Not found")
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, new TextEncoder().encode(bytesAsBytes.toBase64()))
+        blobs.set(blob, new TextEncoder().encode(bytesAsBytes.toBase64()))
 
-        return symbol
+        return blob
       }
     }
 
@@ -483,11 +481,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         digestAsBytes.set(new Uint8Array(result.buffer, 4, 32))
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, digestAsBytes)
+        blobs.set(blob, digestAsBytes)
 
-        return symbol
+        return blob
       }
     }
 
@@ -519,11 +517,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
     imports["packs"] = {
       create: (...args: Array<number | bigint | symbol | null>): symbol => {
-        const symbol = Symbol()
+        const pack = Symbol()
 
-        packs.set(symbol, args)
+        packs.set(pack, args)
 
-        return symbol
+        return pack
       },
       length: (packAsSymbol: symbol): number => {
         const args = packs.get(packAsSymbol)
@@ -549,11 +547,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (args == null)
           throw new Error("Not found")
 
-        const symbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(symbol, encode(args))
+        blobs.set(blob, encode(args))
 
-        return symbol
+        return blob
       },
       decode: (bytesAsSymbol: symbol): symbol => {
         const bytes = blobs.get(bytesAsSymbol)
@@ -561,23 +559,23 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (bytes == null)
           throw new Error("Not found")
 
-        const symbol = Symbol()
+        const pack = Symbol()
 
-        packs.set(symbol, decode(bytes))
+        packs.set(pack, decode(bytes))
 
-        return symbol
+        return pack
       }
     }
 
     imports["dynamic"] = {
       rest: (packAsSymbol: symbol): symbol => {
-        const symbol = Symbol()
+        const rest = Symbol()
 
-        rests.set(symbol, packAsSymbol)
+        rests.set(rest, packAsSymbol)
 
-        return symbol
+        return rest
       },
-      call: (nameAsSymbol: symbol, funcAsSymbol: symbol, ...args: any[]) => {
+      call: (nameAsSymbol: symbol, funcAsSymbol: symbol, ...args: any[]): symbol => {
         const nameAsBytes = blobs.get(nameAsSymbol)
 
         if (nameAsBytes == null)
@@ -598,7 +596,11 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (typeof exports[nameAsString][funcAsString] !== "function")
           throw new Error("Not found")
 
-        return exports[nameAsString][funcAsString](...unrest(args))
+        const pack = Symbol()
+
+        packs.set(pack, [exports[nameAsString][funcAsString](...unrest(args))])
+
+        return pack
       }
     }
 
@@ -646,6 +648,16 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         cache.set(keyAsSymbol, valueAsSymbol)
 
         return valueAsSymbol
+      }
+    }
+
+    imports["chain"] = {
+      uuid: (): symbol => {
+        const blob = Symbol()
+
+        blobs.set(blob, Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"))
+
+        return blob
       }
     }
 
