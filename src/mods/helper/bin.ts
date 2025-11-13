@@ -11,9 +11,9 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     const { method, params, result } = event.data
 
     if (method === "storage_set") {
-      const [name, func, args, writes] = params as [string, string, Uint8Array<ArrayBuffer>, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][], [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
+      return await runAsImmediateOrThrow(database, async (database) => {
+        const [name, func, args, writes] = params as [string, string, Uint8Array<ArrayBuffer>, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][], [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
 
-      const moment = await runAsImmediateOrThrow(database, async (database) => {
         const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(name, func, args)
 
         const writer = database.prepare(`INSERT INTO events (moment, key, value) VALUES (?, ?, ?);`)
@@ -21,21 +21,19 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
         for (const [key, value] of writes)
           await writer.run(moment.lastInsertRowid, key, value)
 
-        return moment.lastInsertRowid
+        result[0] = 1
+        result[1] = moment.lastInsertRowid
+
+        Atomics.notify(result, 0)
+
+        return
       })
-
-      result[0] = 1
-      result[1] = moment
-
-      Atomics.notify(result, 0)
-
-      return
     }
 
     if (method === "storage_get") {
-      const [keyAsBytes] = params as [Uint8Array<ArrayBuffer>]
+      const [moduleAsString, keyAsBytes] = params as [string, Uint8Array<ArrayBuffer>]
 
-      const row = await database.prepare(`SELECT value FROM events WHERE key = ? ORDER BY moment DESC LIMIT 1;`).get(keyAsBytes)
+      const row = await database.prepare(`SELECT value FROM events event JOIN moments moment ON event.moment = moment.nonce WHERE event.key = ? AND moment.module = ? ORDER BY event.moment DESC LIMIT 1;`).get(keyAsBytes, moduleAsString)
 
       if (row == null) {
         result[0] = 1

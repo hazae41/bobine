@@ -626,7 +626,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
-        helper.postMessage({ method: "storage_get", params: [keyAsBytes], result })
+        helper.postMessage({ method: "storage_get", params: [name, keyAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
