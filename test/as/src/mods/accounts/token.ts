@@ -61,9 +61,9 @@ export function mint(session: packs.pack, target: blobs.blob, amount: u64): void
   if (!blobs.equals(sender, owner.get()))
     throw new Error("Unauthorized")
 
-  console.logAsString(`Minted ${amount.toString()} tokens to 0x${String.UTF8.decode(blobs.load(blobs.toHex(target)))}`)
-
   balances.set(target, balances.get(target) + amount)
+
+  storage.set(blobs.save(String.UTF8.encode("mint")), packs.encode(packs.create2(target, amount)))
 }
 
 export function transfer(session: packs.pack, target: blobs.blob, amount: u64): void {

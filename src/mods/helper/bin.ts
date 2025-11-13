@@ -33,7 +33,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (method === "storage_get") {
       const [module, key] = params as [string, Uint8Array<ArrayBuffer>]
 
-      const row = await database.prepare(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.moment DESC LIMIT 1;`).get(module, key)
+      const row = await database.prepare(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`).get(module, key)
 
       if (row == null) {
         result[0] = 1
