@@ -239,8 +239,8 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["console"] = {
-      log: (messageAsSymbol: symbol): void => {
-        const messageAsBytes = blobs.get(messageAsSymbol)
+      log: (messageAsBlob: symbol): void => {
+        const messageAsBytes = blobs.get(messageAsBlob)
 
         if (messageAsBytes == null)
           throw new Error("Not found")
@@ -261,18 +261,18 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return blob
       },
-      size: (symbol: symbol): number => {
-        const bytes = blobs.get(symbol)
+      size: (blob: symbol): number => {
+        const bytes = blobs.get(blob)
 
         if (bytes == null)
           throw new Error("Not found")
 
         return bytes.length
       },
-      load: (symbol: symbol, offset: number): void => {
+      load: (blob: symbol, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = blobs.get(symbol)
+        const bytes = blobs.get(blob)
 
         if (bytes == null)
           throw new Error("Not found")
@@ -313,13 +313,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["modules"] = {
-      create: (wasmAsSymbol: symbol, saltAsSymbol: symbol): symbol => {
-        const wasmAsBytes = blobs.get(wasmAsSymbol)
+      create: (wasmAsBlob: symbol, saltAsBlob: symbol): symbol => {
+        const wasmAsBytes = blobs.get(wasmAsBlob)
 
         if (wasmAsBytes == null)
           throw new Error("Not found")
 
-        const saltAsBytes = blobs.get(saltAsSymbol)
+        const saltAsBytes = blobs.get(saltAsBlob)
 
         if (saltAsBytes == null)
           throw new Error("Not found")
@@ -344,39 +344,37 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
         }
 
-        const nameAsSymbol = Symbol()
+        const nameAsBlob = Symbol()
 
-        blobs.set(nameAsSymbol, digestOfConcatAsBytes)
+        blobs.set(nameAsBlob, digestOfConcatAsBytes)
 
-        return nameAsSymbol
+        return nameAsBlob
       },
-      load: (nameAsSymbol: symbol): symbol => {
-        const nameAsBytes = blobs.get(nameAsSymbol)
+      load: (nameAsBlob: symbol): symbol => {
+        const nameAsBytes = blobs.get(nameAsBlob)
 
         if (nameAsBytes == null)
           throw new Error("Not found")
 
-        const nameAsString = nameAsBytes.toHex()
+        const wasmAsBlob = Symbol()
 
-        const blob = Symbol()
+        blobs.set(wasmAsBlob, readFileSync(`./local/scripts/${nameAsBytes.toHex()}.wasm`))
 
-        blobs.set(blob, readFileSync(`./local/scripts/${nameAsString}.wasm`))
-
-        return blob
+        return wasmAsBlob
       },
       self: (): symbol => {
-        const nameAsSymbol = Symbol()
+        const blob = Symbol()
 
-        blobs.set(nameAsSymbol, Uint8Array.fromHex(name))
+        blobs.set(blob, Uint8Array.fromHex(name))
 
-        return nameAsSymbol
+        return blob
       }
     }
 
     imports["bytes"] = {
-      concat: (leftAsSymbol: symbol, rightAsSymbol: symbol): symbol => {
-        const leftAsBytes = blobs.get(leftAsSymbol)
-        const rightAsBytes = blobs.get(rightAsSymbol)
+      concat: (leftAsBlob: symbol, rightAsBlob: symbol): symbol => {
+        const leftAsBytes = blobs.get(leftAsBlob)
+        const rightAsBytes = blobs.get(rightAsBlob)
 
         if (leftAsBytes == null)
           throw new Error("Not found")
@@ -387,15 +385,15 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         concatAsBytes.set(leftAsBytes, 0)
         concatAsBytes.set(rightAsBytes, leftAsBytes.length)
 
-        const blob = Symbol()
+        const concatAsBlob = Symbol()
 
-        blobs.set(blob, concatAsBytes)
+        blobs.set(concatAsBlob, concatAsBytes)
 
-        return blob
+        return concatAsBlob
       },
-      equals: (leftAsSymbol: symbol, rightAsSymbol: symbol): boolean => {
-        const leftAsBytes = blobs.get(leftAsSymbol)
-        const rightAsBytes = blobs.get(rightAsSymbol)
+      equals: (leftAsBlob: symbol, rightAsBlob: symbol): boolean => {
+        const leftAsBytes = blobs.get(leftAsBlob)
+        const rightAsBytes = blobs.get(rightAsBlob)
 
         if (leftAsBytes == null)
           throw new Error("Not found")
@@ -407,63 +405,59 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return !Buffer.compare(leftAsBytes, rightAsBytes)
       },
-      from_hex: (textAsSymbol: symbol): symbol => {
-        const textAsBytes = blobs.get(textAsSymbol)
+      from_hex: (textAsBlob: symbol): symbol => {
+        const textAsBytes = blobs.get(textAsBlob)
 
         if (textAsBytes == null)
           throw new Error("Not found")
 
-        const textAsString = new TextDecoder().decode(textAsBytes)
+        const outputAsBlob = Symbol()
 
-        const blob = Symbol()
+        blobs.set(outputAsBlob, Uint8Array.fromHex(new TextDecoder().decode(textAsBytes)))
 
-        blobs.set(blob, Uint8Array.fromHex(textAsString))
-
-        return blob
+        return outputAsBlob
       },
-      from_base64: (textAsSymbol: symbol): symbol => {
-        const textAsBytes = blobs.get(textAsSymbol)
+      from_base64: (inputAsBlob: symbol): symbol => {
+        const inputAsBytes = blobs.get(inputAsBlob)
 
-        if (textAsBytes == null)
+        if (inputAsBytes == null)
           throw new Error("Not found")
 
-        const textAsString = new TextDecoder().decode(textAsBytes)
+        const outputAsBlob = Symbol()
 
-        const blob = Symbol()
+        blobs.set(outputAsBlob, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
 
-        blobs.set(blob, Uint8Array.fromBase64(textAsString))
-
-        return blob
+        return outputAsBlob
       },
-      to_hex: (bytesAsSymbol: symbol): symbol => {
-        const bytesAsBytes = blobs.get(bytesAsSymbol)
+      to_hex: (inputAsBlob: symbol): symbol => {
+        const inputAsBytes = blobs.get(inputAsBlob)
 
-        if (bytesAsBytes == null)
+        if (inputAsBytes == null)
           throw new Error("Not found")
 
-        const blob = Symbol()
+        const outputAsBlob = Symbol()
 
-        blobs.set(blob, new TextEncoder().encode(bytesAsBytes.toHex()))
+        blobs.set(outputAsBlob, new TextEncoder().encode(inputAsBytes.toHex()))
 
-        return blob
+        return outputAsBlob
       },
-      to_base64: (bytesAsSymbol: symbol): symbol => {
-        const bytesAsBytes = blobs.get(bytesAsSymbol)
+      to_base64: (inputAsBlob: symbol): symbol => {
+        const inputsAsBytes = blobs.get(inputAsBlob)
 
-        if (bytesAsBytes == null)
+        if (inputsAsBytes == null)
           throw new Error("Not found")
 
-        const blob = Symbol()
+        const outputAsBlob = Symbol()
 
-        blobs.set(blob, new TextEncoder().encode(bytesAsBytes.toBase64()))
+        blobs.set(outputAsBlob, new TextEncoder().encode(inputsAsBytes.toBase64()))
 
-        return blob
+        return outputAsBlob
       }
     }
 
     imports["sha256"] = {
-      digest: (payloadAsSymbol: symbol): symbol => {
-        const payloadAsBytes = blobs.get(payloadAsSymbol)
+      digest: (payloadAsBlob: symbol): symbol => {
+        const payloadAsBytes = blobs.get(payloadAsBlob)
 
         if (payloadAsBytes == null)
           throw new Error("Not found")
@@ -490,10 +484,10 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["ed25519"] = {
-      verify: (pubkeyAsSymbol: symbol, signatureAsSymbol: symbol, payloadAsSymbol: symbol): boolean => {
-        const pubkeyAsBytes = blobs.get(pubkeyAsSymbol)
-        const signatureAsBytes = blobs.get(signatureAsSymbol)
-        const payloadAsBytes = blobs.get(payloadAsSymbol)
+      verify: (pubkeyAsBlob: symbol, signatureAsBlob: symbol, payloadAsBlob: symbol): boolean => {
+        const pubkeyAsBytes = blobs.get(pubkeyAsBlob)
+        const signatureAsBytes = blobs.get(signatureAsBlob)
+        const payloadAsBytes = blobs.get(payloadAsBlob)
 
         if (pubkeyAsBytes == null)
           throw new Error("Not found")
@@ -516,45 +510,45 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["packs"] = {
-      create: (...args: Array<number | bigint | symbol | null>): symbol => {
+      create: (...values: Array<number | bigint | symbol | null>): symbol => {
         const pack = Symbol()
 
-        packs.set(pack, args)
+        packs.set(pack, values)
 
         return pack
       },
-      length: (packAsSymbol: symbol): number => {
-        const args = packs.get(packAsSymbol)
+      length: (pack: symbol): number => {
+        const args = packs.get(pack)
 
         if (args == null)
           throw new Error("Not found")
 
         return args.length
       },
-      get(packAsSymbol: symbol, index: number): number | bigint | symbol | null {
-        const args = packs.get(packAsSymbol)
+      get(pack: symbol, index: number): number | bigint | symbol | null {
+        const values = packs.get(pack)
 
-        if (args == null)
+        if (values == null)
           throw new Error("Not found")
-        if (index > args.length - 1)
+        if (index > values.length - 1)
           throw new Error("Out of bounds")
 
-        return args[index]
+        return values[index]
       },
-      encode: (packAsSymbol: symbol): symbol => {
-        const args = packs.get(packAsSymbol)
+      encode: (pack: symbol): symbol => {
+        const values = packs.get(pack)
 
-        if (args == null)
+        if (values == null)
           throw new Error("Not found")
 
         const blob = Symbol()
 
-        blobs.set(blob, encode(args))
+        blobs.set(blob, encode(values))
 
         return blob
       },
-      decode: (bytesAsSymbol: symbol): symbol => {
-        const bytes = blobs.get(bytesAsSymbol)
+      decode: (blob: symbol): symbol => {
+        const bytes = blobs.get(blob)
 
         if (bytes == null)
           throw new Error("Not found")
@@ -568,22 +562,22 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["dynamic"] = {
-      rest: (packAsSymbol: symbol): symbol => {
+      rest: (packAsPack: symbol): symbol => {
         const rest = Symbol()
 
-        rests.set(rest, packAsSymbol)
+        rests.set(rest, packAsPack)
 
         return rest
       },
-      call: (nameAsSymbol: symbol, funcAsSymbol: symbol, ...args: any[]): symbol => {
-        const nameAsBytes = blobs.get(nameAsSymbol)
+      call: (nameAsBlob: symbol, funcAsBlob: symbol, ...args: any[]): symbol => {
+        const nameAsBytes = blobs.get(nameAsBlob)
 
         if (nameAsBytes == null)
           throw new Error("Not found")
 
         const nameAsString = nameAsBytes.toHex()
 
-        const funcAsBytes = blobs.get(funcAsSymbol)
+        const funcAsBytes = blobs.get(funcAsBlob)
 
         if (funcAsBytes == null)
           throw new Error("Not found")
@@ -605,30 +599,30 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["storage"] = {
-      set: (keyAsSymbol: symbol, valueAsSymbol: symbol): void => {
-        const keyAsBytes = blobs.get(keyAsSymbol)
-        const valueAsBytes = blobs.get(valueAsSymbol)
+      set: (keyAsBlob: symbol, valueAsBlob: symbol): void => {
+        const keyAsBytes = blobs.get(keyAsBlob)
+        const valueAsBytes = blobs.get(valueAsBlob)
 
         if (keyAsBytes == null)
           throw new Error("Not found")
         if (valueAsBytes == null)
           throw new Error("Not found")
 
-        cache.set(keyAsSymbol, valueAsSymbol)
+        cache.set(keyAsBlob, valueAsBlob)
         writes.set(keyAsBytes, valueAsBytes)
 
         return
       },
-      get: (keyAsSymbol: symbol): symbol | null => {
-        const keyAsBytes = blobs.get(keyAsSymbol)
+      get: (keyAsBlob: symbol): symbol | null => {
+        const keyAsBytes = blobs.get(keyAsBlob)
 
         if (keyAsBytes == null)
           throw new Error("Not found")
 
-        const staleValueAsSymbol = cache.get(keyAsSymbol)
+        const staleValueAsBlob = cache.get(keyAsBlob)
 
-        if (staleValueAsSymbol != null)
-          return staleValueAsSymbol
+        if (staleValueAsBlob != null)
+          return staleValueAsBlob
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
@@ -642,12 +636,12 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           return null
 
         const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
-        const valueAsSymbol = Symbol()
+        const valueAsBlob = Symbol()
 
-        blobs.set(valueAsSymbol, valueAsBytes)
-        cache.set(keyAsSymbol, valueAsSymbol)
+        blobs.set(valueAsBlob, valueAsBytes)
+        cache.set(keyAsBlob, valueAsBlob)
 
-        return valueAsSymbol
+        return valueAsBlob
       }
     }
 
