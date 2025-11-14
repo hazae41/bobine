@@ -42,7 +42,7 @@ export function call(module: externref, method: externref, payload: externref, p
 
   const message = packs.encode(packs.create5(chain.uuid(), module, method, payload, nonce))
 
-  if (env.mode === 1 && !ed25519.verify(pubkey, signature, message))
+  if (!ed25519.verify(pubkey, signature, message) && env.mode === 1)
     throw new Error("Invalid signature")
 
   nonces.set(address, nonce + 1)
