@@ -6,6 +6,7 @@ import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { Pack } from "../../libs/packs/mod.ts";
 
 export async function serveWithEnv(prefix = "") {
   const {
@@ -93,11 +94,11 @@ export function serve(database: string) {
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const codeAsEntry = form.get("code")
+        const wasmAsEntry = form.get("code")
 
-        if (codeAsEntry == null)
+        if (wasmAsEntry == null)
           return Response.json(null, { status: 400 })
-        if (typeof codeAsEntry === "string")
+        if (typeof wasmAsEntry === "string")
           return Response.json(null, { status: 400 })
 
         const saltAsEntry = form.get("salt")
@@ -107,30 +108,28 @@ export function serve(database: string) {
         if (typeof saltAsEntry === "string")
           return Response.json(null, { status: 400 })
 
-        const codeAsBytes = await codeAsEntry.bytes()
+        const wasmAsBytes = await wasmAsEntry.bytes()
         const saltAsBytes = await saltAsEntry.bytes()
 
-        const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
-        const digestOfSaltAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", saltAsBytes))
+        const packAsBytes = Pack.encode([wasmAsBytes, saltAsBytes])
 
-        const concatAsBytes = new Uint8Array(digestOfCodeAsBytes.length + digestOfSaltAsBytes.length)
-        concatAsBytes.set(digestOfCodeAsBytes, 0)
-        concatAsBytes.set(digestOfSaltAsBytes, digestOfCodeAsBytes.length)
+        console.log(packAsBytes.toHex())
 
-        const digestOfConcatAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", concatAsBytes))
+        const digestOfWasmAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", wasmAsBytes))
+        const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
 
-        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
-        const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
+        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+        const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`)) {
+        if (!existsSync(`./local/scripts/${digestOfPackAsHex}.wasm`)) {
           mkdirSync(`./local/scripts`, { recursive: true })
 
-          writeFileSync(`./local/scripts/${digestOfCodeAsHex}.wasm`, codeAsBytes)
+          writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`)
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfPackAsHex}.wasm`)
         }
 
-        return Response.json(digestOfConcatAsHex)
+        return Response.json(digestOfPackAsHex)
       }
 
       return Response.json(null, { status: 405, headers: { "Allow": "POST" } })

@@ -45,7 +45,7 @@ namespace balances {
  * @returns nothing
  */
 export function init(creator: blobs.blob): void {
-  if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(creator)))))
+  if (!blobs.equals(modules.self(), sha256.digest(packs.encode(packs.create2(modules.load(modules.self()), creator)))))
     throw new Error("Invalid creator")
 
   owner.set(creator)

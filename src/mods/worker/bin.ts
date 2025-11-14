@@ -405,29 +405,25 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (saltAsBytes == null)
           throw new Error("Not found")
 
+        const packAsBytes = encode([wasmAsBlob, saltAsBlob])
+
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
-        const digestOfSaltAsBytes = sha256_digest(saltAsBytes)
-
-        const concatAsBytes = new Uint8Array(digestOfWasmAsBytes.length + digestOfSaltAsBytes.length)
-        concatAsBytes.set(digestOfWasmAsBytes, 0)
-        concatAsBytes.set(digestOfSaltAsBytes, digestOfWasmAsBytes.length)
-
-        const digestOfConcatAsBytes = sha256_digest(concatAsBytes)
+        const digestOfPackAsBytes = sha256_digest(packAsBytes)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
-        const digestOfConcatAsHex = digestOfConcatAsBytes.toHex()
+        const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`./local/scripts/${digestOfConcatAsHex}.wasm`)) {
+        if (!existsSync(`./local/scripts/${digestOfPackAsHex}.wasm`)) {
           mkdirSync(`./local/scripts`, { recursive: true })
 
           writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfConcatAsHex}.wasm`, "file")
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfPackAsHex}.wasm`, "file")
         }
 
         const nameAsBlob = Symbol()
 
-        blobs.set(nameAsBlob, digestOfConcatAsBytes)
+        blobs.set(nameAsBlob, digestOfPackAsBytes)
 
         return nameAsBlob
       },
