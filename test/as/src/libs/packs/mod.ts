@@ -37,6 +37,18 @@ export namespace packs {
   export declare function create6<A, B, C, D, E, F>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E, arg5: F): packs.pack
 
   // @ts-ignore
+  @external("packs", "create")
+  export declare function create7<A, B, C, D, E, F, G>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E, arg5: F, arg6: G): packs.pack
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create8<A, B, C, D, E, F, G, H>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E, arg5: F, arg6: G, arg7: H): packs.pack
+
+  // @ts-ignore
+  @external("packs", "create")
+  export declare function create9<A, B, C, D, E, F, G, H, I>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E, arg5: F, arg6: G, arg7: H, arg8: I): packs.pack
+
+  // @ts-ignore
   @external("packs", "get")
   export declare function get<T>(pack: packs.pack, index: usize): T
 
