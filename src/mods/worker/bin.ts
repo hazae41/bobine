@@ -503,10 +503,17 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["packs"] = {
+      rest: (packAsPack: symbol): symbol => {
+        const rest = Symbol()
+
+        rests.set(rest, packAsPack)
+
+        return rest
+      },
       create: (...values: Array<number | bigint | symbol | null>): symbol => {
         const pack = Symbol()
 
-        packs.set(pack, values)
+        packs.set(pack, unrest(values))
 
         return pack
       },
@@ -590,7 +597,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const resultAsPack = Symbol()
 
-        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...unrest(argsAsValues))])
+        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...argsAsValues)])
 
         return resultAsPack
       }
