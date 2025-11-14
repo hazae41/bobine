@@ -5,11 +5,11 @@ export namespace modules {
 
   // @ts-ignore: decorator
   @external("modules", "load")
-  export declare function load(name: blobs.blob): blobs.blob
+  export declare function load(module: blobs.blob): blobs.blob
 
   // @ts-ignore
   @external("dynamic", "call")
-  export declare function call(name: blobs.blob, func: blobs.blob, args: packs.pack): packs.pack
+  export declare function call(module: blobs.blob, method: blobs.blob, params: packs.pack): packs.pack
 
   // @ts-ignore: decorator
   @external("modules", "create")

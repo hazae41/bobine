@@ -114,10 +114,10 @@ export namespace Pack {
     return pack
   }
 
-  export function parse(args: string[]): Pack {
+  export function parse(values: string[]): Pack {
     const pack: Pack = []
 
-    for (const arg of args) {
+    for (const arg of values) {
       if (arg.startsWith("0x")) {
         pack.push(Uint8Array.fromHex(arg.slice(2)))
         continue

@@ -90,10 +90,10 @@ function encode(input: Pack): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
-function parse(args: string[]): Pack {
+function parse(values: string[]): Pack {
   const pack: Pack = []
 
-  for (const arg of args) {
+  for (const arg of values) {
     if (arg.startsWith("0x")) {
       pack.push(Uint8Array.fromHex(arg.slice(2)))
       continue
@@ -151,11 +151,11 @@ function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
   return pack
 }
 
-async function execute(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
+async function execute(module: string, method: string, params: Uint8Array<ArrayBuffer>) {
   const body = new FormData()
-  body.append("name", module)
-  body.append("func", method)
-  body.append("args", new Blob([args]))
+  body.append("module", module)
+  body.append("method", method)
+  body.append("params", new Blob([params]))
 
   const start = performance.now()
 
@@ -175,6 +175,6 @@ async function execute(module: string, method: string, args: Uint8Array<ArrayBuf
   return result
 }
 
-const [module, method, ...args] = process.argv.slice(2)
+const [module, method, ...params] = process.argv.slice(2)
 
-await execute(module, method, encode(parse(args)))
+await execute(module, method, encode(parse(params)))

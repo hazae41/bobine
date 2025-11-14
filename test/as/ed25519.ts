@@ -90,10 +90,10 @@ function encode(input: Pack): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
-function parse(args: string[]): Pack {
+function parse(values: string[]): Pack {
   const pack: Pack = []
 
-  for (const arg of args) {
+  for (const arg of values) {
     if (arg.startsWith("0x")) {
       pack.push(Uint8Array.fromHex(arg.slice(2)))
       continue
@@ -151,11 +151,11 @@ function decode(bytes: Uint8Array<ArrayBuffer>): Pack {
   return pack
 }
 
-async function execute(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
+async function execute(module: string, method: string, params: Uint8Array<ArrayBuffer>) {
   const body = new FormData()
-  body.append("name", module)
-  body.append("func", method)
-  body.append("args", new Blob([args]))
+  body.append("module", module)
+  body.append("method", method)
+  body.append("params", new Blob([params]))
 
   const start = performance.now()
 
@@ -175,7 +175,7 @@ async function execute(module: string, method: string, args: Uint8Array<ArrayBuf
   return result
 }
 
-async function ed25519(module: string, method: string, args: Uint8Array<ArrayBuffer>) {
+async function ed25519(module: string, method: string, params: Uint8Array<ArrayBuffer>) {
   const ed25519 = "12886e54948b0f14b87d97474c1e1cd2e4152d202ad0a02788a12b06eedbb803"
 
   const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
@@ -187,12 +187,12 @@ async function ed25519(module: string, method: string, args: Uint8Array<ArrayBuf
 
   const [nonce] = await execute(ed25519, "get_nonce", encode([address]))
 
-  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), Uint8Array.fromHex(module), new TextEncoder().encode(method), args, nonce])
+  const message = encode([Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"), Uint8Array.fromHex(module), new TextEncoder().encode(method), params, nonce])
   const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", signer, message))
 
-  await execute(ed25519, "call", encode([Uint8Array.fromHex(module), new TextEncoder().encode(method), args, verifier, signature]));
+  await execute(ed25519, "call", encode([Uint8Array.fromHex(module), new TextEncoder().encode(method), params, verifier, signature]));
 }
 
-const [module, method, ...args] = process.argv.slice(2)
+const [module, method, ...params] = process.argv.slice(2)
 
-await ed25519(module, method, encode(parse(args)))
+await ed25519(module, method, encode(parse(params)))

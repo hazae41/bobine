@@ -2,6 +2,7 @@ import { addresses } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
 import { chain } from "../../libs/chain/mod"
 import { ed25519 } from "../../libs/ed25519/mod"
+import { env } from "../../libs/env/mod"
 import { modules } from "../../libs/modules/mod"
 import { packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
@@ -41,7 +42,7 @@ export function call(module: externref, method: externref, payload: externref, p
 
   const message = packs.encode(packs.create5(chain.uuid(), module, method, payload, nonce))
 
-  if (!ed25519.verify(pubkey, signature, message))
+  if (env.mode === 1 && !ed25519.verify(pubkey, signature, message))
     throw new Error("Invalid signature")
 
   nonces.set(address, nonce + 1)

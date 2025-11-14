@@ -9,8 +9,8 @@ class Library {
     readonly pointer: usize
   ) { }
 
-  static new(name: string): Library {
-    return new Library(symbols.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(name)))))
+  static new(module: string): Library {
+    return new Library(symbols.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(module)))))
   }
 
   log(message: string): void {

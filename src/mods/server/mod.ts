@@ -133,36 +133,34 @@ export function serve(database: string) {
       return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
     }
 
-    // TODO /api/simulate
-
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
         using stack = new DisposableStack()
 
         const form = await request.formData()
 
-        const nameAsEntry = form.get("name")
+        const moduleAsEntry = form.get("module")
 
-        if (nameAsEntry == null)
+        if (moduleAsEntry == null)
           return Response.json(null, { status: 400 })
-        if (typeof nameAsEntry !== "string")
-          return Response.json(null, { status: 400 })
-
-        const funcAsEntry = form.get("func")
-
-        if (funcAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof funcAsEntry !== "string")
+        if (typeof moduleAsEntry !== "string")
           return Response.json(null, { status: 400 })
 
-        const argsAsEntry = form.get("args")
+        const methodAsEntry = form.get("method")
 
-        if (argsAsEntry == null)
+        if (methodAsEntry == null)
           return Response.json(null, { status: 400 })
-        if (typeof argsAsEntry === "string")
+        if (typeof methodAsEntry !== "string")
           return Response.json(null, { status: 400 })
 
-        const argsAsBytes = await argsAsEntry.bytes()
+        const paramsAsEntry = form.get("params")
+
+        if (paramsAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof paramsAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const paramsAsBytes = await paramsAsEntry.bytes()
 
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
@@ -187,7 +185,67 @@ export function serve(database: string) {
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [nameAsEntry, funcAsEntry, argsAsBytes]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes]))
+
+        return new Response(await future.promise)
+      }
+
+      return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
+    }
+
+    if (match = new URLPattern("/api/simulate", request.url).exec(request.url)) {
+      if (request.method === "POST") {
+        using stack = new DisposableStack()
+
+        const form = await request.formData()
+
+        const moduleAsEntry = form.get("module")
+
+        if (moduleAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof moduleAsEntry !== "string")
+          return Response.json(null, { status: 400 })
+
+        const methodAsEntry = form.get("method")
+
+        if (methodAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof methodAsEntry !== "string")
+          return Response.json(null, { status: 400 })
+
+        const paramsAsEntry = form.get("params")
+
+        if (paramsAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof paramsAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const paramsAsBytes = await paramsAsEntry.bytes()
+
+        const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
+
+        const aborter = new AbortController()
+        stack.defer(() => aborter.abort())
+
+        stack.use(await worker.lockOrWait())
+
+        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+          RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+        }, { signal: aborter.signal })
+
+        worker.get().addEventListener("error", (event: ErrorEvent) => {
+          future.reject(event.error)
+        }, { signal: aborter.signal })
+
+        worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+          future.reject(event.data)
+        }, { signal: aborter.signal })
+
+        AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
+          future.reject(reason)
+        }, { signal: aborter.signal })
+
+        worker.get().postMessage(new RpcRequest(null, "simulate", [moduleAsEntry, methodAsEntry, paramsAsBytes]))
 
         return new Response(await future.promise)
       }

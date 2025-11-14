@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { Cursor } from "@hazae41/cursor";
-import { RpcErr, RpcError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
+import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 
@@ -8,14 +8,15 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(import.meta.url).search}`), { type: "module" })
 
-function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
+function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number) {
   const exports: WebAssembly.Imports = {}
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
 
   const cache = new Map<symbol, symbol>()
-  const batch = new Array<[string, Uint8Array, Uint8Array]>()
+
+  const writes = new Array<[string, Uint8Array, Uint8Array]>()
 
   const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
@@ -105,7 +106,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   }
 
   const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
-    const args = new Array<number | bigint | symbol | null>()
+    const values = new Array<number | bigint | symbol | null>()
 
     const cursor = new Cursor(bytes)
 
@@ -113,17 +114,17 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
       const type = cursor.readUint8OrThrow()
 
       if (type === 0) {
-        args.push(null)
+        values.push(null)
         continue
       }
 
       if (type === 1) {
-        args.push(cursor.readUint32OrThrow(true))
+        values.push(cursor.readUint32OrThrow(true))
         continue
       }
 
       if (type === 2) {
-        args.push(cursor.readUint64OrThrow(true))
+        values.push(cursor.readUint64OrThrow(true))
         continue
       }
 
@@ -135,7 +136,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         blobs.set(blob, data)
 
-        args.push(blob)
+        values.push(blob)
         continue
       }
 
@@ -147,14 +148,14 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         packs.set(blob, decode(data))
 
-        args.push(blob)
+        values.push(blob)
         continue
       }
 
       throw new Error("Unknown type")
     }
 
-    return args
+    return values
   }
 
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
@@ -174,12 +175,13 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     return digest
   }
 
-  const load = (name: string): WebAssembly.WebAssemblyInstantiatedSource => {
+  const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
 
     const imports: WebAssembly.Imports = {}
 
     imports["env"] = {
+      mode: mode,
       abort: (messageAsPointer: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
@@ -384,60 +386,60 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfPackAsHex}.wasm`, "file")
         }
 
-        const nameAsBlob = Symbol()
+        const moduleAsBlob = Symbol()
 
-        blobs.set(nameAsBlob, digestOfPackAsBytes)
+        blobs.set(moduleAsBlob, digestOfPackAsBytes)
 
-        return nameAsBlob
+        return moduleAsBlob
       },
-      call: (nameAsBlob: symbol, funcAsBlob: symbol, argsAsPack: symbol): symbol => {
-        const nameAsBytes = blobs.get(nameAsBlob)
+      call: (moduleAsBlob: symbol, methodAsBlob: symbol, paramsAsPack: symbol): symbol => {
+        const moduleAsBytes = blobs.get(moduleAsBlob)
 
-        if (nameAsBytes == null)
+        if (moduleAsBytes == null)
           throw new Error("Not found")
 
-        const nameAsString = nameAsBytes.toHex()
+        const moduleAsString = moduleAsBytes.toHex()
 
-        const funcAsBytes = blobs.get(funcAsBlob)
+        const methodAsBytes = blobs.get(methodAsBlob)
 
-        if (funcAsBytes == null)
+        if (methodAsBytes == null)
           throw new Error("Not found")
 
-        const funcAsString = new TextDecoder().decode(funcAsBytes)
+        const methodAsString = new TextDecoder().decode(methodAsBytes)
 
-        if (exports[nameAsString] == null)
-          load(nameAsString)
+        if (exports[moduleAsString] == null)
+          load(moduleAsString)
 
-        if (typeof exports[nameAsString][funcAsString] !== "function")
+        if (typeof exports[moduleAsString][methodAsString] !== "function")
           throw new Error("Not found")
 
-        const argsAsValues = packs.get(argsAsPack)
+        const paramsAsValues = packs.get(paramsAsPack)
 
-        if (argsAsValues == null)
+        if (paramsAsValues == null)
           throw new Error("Not found")
 
         const resultAsPack = Symbol()
 
-        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...argsAsValues)])
+        packs.set(resultAsPack, [exports[moduleAsString][methodAsString](...paramsAsValues)])
 
         return resultAsPack
       },
-      load: (nameAsBlob: symbol): symbol => {
-        const nameAsBytes = blobs.get(nameAsBlob)
+      load: (moduleAsBlob: symbol): symbol => {
+        const moduleAsBytes = blobs.get(moduleAsBlob)
 
-        if (nameAsBytes == null)
+        if (moduleAsBytes == null)
           throw new Error("Not found")
 
         const wasmAsBlob = Symbol()
 
-        blobs.set(wasmAsBlob, readFileSync(`./local/scripts/${nameAsBytes.toHex()}.wasm`))
+        blobs.set(wasmAsBlob, readFileSync(`./local/scripts/${moduleAsBytes.toHex()}.wasm`))
 
         return wasmAsBlob
       },
       self: (): symbol => {
         const blob = Symbol()
 
-        blobs.set(blob, Uint8Array.fromHex(name))
+        blobs.set(blob, Uint8Array.fromHex(module))
 
         return blob
       }
@@ -521,12 +523,12 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         return concatAsPack
       },
       length: (pack: symbol): number => {
-        const args = packs.get(pack)
+        const values = packs.get(pack)
 
-        if (args == null)
+        if (values == null)
           throw new Error("Not found")
 
-        return args.length
+        return values.length
       },
       get(pack: symbol, index: number): number | bigint | symbol | null {
         const values = packs.get(pack)
@@ -576,7 +578,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         cache.set(keyAsBlob, valueAsBlob)
 
-        batch.push([name, keyAsBytes, valueAsBytes])
+        writes.push([module, keyAsBytes, valueAsBytes])
 
         return
       },
@@ -593,7 +595,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
-        helper.postMessage({ method: "storage_get", params: [name, keyAsBytes], result })
+        helper.postMessage({ method: "storage_get", params: [module, keyAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -622,79 +624,97 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
       }
     }
 
-    const module = new WebAssembly.Module(readFileSync(`./local/scripts/${name}.wasm`))
+    const wasmAsModule = new WebAssembly.Module(readFileSync(`./local/scripts/${module}.wasm`))
 
-    for (const element of WebAssembly.Module.imports(module)) {
-      if (imports[element.module] != null) {
+    for (const descriptor of WebAssembly.Module.imports(wasmAsModule)) {
+      if (imports[descriptor.module] != null) {
         // NOOP
         continue
       }
 
-      if (exports[element.module] != null) {
-        imports[element.module] = exports[element.module]
+      if (exports[descriptor.module] != null) {
+        imports[descriptor.module] = exports[descriptor.module]
         continue
       }
 
-      const imported = load(element.module)
+      const { instance } = load(descriptor.module)
 
-      imports[element.module] = imported.instance.exports
+      imports[descriptor.module] = instance.exports
 
       continue
     }
 
-    const instance = new WebAssembly.Instance(module, imports)
+    const wasmAsInstance = new WebAssembly.Instance(wasmAsModule, imports)
 
-    current.instance = instance
-    current.module = module
+    current.instance = wasmAsInstance
+    current.module = wasmAsModule
 
-    exports[name] = instance.exports
+    exports[module] = wasmAsInstance.exports
 
     return current
   }
 
-  const { instance } = load(name)
+  const { instance } = load(module)
 
-  if (typeof instance.exports[func] !== "function")
+  if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const result = encode([instance.exports[func](...decode(args))])
+  const result = encode([instance.exports[method](...decode(params))])
 
-  if (batch.length) {
-    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
-
-    helper.postMessage({ method: "storage_set", params: [name, func, args, batch], result })
-
-    if (Atomics.wait(result, 0, 0) !== "ok")
-      throw new Error("Failed to wait")
-    if (result[0] === 2)
-      throw new Error("Internal error")
-
-    // NOOP
-  }
-
-  return result
+  return { result, writes }
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
-  const { id } = event.data
-
   try {
-    const { params } = event.data
+    const request = event.data
 
-    const [name, func, args] = params as [string, string, Uint8Array<ArrayBuffer>]
+    if (request.method === "execute") {
+      const [module, method, params] = request.params as [string, string, Uint8Array<ArrayBuffer>]
 
-    const start = performance.now()
+      const start = performance.now()
 
-    const result = run(name, func, args)
+      const { result, writes } = run(module, method, params, 1)
 
-    const until = performance.now()
+      const until = performance.now()
 
-    console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
+      console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
 
-    self.postMessage(new RpcOk(id, result))
+      if (writes.length) {
+        const result = new Int32Array(new SharedArrayBuffer(4 + 4))
+
+        helper.postMessage({ method: "storage_set", params: [module, method, params, writes], result })
+
+        if (Atomics.wait(result, 0, 0) !== "ok")
+          throw new Error("Failed to wait")
+        if (result[0] === 2)
+          throw new Error("Internal error")
+
+        console.log(`Wrote ${writes.length} events to storage`)
+      }
+
+      self.postMessage(new RpcOk(request.id, result))
+    }
+
+    if (request.method === "simulate") {
+      const [module, method, params] = request.params as [string, string, Uint8Array<ArrayBuffer>]
+
+      const start = performance.now()
+
+      const { result } = run(module, method, params, 2)
+
+      const until = performance.now()
+
+      console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
+
+      self.postMessage(new RpcOk(request.id, result))
+    }
+
+    throw new RpcMethodNotFoundError()
   } catch (cause: unknown) {
+    const request = event.data
+
     console.error(cause)
 
-    self.postMessage(new RpcErr(id, RpcError.rewrap(cause)))
+    self.postMessage(new RpcErr(request.id, RpcError.rewrap(cause)))
   }
 })
