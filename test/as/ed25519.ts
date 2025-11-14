@@ -176,7 +176,7 @@ async function execute(module: string, method: string, params: Uint8Array<ArrayB
 }
 
 async function ed25519(module: string, method: string, params: Uint8Array<ArrayBuffer>) {
-  const ed25519 = "12886e54948b0f14b87d97474c1e1cd2e4152d202ad0a02788a12b06eedbb803"
+  const ed25519 = "e303c3a6918df68d71fba155b5f184035d3a178324973b4055bbd6f270a19a4b"
 
   const signer = await crypto.subtle.importKey("pkcs8", Uint8Array.fromBase64("MC4CAQAwBQYDK2VwBCIEIOZmpSIQYsiOya6stoqWQ2cOBcuN0F/AmmU2c0wldqXb"), "Ed25519", true, ["sign"]);
   const verifier = Uint8Array.fromBase64("QByZynvXGhaEscyTs8L2h8FWBnNIpAq52mE8SkeLSvQ=")

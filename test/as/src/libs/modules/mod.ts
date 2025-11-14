@@ -8,7 +8,7 @@ export namespace modules {
   export declare function load(module: blobs.blob): blobs.blob
 
   // @ts-ignore
-  @external("dynamic", "call")
+  @external("modules", "call")
   export declare function call(module: blobs.blob, method: blobs.blob, params: packs.pack): packs.pack
 
   // @ts-ignore: decorator

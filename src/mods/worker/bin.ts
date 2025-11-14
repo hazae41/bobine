@@ -693,6 +693,8 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
       }
 
       self.postMessage(new RpcOk(request.id, result))
+
+      return
     }
 
     if (request.method === "simulate") {
@@ -707,6 +709,8 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
       console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
 
       self.postMessage(new RpcOk(request.id, result))
+
+      return
     }
 
     throw new RpcMethodNotFoundError()
