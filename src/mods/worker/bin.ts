@@ -15,8 +15,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
 
   const cache = new Map<symbol, symbol>()
-
-  const events = new Array<[string, Uint8Array, Uint8Array]>()
+  const batch = new Array<[string, Uint8Array, Uint8Array]>()
 
   const size = (input: Array<number | bigint | symbol | null>): number => {
     let length = 0
@@ -577,7 +576,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         cache.set(keyAsBlob, valueAsBlob)
 
-        events.push([name, keyAsBytes, valueAsBytes])
+        batch.push([name, keyAsBytes, valueAsBytes])
 
         return
       },
@@ -660,10 +659,10 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
   const result = encode([instance.exports[func](...decode(args))])
 
-  if (events.length) {
+  if (batch.length) {
     const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-    helper.postMessage({ method: "storage_set", params: [name, func, args, events], result })
+    helper.postMessage({ method: "storage_set", params: [name, func, args, batch], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
