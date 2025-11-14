@@ -1,7 +1,7 @@
 import { blobs } from "../../libs/blobs/mod";
-import { dynamic } from "../../libs/dynamic/mod";
+import { modules } from "../../libs/modules/mod";
 import { packs } from "../../libs/packs/mod";
 
 export function logmeback(module: blobs.blob): void {
-  dynamic.call(module, blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode("Hello from AssemblyScript!"))))
+  modules.call(module, blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode("Hello from AssemblyScript!"))))
 }

@@ -1,5 +1,5 @@
 import { blobs } from "../blobs/mod"
-import { dynamic } from "../dynamic/mod"
+import { modules } from "../modules/mod"
 import { packs } from "../packs/mod"
 import { sha256 } from "../sha256/mod"
 
@@ -13,7 +13,7 @@ export namespace addresses {
     const module = packs.get<blobs.blob>(session, 0)
     const pubkey = packs.get<blobs.blob>(session, 1)
 
-    if (!packs.get<bool>(dynamic.call(module, blobs.save(String.UTF8.encode("verify")), packs.create1(session)), 0))
+    if (!packs.get<bool>(modules.call(module, blobs.save(String.UTF8.encode("verify")), packs.create1(session)), 0))
       throw new Error("Invalid session")
 
     return compute(module, pubkey)

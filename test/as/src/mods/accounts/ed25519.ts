@@ -1,7 +1,6 @@
 import { addresses } from "../../libs/address/mod"
 import { blobs } from "../../libs/blobs/mod"
 import { chain } from "../../libs/chain/mod"
-import { dynamic } from "../../libs/dynamic/mod"
 import { ed25519 } from "../../libs/ed25519/mod"
 import { modules } from "../../libs/modules/mod"
 import { packs } from "../../libs/packs/mod"
@@ -51,5 +50,5 @@ export function call(module: externref, method: externref, payload: externref, p
 
   sessions.add(symbols.numerize(session))
 
-  return dynamic.call(module, method, packs.create2(session, dynamic.rest(packs.decode(payload))))
+  return modules.call(module, method, packs.create2(session, packs.rest(packs.decode(payload))))
 }

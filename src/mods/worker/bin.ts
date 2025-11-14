@@ -427,6 +427,38 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return nameAsBlob
       },
+      call: (nameAsBlob: symbol, funcAsBlob: symbol, argsAsPack: symbol): symbol => {
+        const nameAsBytes = blobs.get(nameAsBlob)
+
+        if (nameAsBytes == null)
+          throw new Error("Not found")
+
+        const nameAsString = nameAsBytes.toHex()
+
+        const funcAsBytes = blobs.get(funcAsBlob)
+
+        if (funcAsBytes == null)
+          throw new Error("Not found")
+
+        const funcAsString = new TextDecoder().decode(funcAsBytes)
+
+        if (exports[nameAsString] == null)
+          load(nameAsString)
+
+        if (typeof exports[nameAsString][funcAsString] !== "function")
+          throw new Error("Not found")
+
+        const argsAsValues = packs.get(argsAsPack)
+
+        if (argsAsValues == null)
+          throw new Error("Not found")
+
+        const resultAsPack = Symbol()
+
+        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...argsAsValues)])
+
+        return resultAsPack
+      },
       load: (nameAsBlob: symbol): symbol => {
         const nameAsBytes = blobs.get(nameAsBlob)
 
@@ -558,48 +590,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         packs.set(pack, decode(bytes))
 
         return pack
-      }
-    }
-
-    imports["dynamic"] = {
-      rest: (packAsPack: symbol): symbol => {
-        const rest = Symbol()
-
-        rests.set(rest, packAsPack)
-
-        return rest
-      },
-      call: (nameAsBlob: symbol, funcAsBlob: symbol, argsAsPack: symbol): symbol => {
-        const nameAsBytes = blobs.get(nameAsBlob)
-
-        if (nameAsBytes == null)
-          throw new Error("Not found")
-
-        const nameAsString = nameAsBytes.toHex()
-
-        const funcAsBytes = blobs.get(funcAsBlob)
-
-        if (funcAsBytes == null)
-          throw new Error("Not found")
-
-        const funcAsString = new TextDecoder().decode(funcAsBytes)
-
-        if (exports[nameAsString] == null)
-          load(nameAsString)
-
-        if (typeof exports[nameAsString][funcAsString] !== "function")
-          throw new Error("Not found")
-
-        const argsAsValues = packs.get(argsAsPack)
-
-        if (argsAsValues == null)
-          throw new Error("Not found")
-
-        const resultAsPack = Symbol()
-
-        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...argsAsValues)])
-
-        return resultAsPack
       }
     }
 

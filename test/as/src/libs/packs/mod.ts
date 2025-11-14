@@ -13,6 +13,10 @@ export namespace packs {
   export declare function encode(pack: packs.pack): blobs.blob
 
   // @ts-ignore
+  @external("packs", "rest")
+  export declare function rest(pack: packs.pack): externref
+
+  // @ts-ignore
   @external("packs", "create")
   export declare function create1<A>(arg0: A): packs.pack
 
