@@ -562,7 +562,7 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
         return rest
       },
-      call: (nameAsBlob: symbol, funcAsBlob: symbol, ...args: any[]): symbol => {
+      call: (nameAsBlob: symbol, funcAsBlob: symbol, argsAsPack: symbol): symbol => {
         const nameAsBytes = blobs.get(nameAsBlob)
 
         if (nameAsBytes == null)
@@ -583,11 +583,16 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
         if (typeof exports[nameAsString][funcAsString] !== "function")
           throw new Error("Not found")
 
-        const pack = Symbol()
+        const argsAsValues = packs.get(argsAsPack)
 
-        packs.set(pack, [exports[nameAsString][funcAsString](...unrest(args))])
+        if (argsAsValues == null)
+          throw new Error("Not found")
 
-        return pack
+        const resultAsPack = Symbol()
+
+        packs.set(resultAsPack, [exports[nameAsString][funcAsString](...unrest(argsAsValues))])
+
+        return resultAsPack
       }
     }
 

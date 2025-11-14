@@ -51,5 +51,5 @@ export function call(module: externref, method: externref, payload: externref, p
 
   sessions.add(symbols.numerize(session))
 
-  return dynamic.call2(module, method, session, dynamic.rest(packs.decode(payload)))
+  return dynamic.call(module, method, packs.create2(session, dynamic.rest(packs.decode(payload))))
 }

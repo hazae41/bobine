@@ -1,3 +1,4 @@
+import { packs } from "../../libs/packs/mod"
 import { blobs } from "../libs/blobs/mod"
 import { bytes } from "../libs/bytes/mod"
 import { dynamic } from "../libs/dynamic/mod"
@@ -14,7 +15,7 @@ class Library {
   }
 
   log(message: string): void {
-    dynamic.call1(symbols.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), blobs.save(String.UTF8.encode(message)))
+    dynamic.call(symbols.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode(message))))
   }
 
 }

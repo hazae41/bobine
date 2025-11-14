@@ -13,7 +13,7 @@ export namespace addresses {
     const module = packs.get<blobs.blob>(session, 0)
     const pubkey = packs.get<blobs.blob>(session, 1)
 
-    if (!packs.get<bool>(dynamic.call1(module, blobs.save(String.UTF8.encode("verify")), session), 0))
+    if (!packs.get<bool>(dynamic.call(module, blobs.save(String.UTF8.encode("verify")), packs.create1(session)), 0))
       throw new Error("Invalid session")
 
     return compute(module, pubkey)
