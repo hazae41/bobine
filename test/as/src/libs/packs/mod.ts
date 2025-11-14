@@ -13,8 +13,8 @@ export namespace packs {
   export declare function encode(pack: packs.pack): blobs.blob
 
   // @ts-ignore
-  @external("packs", "rest")
-  export declare function rest(pack: packs.pack): externref
+  @external("packs", "concat")
+  export declare function concat(left: packs.pack, right: packs.pack): externref
 
   // @ts-ignore
   @external("packs", "create")

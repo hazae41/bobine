@@ -13,7 +13,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
-  const rests = new Map<symbol, symbol>()
 
   const cache = new Map<symbol, symbol>()
 
@@ -157,41 +156,6 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     return args
-  }
-
-  const unrest = (args: Array<number | bigint | symbol | null>) => {
-    const result = new Array<number | bigint | symbol | null>()
-
-    const unrest = (args: Array<number | bigint | symbol | null>) => {
-      for (const arg of args) {
-        if (typeof arg !== "symbol") {
-          result.push(arg)
-          continue
-        }
-
-        const pack = rests.get(arg)
-
-        if (pack == null) {
-          result.push(arg)
-          continue
-        }
-
-        rests.delete(arg)
-
-        const subargs = packs.get(pack)
-
-        if (subargs == null) {
-          result.push(arg)
-          continue
-        }
-
-        unrest(subargs)
-      }
-    }
-
-    unrest(args)
-
-    return result
   }
 
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
@@ -535,19 +499,27 @@ function run(name: string, func: string, args: Uint8Array<ArrayBuffer>) {
     }
 
     imports["packs"] = {
-      rest: (packAsPack: symbol): symbol => {
-        const rest = Symbol()
-
-        rests.set(rest, packAsPack)
-
-        return rest
-      },
       create: (...values: Array<number | bigint | symbol | null>): symbol => {
         const pack = Symbol()
 
-        packs.set(pack, unrest(values))
+        packs.set(pack, values)
 
         return pack
+      },
+      concat: (leftAsPack: symbol, rightAsPack: symbol): symbol => {
+        const leftAsValues = packs.get(leftAsPack)
+        const rightAsValues = packs.get(rightAsPack)
+
+        if (leftAsValues == null)
+          throw new Error("Not found")
+        if (rightAsValues == null)
+          throw new Error("Not found")
+
+        const concatAsPack = Symbol()
+
+        packs.set(concatAsPack, [...leftAsValues, ...rightAsValues])
+
+        return concatAsPack
       },
       length: (pack: symbol): number => {
         const args = packs.get(pack)

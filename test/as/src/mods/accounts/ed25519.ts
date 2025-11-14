@@ -50,5 +50,5 @@ export function call(module: externref, method: externref, payload: externref, p
 
   sessions.add(symbols.numerize(session))
 
-  return modules.call(module, method, packs.create2(session, packs.rest(packs.decode(payload))))
+  return modules.call(module, method, packs.concat(packs.create1(session), packs.decode(payload)))
 }
