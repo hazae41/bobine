@@ -113,8 +113,6 @@ export function serve(database: string) {
 
         const packAsBytes = Pack.encode([wasmAsBytes, saltAsBytes])
 
-        console.log(packAsBytes.toHex())
-
         const digestOfWasmAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", wasmAsBytes))
         const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
 
