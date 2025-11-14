@@ -137,6 +137,8 @@ export function serve(database: string) {
 
     if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
       if (request.method === "POST") {
+        using stack = new DisposableStack()
+
         const form = await request.formData()
 
         const nameAsEntry = form.get("name")
@@ -161,8 +163,6 @@ export function serve(database: string) {
           return Response.json(null, { status: 400 })
 
         const argsAsBytes = await argsAsEntry.bytes()
-
-        using stack = new DisposableStack()
 
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
