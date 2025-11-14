@@ -1,8 +1,7 @@
+import { blobs } from "../../libs/blobs/mod"
+import { modules } from "../../libs/modules/mod"
 import { packs } from "../../libs/packs/mod"
-import { blobs } from "../libs/blobs/mod"
-import { bytes } from "../libs/bytes/mod"
-import { dynamic } from "../libs/dynamic/mod"
-import { symbols } from "../libs/symbols/mod"
+import { symbols } from "../../libs/symbols/mod"
 
 class Library {
 
@@ -11,11 +10,11 @@ class Library {
   ) { }
 
   static new(name: string): Library {
-    return new Library(symbols.numerize(bytes.fromHex(blobs.save(String.UTF8.encode(name)))))
+    return new Library(symbols.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(name)))))
   }
 
   log(message: string): void {
-    dynamic.call(symbols.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode(message))))
+    modules.call(symbols.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode(message))))
   }
 
 }
