@@ -103,6 +103,7 @@
     ],
     "packageJson": {
       "dependencies": [
+        "npm:@hazae41/binary@^2.0.2",
         "npm:@hazae41/cursor@^2.1.2",
         "npm:@hazae41/jsonrpc@^1.1.11",
         "npm:@hazae41/mutex@^3.0.1",

@@ -7,7 +7,7 @@
   "author": "hazae41",
   "license": "MIT",
   "scripts": {
-    "examine": "deno lint ./src && deno check ./src && deno test ./src",
+    "examine": "deno lint ./src && deno check ./src && deno test -R ./src",
     "version": "deno -RW ./x.vsync.ts && git add deno.json",
     "prepare": "deno -RW ./x.dsync.ts && deno install",
     "prepack": "rm -rf ./out && tsc && tscousin",
@@ -23,6 +23,7 @@
     }
   },
   "dependencies": {
+    "@hazae41/binary": "^2.0.2",
     "@hazae41/cursor": "^2.1.2",
     "@hazae41/jsonrpc": "^1.1.11",
     "@hazae41/mutex": "^3.0.1",

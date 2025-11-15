@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Pack } from "../../libs/packs/mod.ts";
 
-export async function serveWithEnv(prefix = "") {
+export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
   const {
     DATABASE_PATH = Deno.env.get(prefix + "DATABASE_PATH"),
   } = {}
@@ -46,7 +46,7 @@ export async function serveWithEnv(prefix = "") {
   return serve(DATABASE_PATH)
 }
 
-export function serve(database: string) {
+export function serve(database: string): { onHttpRequest(request: Request): Promise<Response> } {
   const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${database}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
@@ -58,7 +58,7 @@ export function serve(database: string) {
 
       const { socket, response } = Deno.upgradeWebSocket(request)
 
-      const routeOrThrow = async (message: string) => {
+      const routeOrThrow = (_message: string) => {
         return
       }
 
