@@ -246,6 +246,7 @@ export namespace Section {
               return new Instruction(opcode, [LEB128.U32.readOrThrow(cursor)])
             case 0x0e: {
               const count = LEB128.U32.readOrThrow(cursor)
+
               const labels: LEB128.U32[] = []
 
               for (let i = 0; i < count.value; i++)
@@ -281,8 +282,26 @@ export namespace Section {
 
               return new Instruction(opcode, [count, ...types])
             }
-            // case 0x1f:
+            case 0x1f: {
+              const type = LEB128.I33.readOrThrow(cursor)
 
+              const count = LEB128.U32.readOrThrow(cursor)
+
+              const catches: Writable[] = []
+
+              for (let i = 0; i < count.value; i++) {
+                const kind = cursor.readUint8OrThrow()
+
+                catches.push(new U8(kind))
+
+                if (kind < 2)
+                  catches.push(LEB128.U32.readOrThrow(cursor))
+
+                catches.push(LEB128.U32.readOrThrow(cursor))
+              }
+
+              return new Instruction(opcode, [type, count, ...catches])
+            }
             case 0x20:
             case 0x21:
             case 0x22:
@@ -908,6 +927,30 @@ export namespace LEB128 {
       return new I33(value)
     }
 
+  }
+
+}
+
+export class U8 {
+
+  constructor(
+    readonly value: number
+  ) { }
+
+  sizeOrThrow(): number {
+    return 1
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    cursor.writeUint8OrThrow(this.value)
+  }
+
+}
+
+export namespace U8 {
+
+  export function readOrThrow(cursor: Cursor) {
+    return new U8(cursor.readUint8OrThrow())
   }
 
 }
