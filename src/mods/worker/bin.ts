@@ -11,6 +11,8 @@ const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(imp
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number) {
   const exports: WebAssembly.Imports = {}
 
+  let sparks = 10000
+
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
 
@@ -158,7 +160,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return values
   }
 
-  const sha256_digest = (payload: Uint8Array): Uint8Array => {
+  const sha256 = (payload: Uint8Array): Uint8Array => {
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
     helper.postMessage({ method: "sha256_digest", params: [payload], result })
@@ -173,6 +175,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     digest.set(new Uint8Array(result.buffer, 4, 32))
 
     return digest
+  }
+
+  const consume = (amount: number) => {
+    sparks -= amount
+
+    if (sparks < 0)
+      throw new Error("Out of sparks")
+
+    return
   }
 
   const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
@@ -203,6 +214,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
+    imports["sparks"] = {
+      remaining: (): number => {
+        return sparks
+      },
+      consume: (amount: number): void => {
+        consume(amount >>> 0)
+      }
+    }
+
     imports["console"] = {
       log: (messageAsBlob: symbol): void => {
         const messageAsBytes = blobs.get(messageAsBlob)
@@ -220,7 +240,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const blob = Symbol()
 
-        const slice = new Uint8Array(memory.buffer, offset, length)
+        const slice = new Uint8Array(memory.buffer, offset >>> 0, length >>> 0)
 
         blobs.set(blob, slice.slice())
 
@@ -242,7 +262,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (bytes == null)
           throw new Error("Not found")
 
-        const slice = new Uint8Array(memory.buffer, offset, bytes.length)
+        const slice = new Uint8Array(memory.buffer, offset >>> 0, bytes.length)
 
         slice.set(bytes)
       },
@@ -349,7 +369,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return fresh
       },
       denumerize: (index: number): symbol => {
-        const symbol = symbols.at(index)
+        const symbol = symbols.at(index >>> 0)
 
         if (symbol == null)
           throw new Error("Not found")
@@ -372,8 +392,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const packAsBytes = encode([wasmAsBlob, saltAsBlob])
 
-        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
-        const digestOfPackAsBytes = sha256_digest(packAsBytes)
+        const digestOfWasmAsBytes = sha256(wasmAsBytes)
+        const digestOfPackAsBytes = sha256(packAsBytes)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
@@ -452,22 +472,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        const result = new Int32Array(new SharedArrayBuffer(4 + 32))
-
-        helper.postMessage({ method: "sha256_digest", params: [payloadAsBytes], result })
-
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
-
-        const digestAsBytes = new Uint8Array(32)
-
-        digestAsBytes.set(new Uint8Array(result.buffer, 4, 32))
-
         const blob = Symbol()
 
-        blobs.set(blob, digestAsBytes)
+        blobs.set(blob, sha256(payloadAsBytes))
 
         return blob
       }
@@ -535,10 +542,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (values == null)
           throw new Error("Not found")
-        if (index > values.length - 1)
+        if ((index >>> 0) > values.length - 1)
           throw new Error("Out of bounds")
 
-        return values[index]
+        return values[index >>> 0]
       },
       encode: (pack: symbol): symbol => {
         const values = packs.get(pack)
