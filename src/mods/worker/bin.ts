@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import { Readable } from "@hazae41/binary";
+import { Readable, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
@@ -623,14 +623,44 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    const cost = wasmAsParsed.body.table[Section.CodeSection.type]?.data.functions.reduce((a, b) => a + b.instructions.length, 0)
+    const code = wasmAsParsed.body.table[Section.CodeSection.type]
 
-    if (cost == null)
-      throw new Error("Could not compute instructions cost")
+    if (code == null)
+      throw new Error("No code section found")
 
-    consume(cost)
+    for (const func of code.data.functions) {
+      const instructions = new Array<Section.CodeSection.Function.Instruction>()
 
-    const wasmAsModule = new WebAssembly.Module(wasmAsBytes)
+      const subinstructions = new Array<Section.CodeSection.Function.Instruction>()
+
+      for (const instruction of func.instructions) {
+        subinstructions.push(instruction)
+
+        if (![0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode))
+          continue
+
+        // instructions.push(new Section.CodeSection.Function.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
+        // instructions.push(new Section.CodeSection.Function.Instruction(0x10, [new LEB128.U32(consume as unknown as number)]))
+        instructions.push(...subinstructions)
+
+        subinstructions.length = 0
+
+        continue
+      }
+
+      // instructions.push(new Section.CodeSection.Function.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
+      // instructions.push(new Section.CodeSection.Function.Instruction(0x10, [new LEB128.U32(consume as unknown as number)]))
+      instructions.push(...subinstructions)
+
+      subinstructions.length = 0
+
+      func.instructions.length = 0
+      func.instructions.push(...instructions)
+
+      continue
+    }
+
+    const wasmAsModule = new WebAssembly.Module(Writable.writeToBytesOrThrow(wasmAsParsed))
 
     for (const descriptor of WebAssembly.Module.imports(wasmAsModule)) {
       if (imports[descriptor.module] != null) {

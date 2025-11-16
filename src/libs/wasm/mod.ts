@@ -1,4 +1,4 @@
-import { Readable, type Writable } from "@hazae41/binary";
+import { Readable, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 
 export class Module {
@@ -7,6 +7,15 @@ export class Module {
     readonly head: Head,
     readonly body: Body
   ) { }
+
+  sizeOrThrow(): number {
+    return this.head.sizeOrThrow() + this.body.sizeOrThrow()
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    this.head.writeOrThrow(cursor)
+    this.body.writeOrThrow(cursor)
+  }
 
 }
 
@@ -26,6 +35,15 @@ export class Head {
   constructor(
     readonly version: number
   ) { }
+
+  sizeOrThrow(): number {
+    return 4 + 4
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    cursor.writeUint32OrThrow(1836278016, true)
+    cursor.writeUint32OrThrow(this.version, true)
+  }
 
 }
 
@@ -53,6 +71,21 @@ export class Body {
     readonly table: Body.Sections,
     readonly array: Section[]
   ) { }
+
+  sizeOrThrow(): number {
+    let size = 0
+
+    for (const section of this.array)
+      size += section.sizeOrThrow()
+
+    return size
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    for (const section of this.array)
+      section.writeOrThrow(cursor)
+    return
+  }
 
 }
 
@@ -289,6 +322,7 @@ export namespace Section {
     }
 
     export namespace Function {
+      let count = 0
 
       export function readOrThrow(cursor: Cursor) {
         const size = LEB128.U32.readOrThrow(cursor)
@@ -751,21 +785,15 @@ export namespace LEB128 {
 
       let byte: number
 
-      while (true) {
+      do {
         byte = cursor.readUint8OrThrow()
 
-        value |= (BigInt(byte & 0x7F) << shift);
+        value |= (BigInt(byte & 0x7F) << shift)
 
-        if ((byte & 0x80) === 0)
-          break
-
-        shift += 7n;
-
-        if (shift > 63n)
-          throw new Error("LEB128 value too large")
+        shift += 7n
 
         continue
-      }
+      } while (byte & 0x80)
 
       return new U64(value)
     }
@@ -828,21 +856,15 @@ export namespace LEB128 {
 
       let byte: number
 
-      while (true) {
+      do {
         byte = cursor.readUint8OrThrow()
 
-        value |= (BigInt(byte & 0x7F) << shift);
+        value |= (BigInt(byte & 0x7F) << shift)
 
-        if ((byte & 0x80) === 0)
-          break
-
-        shift += 7n;
-
-        if (shift > 63n)
-          throw new Error("LEB128 value too large")
+        shift += 7n
 
         continue
-      }
+      } while (byte & 0x80)
 
       if ((byte & 0x40) && (shift < 64n))
         value |= (-1n << shift)
@@ -906,21 +928,15 @@ export namespace LEB128 {
 
       let byte: number
 
-      while (true) {
+      do {
         byte = cursor.readUint8OrThrow()
 
-        value |= ((byte & 0x7F) << shift);
+        value |= ((byte & 0x7F) << shift)
 
-        if ((byte & 0x80) === 0)
-          break
-
-        shift += 7;
-
-        if (shift > 35)
-          throw new Error("LEB128 value too large")
+        shift += 7
 
         continue
-      }
+      } while (byte & 0x80)
 
       return new U32(value)
     }
@@ -984,23 +1000,17 @@ export namespace LEB128 {
 
       let byte: number
 
-      while (true) {
+      do {
         byte = cursor.readUint8OrThrow()
 
-        value |= ((byte & 0x7F) << shift);
+        value |= ((byte & 0x7F) << shift)
 
-        if ((byte & 0x80) === 0)
-          break
-
-        shift += 7;
-
-        if (shift > 35)
-          throw new Error("LEB128 value too large")
+        shift += 7
 
         continue
-      }
+      } while (byte & 0x80)
 
-      if ((byte & 0x40) && (shift < 32))
+      if ((byte & 0x40) && (shift < 64))
         value |= (-1 << shift)
 
       return new I32(value)
@@ -1065,21 +1075,15 @@ export namespace LEB128 {
 
       let byte: number
 
-      while (true) {
+      do {
         byte = cursor.readUint8OrThrow()
 
-        value |= (BigInt(byte & 0x7F) << shift);
+        value |= (BigInt(byte & 0x7F) << shift)
 
-        if ((byte & 0x80) === 0)
-          break
-
-        shift += 7n;
-
-        if (shift > 35n)
-          throw new Error("LEB128 value too large")
+        shift += 7n
 
         continue
-      }
+      } while (byte & 0x80)
 
       if ((byte & 0x40) && (shift < 64n))
         value |= (-1n << shift)
