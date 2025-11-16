@@ -193,24 +193,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["env"] = {
       mode: mode,
-      abort: (messageAsPointer: number): void => {
-        const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
-
-        const memory32 = new Uint32Array(memory.buffer)
-        const memory16 = new Uint16Array(memory.buffer)
-
-        const start = messageAsPointer >>> 1
-        const until = messageAsPointer + memory32[messageAsPointer - 4 >>> 2] >>> 1
-
-        let offset = start
-        let message = ""
-
-        while (until - offset > 1024)
-          message += String.fromCharCode(...memory16.subarray(offset, offset += 1024));
-
-        message += String.fromCharCode(...memory16.subarray(offset, until));
-
-        throw new Error(message)
+      abort: (): void => {
+        throw new Error("Aborted")
       }
     }
 
