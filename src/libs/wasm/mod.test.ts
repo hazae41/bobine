@@ -14,7 +14,9 @@ for (const path of process.argv.slice(2)) {
   for (const section of module.body.sections) {
     if (section.type !== Section.CodeSection.type)
       continue
-    Readable.readFromBytesOrThrow(Section.CodeSection, section.data)
+    const code = Readable.readFromBytesOrThrow(Section.CodeSection, section.data)
+    const cost = code.functions.reduce((a, b) => a + b.instructions.length, 0)
+    console.log(cost)
   }
 
   const until = performance.now()
