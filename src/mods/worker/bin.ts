@@ -193,7 +193,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["env"] = {
       mode: mode,
-      abort: (): void => {
+      abort: (): never => {
         throw new Error("Aborted")
       }
     }
