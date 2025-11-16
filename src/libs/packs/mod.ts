@@ -49,7 +49,7 @@ export namespace Pack {
 
       if (typeof arg === "bigint") {
         cursor.writeUint8OrThrow(2)
-        cursor.writeUint64OrThrow(arg, true)
+        cursor.writeBigUint64OrThrow(arg, true)
         continue
       }
 
@@ -93,7 +93,7 @@ export namespace Pack {
       }
 
       if (type === 2) {
-        pack.push(cursor.readUint64OrThrow(true))
+        pack.push(cursor.readBigUint64OrThrow(true))
         continue
       }
 

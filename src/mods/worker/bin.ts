@@ -71,7 +71,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
       if (typeof arg === "bigint") {
         cursor.writeUint8OrThrow(2)
-        cursor.writeUint64OrThrow(arg, true)
+        cursor.writeBigUint64OrThrow(arg, true)
         continue
       }
 
@@ -124,7 +124,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
 
       if (type === 2) {
-        values.push(cursor.readUint64OrThrow(true))
+        values.push(cursor.readBigUint64OrThrow(true))
         continue
       }
 
