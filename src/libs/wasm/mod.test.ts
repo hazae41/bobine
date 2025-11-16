@@ -1,20 +1,23 @@
 import { Readable, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { readFileSync } from "node:fs";
+import process from "node:process";
 import { LEB128, Module, Section } from "./mod.ts";
 
-const input = readFileSync("./test/as/bin/storage/mod.wasm")
+for (const path of process.argv.slice(2)) {
+  const input = readFileSync(path)
 
-const module = Module.readOrThrow(new Cursor(input))
+  const module = Module.readOrThrow(new Cursor(input))
 
-for (const section of module.body.sections) {
-  if (section.type !== Section.CodeSection.type)
-    continue
-  const code = Readable.readFromBytesOrThrow(Section.CodeSection, section.data)
+  for (const section of module.body.sections) {
+    if (section.type !== Section.CodeSection.type)
+      continue
+    const code = Readable.readFromBytesOrThrow(Section.CodeSection, section.data)
 
-  for (const func of code.functions) {
-    for (const instruction of func.instructions) {
-      console.log(instruction)
+    for (const func of code.functions) {
+      for (const instruction of func.instructions) {
+        console.log(instruction)
+      }
     }
   }
 }
