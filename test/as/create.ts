@@ -18,7 +18,7 @@ const exitpoint = join("./bin", relative("./src", entrypoint))
 
 const start = performance.now()
 
-execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --enable reference-types`)
+execSync(`asc ${entrypoint} -o ${exitpoint.replace(/\.ts$/, ".wasm")} -t ${exitpoint.replace(/\.ts$/, ".wat")} -b esm --optimizeLevel 3 --converge --runtime stub --enable reference-types`)
 
 const end = performance.now()
 
