@@ -1,4 +1,3 @@
-import { Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { readFileSync } from "node:fs";
 import process from "node:process";
@@ -11,13 +10,7 @@ for (const path of process.argv.slice(2)) {
 
   const module = Module.readOrThrow(new Cursor(input))
 
-  for (const section of module.body.sections) {
-    if (section.type !== Section.CodeSection.type)
-      continue
-    const code = Readable.readFromBytesOrThrow(Section.CodeSection, section.data)
-    const cost = code.functions.reduce((a, b) => a + b.instructions.length, 0)
-    console.log(cost)
-  }
+  console.log(module.body.table[Section.CodeSection.type]?.data.functions.reduce((a, b) => a + b.instructions.length, 0))
 
   const until = performance.now()
 

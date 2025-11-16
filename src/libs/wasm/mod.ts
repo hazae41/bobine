@@ -1,4 +1,4 @@
-import type { Writable } from "@hazae41/binary";
+import { Readable, type Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 
 export class Module {
@@ -50,29 +50,91 @@ export namespace Head {
 export class Body {
 
   constructor(
-    public sections: Section[]
+    readonly table: Body.Sections,
+    readonly array: Section[]
   ) { }
 
 }
 
 export namespace Body {
 
+  export interface Sections {
+
+    [Section.CodeSection.type]?: Section<Section.CodeSection>
+
+    [key: number]: Section | undefined
+
+  }
+
   export function readOrThrow(cursor: Cursor) {
-    const sections: Section[] = []
+    const table: Sections = {}
+    const array: Section[] = []
 
-    while (cursor.remaining > 0)
-      sections.push(Section.readOrThrow(cursor))
+    while (cursor.remaining > 0) {
+      const type = cursor.readUint8OrThrow()
 
-    return new Body(sections)
+      const size = LEB128.U32.readOrThrow(cursor)
+
+      const data = cursor.readOrThrow(size.value)
+
+      if (type === Section.Custom.type) {
+        const section = new Section(Readable.readFromBytesOrThrow(Section.Custom, data))
+
+        array.push(section)
+
+        continue
+      }
+
+      if (type === Section.CodeSection.type) {
+        const section = new Section(Readable.readFromBytesOrThrow(Section.CodeSection, data))
+
+        if (table[Section.CodeSection.type] != null)
+          throw new Error("Duplicate code section")
+
+        table[Section.CodeSection.type] = section
+
+        array.push(section)
+
+        continue
+      }
+
+      array.push(new Section(new Section.Unknown(type, data)))
+
+      continue
+    }
+
+    return new Body(table, array)
   }
 
 }
 
-export type Section =
-  | Section.Unknown
-  | Section.Custom
+export class Section<T extends Section.Data = Section.Data> {
+
+  constructor(
+    readonly data: T
+  ) { }
+
+  sizeOrThrow(): number {
+    return 1 + new LEB128.U32(this.data.sizeOrThrow()).sizeOrThrow() + this.data.sizeOrThrow()
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    cursor.writeUint8OrThrow(this.data.type)
+
+    new LEB128.U32(this.data.sizeOrThrow()).writeOrThrow(cursor)
+
+    this.data.writeOrThrow(cursor)
+  }
+
+}
 
 export namespace Section {
+
+  export type Data =
+    | Section.Unknown
+    | Section.Custom
+    | Section.CodeSection
+
 
   export class Unknown {
 
@@ -81,27 +143,37 @@ export namespace Section {
       readonly data: Uint8Array
     ) { }
 
-  }
+    sizeOrThrow(): number {
+      return this.data.length
+    }
 
-  export function readOrThrow(cursor: Cursor) {
-    const type = cursor.readUint8OrThrow()
+    writeOrThrow(cursor: Cursor) {
+      cursor.writeOrThrow(this.data)
+    }
 
-    const size = LEB128.U32.readOrThrow(cursor)
-
-    const data = cursor.readOrThrow(size.value)
-
-    return new Unknown(type, data)
   }
 
   export class Custom {
 
     constructor(
-      readonly name: string,
+      readonly name: Uint8Array,
       readonly data: Uint8Array
     ) { }
 
     get type() {
       return Custom.type
+    }
+
+    sizeOrThrow(): number {
+      return new LEB128.U32(this.name.length).sizeOrThrow() + this.name.length + this.data.length
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.name.length).writeOrThrow(cursor)
+
+      cursor.writeOrThrow(this.name)
+
+      cursor.writeOrThrow(this.data)
     }
 
   }
@@ -113,7 +185,7 @@ export namespace Section {
     export function readOrThrow(cursor: Cursor) {
       const size = LEB128.U32.readOrThrow(cursor)
 
-      const name = new TextDecoder().decode(cursor.readOrThrow(size.value))
+      const name = cursor.readOrThrow(size.value)
 
       const data = cursor.readOrThrow(cursor.remaining)
 
@@ -130,6 +202,26 @@ export namespace Section {
 
     get type() {
       return CodeSection.type
+    }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      size += new LEB128.U32(this.functions.length).sizeOrThrow()
+
+      for (const func of this.functions)
+        size += func.sizeOrThrow()
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.functions.length).writeOrThrow(cursor)
+
+      for (const func of this.functions)
+        func.writeOrThrow(cursor)
+
+      return
     }
 
   }
@@ -155,6 +247,44 @@ export namespace Section {
         readonly locals: Function.Local[],
         readonly instructions: Function.Instruction[]
       ) { }
+
+      sizeOrThrow(): number {
+        let subsize = 0
+
+        subsize += new LEB128.U32(this.locals.length).sizeOrThrow()
+
+        for (const local of this.locals)
+          subsize += local.sizeOrThrow()
+
+        for (const instruction of this.instructions)
+          subsize += instruction.sizeOrThrow()
+
+        return new LEB128.U32(subsize).sizeOrThrow() + subsize
+      }
+
+      writeOrThrow(cursor: Cursor) {
+        let subsize = 0
+
+        subsize += new LEB128.U32(this.locals.length).sizeOrThrow()
+
+        for (const local of this.locals)
+          subsize += local.sizeOrThrow()
+
+        for (const instruction of this.instructions)
+          subsize += instruction.sizeOrThrow()
+
+        new LEB128.U32(subsize).writeOrThrow(cursor)
+
+        new LEB128.U32(this.locals.length).writeOrThrow(cursor)
+
+        for (const local of this.locals)
+          local.writeOrThrow(cursor)
+
+        for (const instruction of this.instructions)
+          instruction.writeOrThrow(cursor)
+
+        return
+      }
 
     }
 
@@ -198,6 +328,18 @@ export namespace Section {
           readonly type: number
         ) { }
 
+        sizeOrThrow(): number {
+          return new LEB128.U32(this.size).sizeOrThrow() + 1
+        }
+
+        writeOrThrow(cursor: Cursor) {
+          new LEB128.U32(this.size).writeOrThrow(cursor)
+
+          cursor.writeUint8OrThrow(this.type)
+
+          return
+        }
+
       }
 
       export namespace Local {
@@ -217,6 +359,24 @@ export namespace Section {
           readonly opcode: number,
           readonly params: Writable[]
         ) { }
+
+        sizeOrThrow(): number {
+          let size = 1
+
+          for (const param of this.params)
+            size += param.sizeOrThrow()
+
+          return size
+        }
+
+        writeOrThrow(cursor: Cursor) {
+          cursor.writeUint8OrThrow(this.opcode)
+
+          for (const param of this.params)
+            param.writeOrThrow(cursor)
+
+          return
+        }
 
       }
 

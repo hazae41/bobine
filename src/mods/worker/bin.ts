@@ -1,8 +1,10 @@
 // deno-lint-ignore-file no-explicit-any
+import { Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { Module, Section } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -615,7 +617,20 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    const wasmAsModule = new WebAssembly.Module(readFileSync(`./local/scripts/${module}.wasm`))
+    const wasmAsBytes = readFileSync(`./local/scripts/${module}.wasm`)
+
+    consume(wasmAsBytes.length)
+
+    const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
+
+    const cost = wasmAsParsed.body.table[Section.CodeSection.type]?.data.functions.reduce((a, b) => a + b.instructions.length, 0)
+
+    if (cost == null)
+      throw new Error("Could not compute instructions cost")
+
+    consume(cost)
+
+    const wasmAsModule = new WebAssembly.Module(wasmAsBytes)
 
     for (const descriptor of WebAssembly.Module.imports(wasmAsModule)) {
       if (imports[descriptor.module] != null) {
