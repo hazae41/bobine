@@ -201,6 +201,22 @@ export namespace Body {
         continue
       }
 
+      if (kind === DataCountSection.kind) {
+        const section = Readable.readFromBytesOrThrow(DataCountSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
+      if (kind === TagSection.kind) {
+        const section = Readable.readFromBytesOrThrow(TagSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       sections.push(new UnknownSection(kind, data))
 
       continue
@@ -225,6 +241,8 @@ export type Section =
   | ElementSection
   | CodeSection
   | DataSection
+  | DataCountSection
+  | TagSection
 
 export class UnknownSection {
 
@@ -2001,7 +2019,7 @@ export class DataSection {
 
 export namespace DataSection {
 
-  export const kind = 0x0B
+  export const kind = 0x0b
 
   export type DataSegment =
     | { flag: 0, instructions: Instruction[], data: Uint8Array }
@@ -2069,6 +2087,98 @@ export namespace DataSection {
     }
 
     return new DataSection(segments)
+  }
+}
+
+export class DataCountSection {
+
+  constructor(
+    public count: number
+  ) { }
+
+  get kind() {
+    return DataCountSection.kind
+  }
+
+  sizeOrThrow(): number {
+    return new LEB128.U32(this.count).sizeOrThrow()
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    new LEB128.U32(this.count).writeOrThrow(cursor)
+  }
+
+}
+
+export namespace DataCountSection {
+
+  export const kind = 0x0c
+
+  export function readOrThrow(cursor: Cursor) {
+    return new DataCountSection(LEB128.U32.readOrThrow(cursor).value)
+  }
+
+}
+
+export class TagSection {
+
+  constructor(
+    public tags: [number, number][]
+  ) { }
+
+  get kind() {
+    return TagSection.kind
+  }
+
+  sizeOrThrow(): number {
+    let size = 0
+
+    size += new LEB128.U32(this.tags.length).sizeOrThrow()
+
+    for (const [_, typeidx] of this.tags) {
+      size += 1
+
+      size += new LEB128.U32(typeidx).sizeOrThrow()
+
+      continue
+    }
+
+    return size
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    new LEB128.U32(this.tags.length).writeOrThrow(cursor)
+
+    for (const [attribute, typeidx] of this.tags) {
+      cursor.writeUint8OrThrow(attribute)
+
+      new LEB128.U32(typeidx).writeOrThrow(cursor)
+
+      continue
+    }
+
+    return
+  }
+
+}
+
+export namespace TagSection {
+
+  export const kind = 0x0d
+
+  export function readOrThrow(cursor: Cursor) {
+    const count = LEB128.U32.readOrThrow(cursor)
+
+    const tags = new Array<[number, number]>()
+
+    for (let i = 0; i < count.value; i++) {
+      const attribute = cursor.readUint8OrThrow()
+      const typeidx = LEB128.U32.readOrThrow(cursor).value
+
+      tags.push([attribute, typeidx])
+    }
+
+    return new TagSection(tags)
   }
 }
 
