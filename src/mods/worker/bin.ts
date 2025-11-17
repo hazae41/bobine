@@ -628,10 +628,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     if (code == null)
       throw new Error("No code section found")
 
-    for (const func of code.data.functions) {
-      const instructions = new Array<Section.CodeSection.Function.Instruction>()
+    for (const func of code.bodies) {
+      const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
-      const subinstructions = new Array<Section.CodeSection.Function.Instruction>()
+      const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
       for (const instruction of func.instructions) {
         subinstructions.push(instruction)
