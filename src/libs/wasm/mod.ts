@@ -69,21 +69,20 @@ export namespace Head {
 export class Body {
 
   constructor(
-    readonly table: Body.Sections,
-    readonly array: Section[]
+    readonly sections: Section[]
   ) { }
 
   sizeOrThrow(): number {
     let size = 0
 
-    for (const section of this.array)
+    for (const section of this.sections)
       size += 1 + new LEB128.U32(section.sizeOrThrow()).sizeOrThrow() + section.sizeOrThrow()
 
     return size
   }
 
   writeOrThrow(cursor: Cursor) {
-    for (const section of this.array) {
+    for (const section of this.sections) {
       cursor.writeUint8OrThrow(section.kind)
 
       new LEB128.U32(section.sizeOrThrow()).writeOrThrow(cursor)
@@ -96,23 +95,8 @@ export class Body {
 
 export namespace Body {
 
-  export interface Sections {
-
-    [Section.TypeSection.kind]?: Nullable<Section.TypeSection>
-
-    [Section.ImportSection.kind]?: Nullable<Section.ImportSection>
-
-    [Section.StartSection.kind]?: Nullable<Section.StartSection>
-
-    [Section.CodeSection.kind]?: Nullable<Section.CodeSection>
-
-    [key: number]: Nullable<Section>
-
-  }
-
   export function readOrThrow(cursor: Cursor) {
-    const table: Sections = {}
-    const array: Section[] = []
+    const sections: Section[] = []
 
     while (cursor.remaining > 0) {
       const type = cursor.readUint8OrThrow()
@@ -124,7 +108,7 @@ export namespace Body {
       if (type === Section.CustomSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.CustomSection, data)
 
-        array.push(section)
+        sections.push(section)
 
         continue
       }
@@ -132,12 +116,7 @@ export namespace Body {
       if (type === Section.TypeSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.TypeSection, data)
 
-        if (table[Section.TypeSection.kind] != null)
-          throw new Error("Duplicate type section")
-
-        table[Section.TypeSection.kind] = section
-
-        array.push(section)
+        sections.push(section)
 
         continue
       }
@@ -145,12 +124,7 @@ export namespace Body {
       if (type === Section.ImportSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.ImportSection, data)
 
-        if (table[Section.ImportSection.kind] != null)
-          throw new Error("Duplicate import section")
-
-        table[Section.ImportSection.kind] = section
-
-        array.push(section)
+        sections.push(section)
 
         continue
       }
@@ -158,12 +132,7 @@ export namespace Body {
       if (type === Section.StartSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.StartSection, data)
 
-        if (table[Section.StartSection.kind] != null)
-          throw new Error("Duplicate start section")
-
-        table[Section.StartSection.kind] = section
-
-        array.push(section)
+        sections.push(section)
 
         continue
       }
@@ -171,22 +140,17 @@ export namespace Body {
       if (type === Section.CodeSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.CodeSection, data)
 
-        if (table[Section.CodeSection.kind] != null)
-          throw new Error("Duplicate code section")
-
-        table[Section.CodeSection.kind] = section
-
-        array.push(section)
+        sections.push(section)
 
         continue
       }
 
-      array.push(new Section.UnknownSection(type, data))
+      sections.push(new Section.UnknownSection(type, data))
 
       continue
     }
 
-    return new Body(table, array)
+    return new Body(sections)
   }
 
 }
@@ -1369,19 +1333,20 @@ export namespace LEB128 {
     ) { }
 
     sizeOrThrow(): number {
-      let value = this.value
       let size = 0
 
-      while (true) {
-        size += 1
+      let value = this.value
+
+      do {
+        let byte = Number(value & 0x7Fn)
 
         value >>= 7n
 
-        if (value === 0n)
-          break
+        if (value !== 0n)
+          byte |= 0x80
 
-        continue
-      }
+        size += 1
+      } while (value !== 0n)
 
       return size
     }
@@ -1389,7 +1354,7 @@ export namespace LEB128 {
     writeOrThrow(cursor: Cursor) {
       let value = this.value
 
-      while (true) {
+      do {
         let byte = Number(value & 0x7Fn)
 
         value >>= 7n
@@ -1398,12 +1363,7 @@ export namespace LEB128 {
           byte |= 0x80
 
         cursor.writeUint8OrThrow(byte)
-
-        if (value === 0n)
-          break
-
-        continue
-      }
+      } while (value !== 0n)
     }
 
   }
@@ -1438,21 +1398,24 @@ export namespace LEB128 {
     ) { }
 
     sizeOrThrow(): number {
-      let value = this.value
-
       let size = 0
 
-      while (true) {
-        size += 1
+      let value = this.value
 
-        const byte = Number(value & 0x7Fn)
+      let more = true
+
+      while (more) {
+        let byte = Number(value & 0x7Fn)
 
         value >>= 7n
 
-        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0))
-          break
+        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0)) {
+          more = false
+        } else {
+          byte |= 0x80
+        }
 
-        continue
+        size += 1
       }
 
       return size
@@ -1464,7 +1427,7 @@ export namespace LEB128 {
       let more = true
 
       while (more) {
-        let byte = Number(this.value & 0x7Fn)
+        let byte = Number(value & 0x7Fn)
 
         value >>= 7n
 
@@ -1477,6 +1440,7 @@ export namespace LEB128 {
         cursor.writeUint8OrThrow(byte)
       }
     }
+
   }
 
   export namespace I64 {
@@ -1512,19 +1476,20 @@ export namespace LEB128 {
     ) { }
 
     sizeOrThrow(): number {
-      let value = this.value
       let size = 0
 
-      while (true) {
+      let value = this.value
+
+      do {
+        let byte = value & 0x7F
+
+        value >>= 7
+
+        if (value !== 0)
+          byte |= 0x80
+
         size += 1
-
-        value >>>= 7
-
-        if (value === 0)
-          break
-
-        continue
-      }
+      } while (value !== 0)
 
       return size
     }
@@ -1532,21 +1497,16 @@ export namespace LEB128 {
     writeOrThrow(cursor: Cursor) {
       let value = this.value
 
-      while (true) {
+      do {
         let byte = value & 0x7F
 
-        value >>>= 7
+        value >>= 7
 
         if (value !== 0)
           byte |= 0x80
 
         cursor.writeUint8OrThrow(byte)
-
-        if (value === 0)
-          break
-
-        continue
-      }
+      } while (value !== 0)
     }
 
   }
@@ -1581,21 +1541,24 @@ export namespace LEB128 {
     ) { }
 
     sizeOrThrow(): number {
-      let value = this.value
-
       let size = 0
 
-      while (true) {
-        size += 1
+      let value = this.value
 
-        const byte = value & 0x7F
+      let more = true
+
+      while (more) {
+        let byte = value & 0x7F
 
         value >>= 7
 
-        if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0))
-          break
+        if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0)) {
+          more = false
+        } else {
+          byte |= 0x80
+        }
 
-        continue
+        size += 1
       }
 
       return size
@@ -1656,21 +1619,24 @@ export namespace LEB128 {
     ) { }
 
     sizeOrThrow(): number {
-      let value = this.value
-
       let size = 0
 
-      while (true) {
-        size += 1
+      let value = this.value
 
-        const byte = Number(value & 0x7Fn)
+      let more = true
+
+      while (more) {
+        let byte = Number(value & 0x7Fn)
 
         value >>= 7n
 
-        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0))
-          break
+        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0)) {
+          more = false
+        } else {
+          byte |= 0x80
+        }
 
-        continue
+        size += 1
       }
 
       return size

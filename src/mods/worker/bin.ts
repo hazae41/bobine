@@ -625,10 +625,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    const typeSection = wasmAsParsed.body.table[Section.TypeSection.kind]!
-    const importSection = wasmAsParsed.body.table[Section.ImportSection.kind]!
-    const codeSection = wasmAsParsed.body.table[Section.CodeSection.kind]!
-    const startSection = wasmAsParsed.body.table[Section.StartSection.kind]!
+    const typeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.TypeSection.kind)! as Section.TypeSection
+    const importSection = wasmAsParsed.body.sections.find(section => section.kind === Section.ImportSection.kind)! as Section.ImportSection
+    const codeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.CodeSection.kind)! as Section.CodeSection
+    const startSection = wasmAsParsed.body.sections[Section.StartSection.kind]! as Section.StartSection
 
     const typelen = typeSection.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
 
