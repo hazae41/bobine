@@ -129,6 +129,14 @@ export namespace Body {
         continue
       }
 
+      if (type === Section.ExportSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.ExportSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       if (type === Section.StartSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.StartSection, data)
 
@@ -160,6 +168,7 @@ export type Section =
   | Section.CustomSection
   | Section.TypeSection
   | Section.ImportSection
+  | Section.ExportSection
   | Section.StartSection
   | Section.CodeSection
 
@@ -789,6 +798,83 @@ export namespace Section {
         return new GlobalImport(type, mutability)
       }
 
+    }
+
+  }
+
+  export class ExportSection {
+
+    constructor(
+      readonly descriptors: ExportSection.ExportDescriptor[]
+    ) { }
+
+    get kind() {
+      return ExportSection.kind
+    }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      size += new LEB128.U32(this.descriptors.length).sizeOrThrow()
+
+      for (const descriptor of this.descriptors) {
+        size += new LEB128.U32(descriptor.name.length).sizeOrThrow()
+
+        size += descriptor.name.length
+
+        size += 1
+
+        size += new LEB128.U32(descriptor.xidx).sizeOrThrow()
+      }
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.descriptors.length).writeOrThrow(cursor)
+
+      for (const descriptor of this.descriptors) {
+        new LEB128.U32(descriptor.name.length).writeOrThrow(cursor)
+
+        cursor.writeOrThrow(descriptor.name)
+
+        cursor.writeUint8OrThrow(descriptor.kind)
+
+        new LEB128.U32(descriptor.xidx).writeOrThrow(cursor)
+      }
+
+      return
+    }
+  }
+
+  export namespace ExportSection {
+
+    export const kind = 0x07
+
+    export interface ExportDescriptor {
+
+      readonly name: Uint8Array
+
+      readonly kind: number
+
+      xidx: number
+
+    }
+
+    export function readOrThrow(cursor: Cursor) {
+      const count = LEB128.U32.readOrThrow(cursor)
+
+      const exports = new Array<ExportDescriptor>()
+
+      for (let i = 0; i < count.value; i++) {
+        const name = cursor.readOrThrow(LEB128.U32.readOrThrow(cursor).value)
+        const kind = cursor.readUint8OrThrow()
+        const xidx = LEB128.U32.readOrThrow(cursor).value
+
+        exports.push({ name, kind, xidx })
+      }
+
+      return new ExportSection(exports)
     }
 
   }
@@ -1472,7 +1558,7 @@ export namespace LEB128 {
   export class U32 {
 
     constructor(
-      readonly value: number
+      public value: number
     ) { }
 
     sizeOrThrow(): number {
