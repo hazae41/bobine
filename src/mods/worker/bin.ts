@@ -628,7 +628,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     const typeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.TypeSection.kind)! as Section.TypeSection
     const importSection = wasmAsParsed.body.sections.find(section => section.kind === Section.ImportSection.kind)! as Section.ImportSection
     const codeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.CodeSection.kind)! as Section.CodeSection
-    const startSection = wasmAsParsed.body.sections[Section.StartSection.kind]! as Section.StartSection
+    const startSection = wasmAsParsed.body.sections.find(section => section.kind === Section.StartSection.kind)! as Section.StartSection
 
     const typelen = typeSection.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
 
