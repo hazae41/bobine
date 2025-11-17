@@ -14,7 +14,7 @@ const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(imp
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number) {
   const exports: WebAssembly.Imports = {}
 
-  let sparks = 10000
+  let sparks = 6000
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
@@ -181,12 +181,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   }
 
   const consume = (amount: number) => {
-    console.log(`Consuming ${amount} sparks`)
-
     sparks -= amount
 
     if (sparks < 0)
-      throw new Error("Out of sparks")
+      throw new Error("Out of gas")
 
     return
   }
@@ -664,6 +662,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     throw new Error("Not found")
 
   const result = encode([instance.exports[method](...decode(params))])
+
+  console.log(`Gas left: ${sparks}`)
 
   return { result, writes }
 }
