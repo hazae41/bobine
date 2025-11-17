@@ -153,6 +153,14 @@ export namespace Body {
         continue
       }
 
+      if (kind === GlobalSection.kind) {
+        const section = Readable.readFromBytesOrThrow(GlobalSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       if (kind === ExportSection.kind) {
         const section = Readable.readFromBytesOrThrow(ExportSection, data)
 
@@ -194,6 +202,7 @@ export type Section =
   | ImportSection
   | FunctionSection
   | TableSection
+  | GlobalSection
   | MemorySection
   | ExportSection
   | StartSection
