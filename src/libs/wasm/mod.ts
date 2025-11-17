@@ -1547,7 +1547,7 @@ export namespace LEB128 {
         continue
       } while (byte & 0x80)
 
-      if ((byte & 0x40) && (shift < 64n))
+      if (byte & 0x40)
         value |= (-1n << shift)
 
       return new I64(value)
@@ -1690,7 +1690,7 @@ export namespace LEB128 {
         continue
       } while (byte & 0x80)
 
-      if ((byte & 0x40) && (shift < 64n))
+      if (byte & 0x40)
         value |= (-1n << shift)
 
       return new I32(Number(value))
@@ -1768,7 +1768,7 @@ export namespace LEB128 {
         continue
       } while (byte & 0x80)
 
-      if ((byte & 0x40) && (shift < 64n))
+      if (byte & 0x40)
         value |= (-1n << shift)
 
       return new I33(Number(value))

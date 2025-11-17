@@ -1,9 +1,9 @@
-import { Writable } from "@hazae41/binary";
+import { Readable, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { Module } from "./mod.ts";
+import { LEB128, Module } from "./mod.ts";
 
 for (const path of process.argv.slice(2)) {
   const start = performance.now()
@@ -26,4 +26,4 @@ for (const path of process.argv.slice(2)) {
   console.log(`Parsed ${path} in ${(until - start).toFixed(2)}ms`)
 }
 
-// console.log(Writable.writeToBytesOrThrow(Readable.readFromBytesOrThrow(LEB128.I64, Uint8Array.fromHex("8080a0cfc8e0c8e38a7f"))).toHex())
+console.log(Readable.readFromBytesOrThrow(LEB128.I64, Writable.writeToBytesOrThrow(new LEB128.I64(-8446744073709551616n))))
