@@ -1470,7 +1470,10 @@ export namespace LEB128 {
         shift += 7n
 
         continue
-      } while (byte & 0x80)
+      } while ((byte & 0x80) && (shift < 70n))
+
+      if (value > (2n ** 64n - 1n))
+        throw new Error(`Value exceeds U64 range`)
 
       return new U64(value)
     }
@@ -1545,10 +1548,13 @@ export namespace LEB128 {
         shift += 7n
 
         continue
-      } while (byte & 0x80)
+      } while ((byte & 0x80) && (shift < 70n))
 
       if (byte & 0x40)
         value |= (-1n << shift)
+
+      if (value > (2n ** 63n - 1n))
+        throw new Error(`Value exceeds I64 range`)
 
       return new I64(value)
     }
@@ -1613,7 +1619,10 @@ export namespace LEB128 {
         shift += 7n
 
         continue
-      } while (byte & 0x80)
+      } while ((byte & 0x80) && (shift < 70n))
+
+      if (value > ((2n ** 32n) - 1n))
+        throw new Error(`Value exceeds U32 range`)
 
       return new U32(Number(value))
     }
@@ -1688,10 +1697,13 @@ export namespace LEB128 {
         shift += 7n
 
         continue
-      } while (byte & 0x80)
+      } while ((byte & 0x80) && (shift < 70n))
 
       if (byte & 0x40)
         value |= (-1n << shift)
+
+      if (value > (2n ** 31n - 1n))
+        throw new Error(`Value exceeds I32 range`)
 
       return new I32(Number(value))
     }
@@ -1766,10 +1778,13 @@ export namespace LEB128 {
         shift += 7n
 
         continue
-      } while (byte & 0x80)
+      } while ((byte & 0x80) && (shift < 70n))
 
       if (byte & 0x40)
         value |= (-1n << shift)
+
+      if (value > ((2n ** 32n) - 1n))
+        throw new Error(`Value exceeds I33 range`)
 
       return new I33(Number(value))
     }
