@@ -96,7 +96,7 @@ export class Body {
 export namespace Body {
 
   export function readOrThrow(cursor: Cursor) {
-    const sections: Section[] = []
+    const sections = new Array<Section>()
 
     while (cursor.remaining > 0) {
       const kind = cursor.readUint8OrThrow()
@@ -131,6 +131,14 @@ export namespace Body {
 
       if (kind === Section.FunctionSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.FunctionSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
+      if (kind === Section.TableSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.TableSection, data)
 
         sections.push(section)
 
@@ -177,6 +185,7 @@ export type Section =
   | Section.TypeSection
   | Section.ImportSection
   | Section.FunctionSection
+  | Section.TableSection
   | Section.ExportSection
   | Section.StartSection
   | Section.CodeSection
@@ -595,7 +604,7 @@ export namespace Section {
     export function readOrThrow(cursor: Cursor) {
       const count = LEB128.U32.readOrThrow(cursor)
 
-      const imports: ImportDescriptor[] = []
+      const descriptors = new Array<ImportDescriptor>()
 
       for (let i = 0; i < count.value; i++) {
         const from = cursor.readOrThrow(LEB128.U32.readOrThrow(cursor).value)
@@ -605,32 +614,32 @@ export namespace Section {
 
         if (kind === 0x00) {
           const body = FunctionImport.readOrThrow(cursor)
-          imports.push({ from, name, body })
+          descriptors.push({ from, name, body })
           continue
         }
 
         if (kind === 0x01) {
           const body = TableImport.readOrThrow(cursor)
-          imports.push({ from, name, body })
+          descriptors.push({ from, name, body })
           continue
         }
 
         if (kind === 0x02) {
           const body = MemoryImport.readOrThrow(cursor)
-          imports.push({ from, name, body })
+          descriptors.push({ from, name, body })
           continue
         }
 
         if (kind === 0x03) {
           const body = GlobalImport.readOrThrow(cursor)
-          imports.push({ from, name, body })
+          descriptors.push({ from, name, body })
           continue
         }
 
         throw new Error(`Unknown import 0x${kind.toString(16).padStart(2, "0")}`)
       }
 
-      return new ImportSection(imports)
+      return new ImportSection(descriptors)
     }
 
     export type ImportBody =
@@ -721,10 +730,10 @@ export namespace Section {
 
         const flag = cursor.readUint8OrThrow()
 
-        const min = LEB128.U32.readOrThrow(cursor)
+        const min = LEB128.U32.readOrThrow(cursor).value
         const max = flag & 0x01 ? LEB128.U32.readOrThrow(cursor).value : null
 
-        return new TableImport(reftype, flag, min.value, max)
+        return new TableImport(reftype, flag, min, max)
       }
 
     }
@@ -862,6 +871,90 @@ export namespace Section {
         typeidxs.push(LEB128.U32.readOrThrow(cursor).value)
 
       return new FunctionSection(typeidxs)
+    }
+
+  }
+
+  export class TableSection {
+
+    constructor(
+      public descriptors: TableSection.TableDescriptor[]
+    ) { }
+
+    get kind() {
+      return TableSection.kind
+    }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      size += new LEB128.U32(this.descriptors.length).sizeOrThrow()
+
+      for (const descriptor of this.descriptors) {
+        size += 1
+
+        size += 1
+
+        size += new LEB128.U32(descriptor.min).sizeOrThrow()
+
+        if (descriptor.max != null)
+          size += new LEB128.U32(descriptor.max).sizeOrThrow()
+
+        continue
+      }
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.descriptors.length).writeOrThrow(cursor)
+
+      for (const descriptor of this.descriptors) {
+        cursor.writeUint8OrThrow(descriptor.reftype)
+
+        cursor.writeUint8OrThrow(descriptor.flag)
+
+        new LEB128.U32(descriptor.min).writeOrThrow(cursor)
+
+        if (descriptor.max != null)
+          new LEB128.U32(descriptor.max).writeOrThrow(cursor)
+
+        continue
+      }
+
+      return
+    }
+
+  }
+
+  export namespace TableSection {
+
+    export const kind = 0x04
+
+    export interface TableDescriptor {
+      reftype: number
+      flag: number
+      min: number
+      max: Nullable<number>
+    }
+
+    export function readOrThrow(cursor: Cursor) {
+      const count = LEB128.U32.readOrThrow(cursor)
+
+      const descriptors = new Array<TableDescriptor>()
+
+      for (let i = 0; i < count.value; i++) {
+        const reftype = cursor.readUint8OrThrow()
+
+        const flag = cursor.readUint8OrThrow()
+
+        const min = LEB128.U32.readOrThrow(cursor).value
+        const max = flag & 0x01 ? LEB128.U32.readOrThrow(cursor).value : null
+
+        descriptors.push({ reftype, flag, min, max })
+      }
+
+      return new TableSection(descriptors)
     }
 
   }
@@ -1012,7 +1105,7 @@ export namespace Section {
     export function readOrThrow(cursor: Cursor) {
       const count = LEB128.U32.readOrThrow(cursor)
 
-      const bodies: FunctionBody[] = []
+      const bodies = new Array<FunctionBody>()
 
       for (let i = 0; i < count.value; i++)
         bodies.push(FunctionBody.readOrThrow(cursor))
@@ -1077,7 +1170,7 @@ export namespace Section {
 
         const locals = Locals.readOrThrow(subcursor)
 
-        const instructions: Instruction[] = []
+        const instructions = new Array<Instruction>()
 
         while (subcursor.remaining > 0)
           instructions.push(Instruction.readOrThrow(subcursor))
@@ -1090,7 +1183,7 @@ export namespace Section {
         export function readOrThrow(cursor: Cursor) {
           const count = LEB128.U32.readOrThrow(cursor)
 
-          const locals: Local[] = []
+          const locals = new Array<Local>()
 
           for (let i = 0; i < count.value; i++)
             locals.push(Local.readOrThrow(cursor))
@@ -1186,7 +1279,7 @@ export namespace Section {
             case 0x0e: {
               const count = LEB128.U32.readOrThrow(cursor)
 
-              const labels: LEB128.U32[] = []
+              const labels = new Array<LEB128.U32>()
 
               for (let i = 0; i < count.value; i++)
                 labels.push(LEB128.U32.readOrThrow(cursor))
@@ -1214,7 +1307,7 @@ export namespace Section {
             case 0x1c: {
               const count = LEB128.U32.readOrThrow(cursor)
 
-              const types: LEB128.U32[] = []
+              const types = new Array<LEB128.U32>()
 
               for (let i = 0; i < count.value; i++)
                 types.push(LEB128.U32.readOrThrow(cursor))
@@ -1226,7 +1319,7 @@ export namespace Section {
 
               const count = LEB128.U32.readOrThrow(cursor)
 
-              const catches: Writable[] = []
+              const catches = new Array<Writable>()
 
               for (let i = 0; i < count.value; i++) {
                 const kind = cursor.readUint8OrThrow()
