@@ -701,6 +701,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const result = encode([instance.exports[method](...decode(params))])
 
+  consume(result.length)
+
   console.log(`Used ${10000 - sparks} sparks`)
 
   return { result, writes }
