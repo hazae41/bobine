@@ -49,10 +49,7 @@ export function meter(module: Module, from: string, name: string) {
 
     instructions.push(...subinstructions)
 
-    subinstructions.length = 0
-
-    body.instructions.length = 0
-    body.instructions.push(...instructions)
+    body.instructions = instructions
 
     continue
   }
