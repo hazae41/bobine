@@ -177,6 +177,14 @@ export namespace Body {
         continue
       }
 
+      if (kind === ElementSection.kind) {
+        const section = Readable.readFromBytesOrThrow(ElementSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       if (kind === CodeSection.kind) {
         const section = Readable.readFromBytesOrThrow(CodeSection, data)
 
@@ -206,6 +214,7 @@ export type Section =
   | MemorySection
   | ExportSection
   | StartSection
+  | ElementSection
   | CodeSection
 
 export class UnknownSection {
@@ -1243,6 +1252,479 @@ export namespace StartSection {
 
   export function readOrThrow(cursor: Cursor) {
     return new StartSection(LEB128.U32.readOrThrow(cursor).value)
+  }
+
+}
+
+export class ElementSection {
+
+  constructor(
+    public segments: ElementSection.ElementSegment[]
+  ) { }
+
+  get kind() {
+    return ElementSection.kind
+  }
+
+  sizeOrThrow(): number {
+    let size = 0
+
+    size += new LEB128.U32(this.segments.length).sizeOrThrow()
+
+    for (const segment of this.segments) {
+      size += 1
+
+      if (segment.flag === 0) {
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += new LEB128.U32(segment.funcidxs.length).sizeOrThrow()
+
+        for (const funcidx of segment.funcidxs)
+          size += new LEB128.U32(funcidx).sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 1) {
+        size += 1
+
+        size += new LEB128.U32(segment.elements.length).sizeOrThrow()
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            size += instruction.sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 2) {
+        size += new LEB128.U32(segment.tableidx).sizeOrThrow()
+
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += 1
+
+        size += new LEB128.U32(segment.elements.length).sizeOrThrow()
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            size += instruction.sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 3) {
+        size += 1
+
+        size += new LEB128.U32(segment.elements.length).sizeOrThrow()
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            size += instruction.sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 4) {
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += new LEB128.U32(segment.funcidxs.length).sizeOrThrow()
+
+        for (const funcidx of segment.funcidxs)
+          size += new LEB128.U32(funcidx).sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 5) {
+        size += 1
+
+        size += new LEB128.U32(segment.funcidxs.length).sizeOrThrow()
+
+        for (const funcidx of segment.funcidxs)
+          size += new LEB128.U32(funcidx).sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 6) {
+        size += new LEB128.U32(segment.tableidx).sizeOrThrow()
+
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += 1
+
+        size += new LEB128.U32(segment.funcidxs.length).sizeOrThrow()
+
+        for (const funcidx of segment.funcidxs)
+          size += new LEB128.U32(funcidx).sizeOrThrow()
+
+        continue
+      }
+
+      if (segment.flag === 7) {
+        size += 1
+
+        size += new LEB128.U32(segment.funcidxs.length).sizeOrThrow()
+
+        for (const funcidx of segment.funcidxs)
+          size += new LEB128.U32(funcidx).sizeOrThrow()
+
+        continue
+      }
+    }
+
+    return size
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    new LEB128.U32(this.segments.length).writeOrThrow(cursor)
+
+    for (const segment of this.segments) {
+      cursor.writeUint8OrThrow(segment.flag)
+
+      if (segment.flag === 0) {
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        new LEB128.U32(segment.funcidxs.length).writeOrThrow(cursor)
+
+        for (const funcidx of segment.funcidxs)
+          new LEB128.U32(funcidx).writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 1) {
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.elements.length).writeOrThrow(cursor)
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            instruction.writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 2) {
+        new LEB128.U32(segment.tableidx).writeOrThrow(cursor)
+
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.elements.length).writeOrThrow(cursor)
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            instruction.writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 3) {
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.elements.length).writeOrThrow(cursor)
+
+        for (const instructions of segment.elements)
+          for (const instruction of instructions)
+            instruction.writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 4) {
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        new LEB128.U32(segment.funcidxs.length).writeOrThrow(cursor)
+
+        for (const funcidx of segment.funcidxs)
+          new LEB128.U32(funcidx).writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 5) {
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.funcidxs.length).writeOrThrow(cursor)
+
+        for (const funcidx of segment.funcidxs)
+          new LEB128.U32(funcidx).writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 6) {
+        new LEB128.U32(segment.tableidx).writeOrThrow(cursor)
+
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.funcidxs.length).writeOrThrow(cursor)
+
+        for (const funcidx of segment.funcidxs)
+          new LEB128.U32(funcidx).writeOrThrow(cursor)
+
+        continue
+      }
+
+      if (segment.flag === 7) {
+        cursor.writeUint8OrThrow(segment.reftype)
+
+        new LEB128.U32(segment.funcidxs.length).writeOrThrow(cursor)
+
+        for (const funcidx of segment.funcidxs)
+          new LEB128.U32(funcidx).writeOrThrow(cursor)
+
+        continue
+      }
+    }
+  }
+}
+
+export namespace ElementSection {
+
+  export const kind = 0x09
+
+  export type ElementSegment =
+    | { flag: 0, instructions: Instruction[], funcidxs: number[] }
+    | { flag: 1, reftype: number, elements: Instruction[][] }
+    | { flag: 2, tableidx: number, instructions: Instruction[], reftype: number, elements: Instruction[][] }
+    | { flag: 3, reftype: number, elements: Instruction[][] }
+    | { flag: 4, instructions: Instruction[], funcidxs: number[] }
+    | { flag: 5, reftype: number, funcidxs: number[] }
+    | { flag: 6, tableidx: number, instructions: Instruction[], reftype: number, funcidxs: number[] }
+    | { flag: 7, reftype: number, funcidxs: number[] }
+
+  export function readOrThrow(cursor: Cursor) {
+    const count = LEB128.U32.readOrThrow(cursor)
+
+    const segments = new Array<ElementSegment>()
+
+    for (let i = 0; i < count.value; i++) {
+      const flag = cursor.readUint8OrThrow()
+
+      if (flag === 0) {
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const funcidxs = new Array<number>()
+
+        for (let j = 0; j < count.value; j++)
+          funcidxs.push(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, instructions, funcidxs })
+        continue
+      }
+
+      if (flag === 1) {
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const elements = new Array<Array<Instruction>>()
+
+        for (let j = 0; j < count.value; j++) {
+          const instructions = new Array<Instruction>()
+
+          while (true) {
+            const instruction = Instruction.readOrThrow(cursor)
+
+            instructions.push(instruction)
+
+            if (instruction.opcode === 0x0b)
+              break
+
+            continue
+          }
+
+          elements.push(instructions)
+        }
+
+        segments.push({ flag, reftype, elements })
+        continue
+      }
+
+      if (flag === 2) {
+        const tableidx = LEB128.U32.readOrThrow(cursor).value
+
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const elements = new Array<Array<Instruction>>()
+
+        for (let j = 0; j < count.value; j++) {
+          const instructions = new Array<Instruction>()
+
+          while (true) {
+            const instruction = Instruction.readOrThrow(cursor)
+
+            instructions.push(instruction)
+
+            if (instruction.opcode === 0x0b)
+              break
+
+            continue
+          }
+
+          elements.push(instructions)
+        }
+
+        segments.push({ flag, tableidx, instructions, reftype, elements })
+        continue
+      }
+
+      if (flag === 3) {
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const elements = new Array<Array<Instruction>>()
+
+        for (let j = 0; j < count.value; j++) {
+          const instructions = new Array<Instruction>()
+
+          while (true) {
+            const instruction = Instruction.readOrThrow(cursor)
+
+            instructions.push(instruction)
+
+            if (instruction.opcode === 0x0b)
+              break
+
+            continue
+          }
+
+          elements.push(instructions)
+        }
+
+        segments.push({ flag, reftype, elements })
+        continue
+      }
+
+      if (flag === 4) {
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const funcidxs = new Array<number>()
+
+        for (let j = 0; j < count.value; j++)
+          funcidxs.push(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, instructions, funcidxs })
+        continue
+      }
+
+      if (flag === 5) {
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const funcidxs = new Array<number>()
+
+        for (let j = 0; j < count.value; j++)
+          funcidxs.push(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, reftype, funcidxs })
+        continue
+      }
+
+      if (flag === 6) {
+        const tableidx = LEB128.U32.readOrThrow(cursor).value
+
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const funcidxs = new Array<number>()
+
+        for (let j = 0; j < count.value; j++)
+          funcidxs.push(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, tableidx, instructions, reftype, funcidxs })
+        continue
+      }
+
+      if (flag === 7) {
+        const reftype = cursor.readUint8OrThrow()
+
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const funcidxs = new Array<number>()
+
+        for (let j = 0; j < count.value; j++)
+          funcidxs.push(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, reftype, funcidxs })
+        continue
+      }
+
+      throw new Error(`Unknown element segment flag 0x${flag.toString(16).padStart(2, "0")}`)
+    }
+
+    return new ElementSection(segments)
   }
 
 }
