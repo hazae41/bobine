@@ -1564,35 +1564,35 @@ export namespace LEB128 {
     sizeOrThrow(): number {
       let size = 0
 
-      let value = this.value
+      let value = BigInt(this.value)
 
       do {
-        let byte = value & 0x7F
+        let byte = Number(value & 0x7Fn)
 
-        value >>= 7
+        value >>= 7n
 
-        if (value !== 0)
+        if (value !== 0n)
           byte |= 0x80
 
         size += 1
-      } while (value !== 0)
+      } while (value !== 0n)
 
       return size
     }
 
     writeOrThrow(cursor: Cursor) {
-      let value = this.value
+      let value = BigInt(this.value)
 
       do {
-        let byte = value & 0x7F
+        let byte = Number(value & 0x7Fn)
 
-        value >>= 7
+        value >>= 7n
 
-        if (value !== 0)
+        if (value !== 0n)
           byte |= 0x80
 
         cursor.writeUint8OrThrow(byte)
-      } while (value !== 0)
+      } while (value !== 0n)
     }
 
   }
@@ -1600,22 +1600,22 @@ export namespace LEB128 {
   export namespace U32 {
 
     export function readOrThrow(cursor: Cursor) {
-      let value = 0
-      let shift = 0
+      let value = 0n
+      let shift = 0n
 
       let byte: number
 
       do {
         byte = cursor.readUint8OrThrow()
 
-        value |= ((byte & 0x7F) << shift)
+        value |= (BigInt(byte & 0x7F) << shift)
 
-        shift += 7
+        shift += 7n
 
         continue
       } while (byte & 0x80)
 
-      return new U32(value)
+      return new U32(Number(value))
     }
 
   }
@@ -1629,85 +1629,7 @@ export namespace LEB128 {
     sizeOrThrow(): number {
       let size = 0
 
-      let value = this.value
-
-      let more = true
-
-      while (more) {
-        let byte = value & 0x7F
-
-        value >>= 7
-
-        if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0)) {
-          more = false
-        } else {
-          byte |= 0x80
-        }
-
-        size += 1
-      }
-
-      return size
-    }
-
-    writeOrThrow(cursor: Cursor) {
-      let value = this.value
-
-      let more = true
-
-      while (more) {
-        let byte = value & 0x7F
-
-        value >>= 7
-
-        if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0)) {
-          more = false
-        } else {
-          byte |= 0x80
-        }
-
-        cursor.writeUint8OrThrow(byte)
-      }
-    }
-
-  }
-
-  export namespace I32 {
-
-    export function readOrThrow(cursor: Cursor) {
-      let value = 0
-      let shift = 0
-
-      let byte: number
-
-      do {
-        byte = cursor.readUint8OrThrow()
-
-        value |= ((byte & 0x7F) << shift)
-
-        shift += 7
-
-        continue
-      } while (byte & 0x80)
-
-      if ((byte & 0x40) && (shift < 64))
-        value |= (-1 << shift)
-
-      return new I32(value)
-    }
-
-  }
-
-  export class I33 {
-
-    constructor(
-      readonly value: bigint
-    ) { }
-
-    sizeOrThrow(): number {
-      let size = 0
-
-      let value = this.value
+      let value = BigInt(this.value)
 
       let more = true
 
@@ -1729,7 +1651,85 @@ export namespace LEB128 {
     }
 
     writeOrThrow(cursor: Cursor) {
-      let value = this.value
+      let value = BigInt(this.value)
+
+      let more = true
+
+      while (more) {
+        let byte = Number(value & 0x7Fn)
+
+        value >>= 7n
+
+        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0)) {
+          more = false
+        } else {
+          byte |= 0x80
+        }
+
+        cursor.writeUint8OrThrow(byte)
+      }
+    }
+
+  }
+
+  export namespace I32 {
+
+    export function readOrThrow(cursor: Cursor) {
+      let value = 0n
+      let shift = 0n
+
+      let byte: number
+
+      do {
+        byte = cursor.readUint8OrThrow()
+
+        value |= (BigInt(byte & 0x7F) << shift)
+
+        shift += 7n
+
+        continue
+      } while (byte & 0x80)
+
+      if ((byte & 0x40) && (shift < 64n))
+        value |= (-1n << shift)
+
+      return new I32(Number(value))
+    }
+
+  }
+
+  export class I33 {
+
+    constructor(
+      readonly value: number
+    ) { }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      let value = BigInt(this.value)
+
+      let more = true
+
+      while (more) {
+        let byte = Number(value & 0x7Fn)
+
+        value >>= 7n
+
+        if ((value === 0n && (byte & 0x40) === 0) || (value === -1n && (byte & 0x40) !== 0)) {
+          more = false
+        } else {
+          byte |= 0x80
+        }
+
+        size += 1
+      }
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      let value = BigInt(this.value)
 
       let more = true
 
@@ -1771,7 +1771,7 @@ export namespace LEB128 {
       if ((byte & 0x40) && (shift < 64n))
         value |= (-1n << shift)
 
-      return new I33(value)
+      return new I33(Number(value))
     }
 
   }

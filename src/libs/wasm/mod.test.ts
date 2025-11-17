@@ -25,3 +25,5 @@ for (const path of process.argv.slice(2)) {
 
   console.log(`Parsed ${path} in ${(until - start).toFixed(2)}ms`)
 }
+
+// console.log(Writable.writeToBytesOrThrow(Readable.readFromBytesOrThrow(LEB128.I64, Uint8Array.fromHex("8080a0cfc8e0c8e38a7f"))).toHex())
