@@ -193,6 +193,14 @@ export namespace Body {
         continue
       }
 
+      if (kind === DataSection.kind) {
+        const section = Readable.readFromBytesOrThrow(DataSection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       sections.push(new UnknownSection(kind, data))
 
       continue
@@ -216,6 +224,7 @@ export type Section =
   | StartSection
   | ElementSection
   | CodeSection
+  | DataSection
 
 export class UnknownSection {
 
@@ -1892,7 +1901,176 @@ export namespace CodeSection {
 
 }
 
+export class DataSection {
 
+  constructor(
+    public segments: DataSection.DataSegment[]
+  ) { }
+
+  get kind() {
+    return DataSection.kind
+  }
+
+  sizeOrThrow(): number {
+    let size = 0
+
+    size += new LEB128.U32(this.segments.length).sizeOrThrow()
+
+    for (const segment of this.segments) {
+      size += 1
+
+      if (segment.flag === 0) {
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += new LEB128.U32(segment.data.length).sizeOrThrow()
+
+        size += segment.data.length
+
+        continue
+      }
+
+      if (segment.flag === 1) {
+        size += new LEB128.U32(segment.data.length).sizeOrThrow()
+
+        size += segment.data.length
+
+        continue
+      }
+
+      if (segment.flag === 2) {
+        size += new LEB128.U32(segment.memidx).sizeOrThrow()
+
+        for (const instruction of segment.instructions)
+          size += instruction.sizeOrThrow()
+
+        size += new LEB128.U32(segment.data.length).sizeOrThrow()
+
+        size += segment.data.length
+
+        continue
+      }
+    }
+
+    return size
+  }
+
+  writeOrThrow(cursor: Cursor) {
+    new LEB128.U32(this.segments.length).writeOrThrow(cursor)
+
+    for (const segment of this.segments) {
+      cursor.writeUint8OrThrow(segment.flag)
+
+      if (segment.flag === 0) {
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        new LEB128.U32(segment.data.length).writeOrThrow(cursor)
+
+        cursor.writeOrThrow(segment.data)
+
+        continue
+      }
+
+      if (segment.flag === 1) {
+        new LEB128.U32(segment.data.length).writeOrThrow(cursor)
+
+        cursor.writeOrThrow(segment.data)
+
+        continue
+      }
+
+      if (segment.flag === 2) {
+        new LEB128.U32(segment.memidx).writeOrThrow(cursor)
+
+        for (const instruction of segment.instructions)
+          instruction.writeOrThrow(cursor)
+
+        new LEB128.U32(segment.data.length).writeOrThrow(cursor)
+
+        cursor.writeOrThrow(segment.data)
+
+        continue
+      }
+    }
+
+    return
+  }
+
+}
+
+export namespace DataSection {
+
+  export const kind = 0x0B
+
+  export type DataSegment =
+    | { flag: 0, instructions: Instruction[], data: Uint8Array }
+    | { flag: 1, data: Uint8Array }
+    | { flag: 2, memidx: number, instructions: Instruction[], data: Uint8Array }
+
+  export function readOrThrow(cursor: Cursor) {
+    const count = LEB128.U32.readOrThrow(cursor)
+
+    const segments = new Array<DataSegment>()
+
+    for (let i = 0; i < count.value; i++) {
+      const flag = cursor.readUint8OrThrow()
+
+      if (flag === 0) {
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const data = cursor.readOrThrow(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, instructions, data })
+        continue
+      }
+
+      if (flag === 1) {
+        const data = cursor.readOrThrow(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, data })
+        continue
+      }
+
+      if (flag === 2) {
+        const memidx = LEB128.U32.readOrThrow(cursor).value
+
+        const instructions = new Array<Instruction>()
+
+        while (true) {
+          const instruction = Instruction.readOrThrow(cursor)
+
+          instructions.push(instruction)
+
+          if (instruction.opcode === 0x0b)
+            break
+
+          continue
+        }
+
+        const data = cursor.readOrThrow(LEB128.U32.readOrThrow(cursor).value)
+
+        segments.push({ flag, memidx, instructions, data })
+        continue
+      }
+
+      throw new Error(`Unknown data segment flag 0x${flag.toString(16).padStart(2, "0")}`)
+    }
+
+    return new DataSection(segments)
+  }
+}
 
 export class Instruction {
 
