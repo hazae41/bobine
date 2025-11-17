@@ -21,12 +21,12 @@ export function meter(module: Module, from: string, name: string) {
   if (wstart != null)
     wstart.funcidx = wstart.funcidx + 1
 
-  for (const func of wcode.bodies) {
+  for (const body of wcode.bodies) {
     const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
     const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
-    for (const instruction of func.instructions) {
+    for (const instruction of body.instructions) {
       if ([0x10, 0x12, 0xd2].includes(instruction.opcode)) {
         const funcidx = instruction.params[0] as LEB128.U32
 
@@ -53,8 +53,8 @@ export function meter(module: Module, from: string, name: string) {
 
     subinstructions.length = 0
 
-    func.instructions.length = 0
-    func.instructions.push(...instructions)
+    body.instructions.length = 0
+    body.instructions.push(...instructions)
 
     continue
   }
