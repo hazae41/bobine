@@ -1,10 +1,10 @@
-import { LEB128, type Module, Section } from "../wasm/mod.ts";
+import { CodeSection, ExportSection, ImportSection, Instruction, LEB128, type Module, StartSection, TypeSection } from "../wasm/mod.ts";
 
 export function meter(module: Module, from: string, name: string) {
-  const wtype = module.body.sections.find(section => section.kind === Section.TypeSection.kind) as Section.TypeSection
-  const wimport = module.body.sections.find(section => section.kind === Section.ImportSection.kind) as Section.ImportSection
-  const wexport = module.body.sections.find(section => section.kind === Section.ExportSection.kind) as Section.ExportSection
-  const wcode = module.body.sections.find(section => section.kind === Section.CodeSection.kind) as Section.CodeSection
+  const wtype = module.body.sections.find(section => section.kind === TypeSection.kind) as TypeSection
+  const wimport = module.body.sections.find(section => section.kind === ImportSection.kind) as ImportSection
+  const wexport = module.body.sections.find(section => section.kind === ExportSection.kind) as ExportSection
+  const wcode = module.body.sections.find(section => section.kind === CodeSection.kind) as CodeSection
 
   if (wtype == null)
     throw new Error(`No type section`)
@@ -15,19 +15,19 @@ export function meter(module: Module, from: string, name: string) {
   if (wcode == null)
     throw new Error(`No code section`)
 
-  const wstart = module.body.sections.find(section => section.kind === Section.StartSection.kind) as Section.StartSection
+  const wstart = module.body.sections.find(section => section.kind === StartSection.kind) as StartSection
 
-  wtype.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
+  wtype.descriptors.push({ prefix: TypeSection.FuncType.kind, subtypes: [], body: new TypeSection.FuncType([0x7f], []) })
 
-  wimport.descriptors.unshift({ from: new TextEncoder().encode(from), name: new TextEncoder().encode(name), body: new Section.ImportSection.FunctionImport(wtype.descriptors.length - 1) })
+  wimport.descriptors.unshift({ from: new TextEncoder().encode(from), name: new TextEncoder().encode(name), body: new ImportSection.FunctionImport(wtype.descriptors.length - 1) })
 
   if (wstart != null)
     wstart.funcidx++
 
   for (const body of wcode.bodies) {
-    const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
+    const instructions = new Array<Instruction>()
 
-    const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
+    const subinstructions = new Array<Instruction>()
 
     for (const instruction of body.instructions) {
       if ([0x10, 0x12, 0xd2].includes(instruction.opcode))
@@ -36,8 +36,8 @@ export function meter(module: Module, from: string, name: string) {
       if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode)) {
         subinstructions.push(instruction)
 
-        instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
-        instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x10, [new LEB128.U32(0)]))
+        instructions.push(new Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
+        instructions.push(new Instruction(0x10, [new LEB128.U32(0)]))
 
         instructions.push(...subinstructions)
 
