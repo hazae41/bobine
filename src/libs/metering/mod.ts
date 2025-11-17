@@ -33,7 +33,7 @@ export function meter(module: Module, from: string, name: string) {
       if ([0x10, 0x12, 0xd2].includes(instruction.opcode))
         (instruction.params[0] as LEB128.U32).value++
 
-      if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode)) {
+      if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F, 0xd5, 0xd6].includes(instruction.opcode)) {
         subinstructions.push(instruction)
 
         instructions.push(new Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
