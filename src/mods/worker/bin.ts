@@ -59,6 +59,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       continue
     }
 
+    consume(length)
+
     return length
   }
 
@@ -107,10 +109,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       cursor.writeUint8OrThrow(0)
     }
 
+    consume(bytes.length)
+
     return bytes
   }
 
   const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
+    consume(bytes.length)
+
     const values = new Array<number | bigint | symbol | null>()
 
     const cursor = new Cursor(bytes)
@@ -164,6 +170,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   }
 
   const sha256 = (payload: Uint8Array): Uint8Array => {
+    consume(payload.length)
+
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
     helper.postMessage({ method: "sha256_digest", params: [payload], result })
@@ -217,12 +225,16 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (messageAsBytes == null)
           throw new Error("Not found")
 
+        consume(messageAsBytes.length)
+
         console.log(new TextDecoder().decode(messageAsBytes))
       }
     }
 
     imports["blobs"] = {
       save: (offset: number, length: number): symbol => {
+        consume(length)
+
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const blob = Symbol()
@@ -234,6 +246,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return blob
       },
       size: (blob: symbol): number => {
+        consume(1)
+
         const bytes = blobs.get(blob)
 
         if (bytes == null)
@@ -249,6 +263,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (bytes == null)
           throw new Error("Not found")
 
+        consume(bytes.length)
+
         const slice = new Uint8Array(memory.buffer, offset >>> 0, bytes.length)
 
         slice.set(bytes)
@@ -261,6 +277,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
           throw new Error("Not found")
         if (rightAsBytes == null)
           throw new Error("Not found")
+
+        consume(leftAsBytes.length + rightAsBytes.length)
 
         const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
         concatAsBytes.set(leftAsBytes, 0)
@@ -281,8 +299,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (rightAsBytes == null)
           throw new Error("Not found")
 
+        consume(1)
+
         if (leftAsBytes.length !== rightAsBytes.length)
           return false
+
+        consume(leftAsBytes.length + rightAsBytes.length)
 
         return !Buffer.compare(leftAsBytes, rightAsBytes)
       },
@@ -291,6 +313,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (textAsBytes == null)
           throw new Error("Not found")
+
+        consume(textAsBytes.length)
 
         const outputAsBlob = Symbol()
 
@@ -304,6 +328,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (inputAsBytes == null)
           throw new Error("Not found")
 
+        consume(inputAsBytes.length)
+
         const outputAsBlob = Symbol()
 
         blobs.set(outputAsBlob, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
@@ -316,6 +342,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (inputAsBytes == null)
           throw new Error("Not found")
 
+        consume(inputAsBytes.length)
+
         const outputAsBlob = Symbol()
 
         blobs.set(outputAsBlob, new TextEncoder().encode(inputAsBytes.toHex()))
@@ -327,6 +355,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (inputsAsBytes == null)
           throw new Error("Not found")
+
+        consume(inputsAsBytes.length)
 
         const outputAsBlob = Symbol()
 
@@ -341,9 +371,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["symbols"] = {
       create: (): symbol => {
+        consume(1)
+
         return Symbol()
       },
       numerize: (symbol: symbol): number => {
+        consume(1)
+
         const stale = numbers.get(symbol)
 
         if (stale != null)
@@ -356,6 +390,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return fresh
       },
       denumerize: (index: number): symbol => {
+        consume(1)
+
         const symbol = symbols.at(index >>> 0)
 
         if (symbol == null)
@@ -381,6 +417,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const digestOfWasmAsBytes = sha256(wasmAsBytes)
         const digestOfPackAsBytes = sha256(packAsBytes)
+
+        consume(digestOfWasmAsBytes.length + digestOfPackAsBytes.length)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
@@ -662,6 +700,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     throw new Error("Not found")
 
   const result = encode([instance.exports[method](...decode(params))])
+
+  console.log(`Used ${10000 - sparks} sparks`)
 
   return { result, writes }
 }
