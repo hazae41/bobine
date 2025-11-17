@@ -623,7 +623,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    const code = wasmAsParsed.body.table[Section.CodeSection.type]
+    const code = wasmAsParsed.body.table[Section.CodeSection.kind]
 
     if (code == null)
       throw new Error("No code section found")

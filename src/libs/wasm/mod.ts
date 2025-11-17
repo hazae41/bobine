@@ -84,7 +84,7 @@ export class Body {
 
   writeOrThrow(cursor: Cursor) {
     for (const section of this.array) {
-      cursor.writeUint8OrThrow(section.type)
+      cursor.writeUint8OrThrow(section.kind)
 
       new LEB128.U32(section.sizeOrThrow()).writeOrThrow(cursor)
 
@@ -98,9 +98,11 @@ export namespace Body {
 
   export interface Sections {
 
-    [Section.ImportSection.type]?: Nullable<Section.ImportSection>
+    [Section.TypeSection.kind]?: Nullable<Section.TypeSection>
 
-    [Section.CodeSection.type]?: Nullable<Section.CodeSection>
+    [Section.ImportSection.kind]?: Nullable<Section.ImportSection>
+
+    [Section.CodeSection.kind]?: Nullable<Section.CodeSection>
 
     [key: number]: Nullable<Section>
 
@@ -117,7 +119,7 @@ export namespace Body {
 
       const data = cursor.readOrThrow(size.value)
 
-      if (type === Section.Custom.type) {
+      if (type === Section.Custom.kind) {
         const section = Readable.readFromBytesOrThrow(Section.Custom, data)
 
         array.push(section)
@@ -125,26 +127,39 @@ export namespace Body {
         continue
       }
 
-      if (type === Section.ImportSection.type) {
-        const section = Readable.readFromBytesOrThrow(Section.ImportSection, data)
+      if (type === Section.TypeSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.TypeSection, data)
 
-        if (table[Section.ImportSection.type] != null)
-          throw new Error("Duplicate import section")
+        if (table[Section.TypeSection.kind] != null)
+          throw new Error("Duplicate type section")
 
-        table[Section.ImportSection.type] = section
+        table[Section.TypeSection.kind] = section
 
         array.push(section)
 
         continue
       }
 
-      if (type === Section.CodeSection.type) {
+      if (type === Section.ImportSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.ImportSection, data)
+
+        if (table[Section.ImportSection.kind] != null)
+          throw new Error("Duplicate import section")
+
+        table[Section.ImportSection.kind] = section
+
+        array.push(section)
+
+        continue
+      }
+
+      if (type === Section.CodeSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.CodeSection, data)
 
-        if (table[Section.CodeSection.type] != null)
+        if (table[Section.CodeSection.kind] != null)
           throw new Error("Duplicate code section")
 
-        table[Section.CodeSection.type] = section
+        table[Section.CodeSection.kind] = section
 
         array.push(section)
 
@@ -164,6 +179,7 @@ export namespace Body {
 export type Section =
   | Section.Unknown
   | Section.Custom
+  | Section.TypeSection
   | Section.ImportSection
   | Section.CodeSection
 
@@ -173,7 +189,7 @@ export namespace Section {
   export class Unknown {
 
     constructor(
-      readonly type: number,
+      readonly kind: number,
       readonly data: Uint8Array
     ) { }
 
@@ -194,8 +210,8 @@ export namespace Section {
       readonly data: Uint8Array
     ) { }
 
-    get type() {
-      return Custom.type
+    get kind() {
+      return Custom.kind
     }
 
     sizeOrThrow(): number {
@@ -214,7 +230,7 @@ export namespace Section {
 
   export namespace Custom {
 
-    export const type = 0
+    export const kind = 0
 
     export function readOrThrow(cursor: Cursor) {
       const size = LEB128.U32.readOrThrow(cursor)
@@ -228,14 +244,309 @@ export namespace Section {
 
   }
 
+  export class TypeSection {
+
+    constructor(
+      readonly descriptors: TypeSection.TypeDescriptor[]
+    ) { }
+
+    get kind() {
+      return TypeSection.kind
+    }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      size += new LEB128.U32(this.descriptors.length).sizeOrThrow()
+
+      for (const descriptor of this.descriptors) {
+        size += 1
+
+        if (descriptor.prefix === TypeSection.FuncType.kind) {
+          size += descriptor.body.sizeOrThrow()
+          continue
+        }
+
+        if (descriptor.prefix === 0x4E || descriptor.prefix === 0x4D) {
+          size += new LEB128.U32(descriptor.subtypes.length).sizeOrThrow()
+
+          for (const subtype of descriptor.subtypes)
+            size += new LEB128.U32(subtype).sizeOrThrow()
+
+          // NOOP
+        }
+
+        size += 1
+
+        size += descriptor.body.sizeOrThrow()
+        continue
+      }
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.descriptors.length).writeOrThrow(cursor)
+
+      for (const descriptor of this.descriptors) {
+        cursor.writeUint8OrThrow(descriptor.prefix)
+
+        if (descriptor.prefix === TypeSection.FuncType.kind) {
+          descriptor.body.writeOrThrow(cursor)
+          continue
+        }
+
+        if (descriptor.prefix === 0x4E || descriptor.prefix === 0x4D) {
+          new LEB128.U32(descriptor.subtypes.length).writeOrThrow(cursor)
+
+          for (const subtype of descriptor.subtypes)
+            new LEB128.U32(subtype).writeOrThrow(cursor)
+
+          // NOOP
+        }
+
+        cursor.writeUint8OrThrow(descriptor.body.kind)
+
+        descriptor.body.writeOrThrow(cursor)
+        continue
+      }
+
+      return
+    }
+
+  }
+
+  export namespace TypeSection {
+
+    export const kind = 0x01
+
+    export interface TypeDescriptor {
+      readonly prefix: number
+      readonly subtypes: number[]
+      readonly body: TypeBody
+    }
+
+    export function readOrThrow(cursor: Cursor) {
+      const count = LEB128.U32.readOrThrow(cursor)
+
+      const types = new Array<TypeDescriptor>()
+
+      for (let i = 0; i < count.value; i++) {
+        const prefix = cursor.readUint8OrThrow()
+
+        if (prefix === FuncType.kind) {
+          const body = FuncType.readOrThrow(cursor)
+          types.push({ prefix, subtypes: [], body })
+          continue
+        }
+
+        const subtypes = new Array<number>()
+
+        if (prefix === 0x4E || prefix === 0x4D) {
+          const subcount = LEB128.U32.readOrThrow(cursor)
+
+          for (let j = 0; j < subcount.value; j++)
+            subtypes.push(LEB128.U32.readOrThrow(cursor).value)
+
+          // NOOP
+        }
+
+        const kind = cursor.readUint8OrThrow()
+
+        if (kind === FuncType.kind) {
+          const body = FuncType.readOrThrow(cursor)
+          types.push({ prefix, subtypes, body })
+          continue
+        }
+
+        if (kind === StructType.kind) {
+          const body = StructType.readOrThrow(cursor)
+          types.push({ prefix, subtypes, body })
+          continue
+        }
+
+        if (kind === ArrayType.kind) {
+          const body = ArrayType.readOrThrow(cursor)
+          types.push({ prefix, subtypes, body })
+          continue
+        }
+
+        throw new Error(`Unknown type 0x${kind.toString(16).padStart(2, "0")}`)
+      }
+
+      return new TypeSection(types)
+    }
+
+    export type TypeBody =
+      | FuncType
+      | StructType
+      | ArrayType
+
+    export class FuncType {
+
+      constructor(
+        readonly params: number[],
+        readonly results: number[]
+      ) { }
+
+      get kind() {
+        return FuncType.kind
+      }
+
+      sizeOrThrow(): number {
+        let size = 0
+
+        size += new LEB128.U32(this.params.length).sizeOrThrow()
+
+        size += this.params.length
+
+        size += new LEB128.U32(this.results.length).sizeOrThrow()
+
+        size += this.results.length
+
+        return size
+      }
+
+      writeOrThrow(cursor: Cursor) {
+        new LEB128.U32(this.params.length).writeOrThrow(cursor)
+
+        for (const param of this.params)
+          cursor.writeUint8OrThrow(param)
+
+        new LEB128.U32(this.results.length).writeOrThrow(cursor)
+
+        for (const result of this.results)
+          cursor.writeUint8OrThrow(result)
+
+        return
+      }
+
+    }
+
+    export namespace FuncType {
+
+      export const kind = 0x60
+
+      export function readOrThrow(cursor: Cursor) {
+        const pcount = LEB128.U32.readOrThrow(cursor)
+
+        const params = new Array<number>()
+
+        for (let i = 0; i < pcount.value; i++)
+          params.push(cursor.readUint8OrThrow())
+
+        const rcount = LEB128.U32.readOrThrow(cursor)
+
+        const results = new Array<number>()
+
+        for (let i = 0; i < rcount.value; i++)
+          results.push(cursor.readUint8OrThrow())
+
+        return new FuncType(params, results)
+      }
+
+    }
+
+    export class StructType {
+
+      constructor(
+        readonly fields: [number, boolean][]
+      ) { }
+
+      get kind() {
+        return StructType.kind
+      }
+
+      sizeOrThrow(): number {
+        let size = 0
+
+        size += new LEB128.U32(this.fields.length).sizeOrThrow()
+
+        for (const _ of this.fields)
+          size += 1 + 1
+
+        return size
+      }
+
+      writeOrThrow(cursor: Cursor) {
+        new LEB128.U32(this.fields.length).writeOrThrow(cursor)
+
+        for (const [type, mutable] of this.fields) {
+          cursor.writeUint8OrThrow(type)
+          cursor.writeUint8OrThrow(mutable ? 1 : 0)
+        }
+
+        return
+      }
+
+    }
+
+    export namespace StructType {
+
+      export const kind = 0x5E
+
+      export function readOrThrow(cursor: Cursor) {
+        const count = LEB128.U32.readOrThrow(cursor)
+
+        const fields = new Array<[number, boolean]>()
+
+        for (let i = 0; i < count.value; i++) {
+          const type = cursor.readUint8OrThrow()
+          const mutable = cursor.readUint8OrThrow() === 1
+
+          fields.push([type, mutable])
+        }
+
+        return new StructType(fields)
+      }
+
+    }
+
+    export class ArrayType {
+
+      constructor(
+        readonly type: number,
+        readonly mutable: boolean
+      ) { }
+
+      get kind() {
+        return ArrayType.kind
+      }
+
+      sizeOrThrow(): number {
+        return 1 + 1
+      }
+
+      writeOrThrow(cursor: Cursor) {
+        cursor.writeUint8OrThrow(this.type)
+        cursor.writeUint8OrThrow(this.mutable ? 1 : 0)
+      }
+
+    }
+
+    export namespace ArrayType {
+
+      export const kind = 0x5F
+
+      export function readOrThrow(cursor: Cursor) {
+        const type = cursor.readUint8OrThrow()
+        const mutable = cursor.readUint8OrThrow() === 1
+
+        return new ArrayType(type, mutable)
+      }
+
+    }
+
+  }
+
   export class ImportSection {
 
     constructor(
       readonly descriptors: ImportSection.ImportDescriptor[]
     ) { }
 
-    get type() {
-      return ImportSection.type
+    get kind() {
+      return ImportSection.kind
     }
 
     sizeOrThrow(): number {
@@ -275,7 +586,7 @@ export namespace Section {
 
   export namespace ImportSection {
 
-    export const type = 2
+    export const kind = 0x02
 
     export interface ImportDescriptor {
       readonly from: Uint8Array
@@ -318,7 +629,7 @@ export namespace Section {
           continue
         }
 
-        throw new Error(`Unknown import kind 0x${kind.toString(16).padStart(2, "0")}`)
+        throw new Error(`Unknown import 0x${kind.toString(16).padStart(2, "0")}`)
       }
 
       return new ImportSection(imports)
@@ -508,8 +819,8 @@ export namespace Section {
       readonly bodies: CodeSection.FunctionBody[],
     ) { }
 
-    get type() {
-      return CodeSection.type
+    get kind() {
+      return CodeSection.kind
     }
 
     sizeOrThrow(): number {
@@ -536,7 +847,7 @@ export namespace Section {
 
   export namespace CodeSection {
 
-    export const type = 10
+    export const kind = 0x0A
 
     export function readOrThrow(cursor: Cursor) {
       const count = LEB128.U32.readOrThrow(cursor)

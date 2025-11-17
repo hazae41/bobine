@@ -16,7 +16,7 @@ for (const path of process.argv.slice(2)) {
 
   console.log(Buffer.compare(Buffer.from(input), Buffer.from(output)) === 0 ? "✅" : "❌")
 
-  console.log(module.body.table["2"]?.descriptors)
+  console.log(module.body.table["1"]?.descriptors)
 
   // writeFileSync("./a.txt", input.toHex())
   // writeFileSync("./b.txt", output.toHex())
