@@ -145,6 +145,14 @@ export namespace Body {
         continue
       }
 
+      if (kind === Section.MemorySection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.MemorySection, data)
+
+        sections.push(section)
+
+        continue
+      }
+
       if (kind === Section.ExportSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.ExportSection, data)
 
@@ -186,6 +194,7 @@ export type Section =
   | Section.ImportSection
   | Section.FunctionSection
   | Section.TableSection
+  | Section.MemorySection
   | Section.ExportSection
   | Section.StartSection
   | Section.CodeSection
@@ -955,6 +964,83 @@ export namespace Section {
       }
 
       return new TableSection(descriptors)
+    }
+
+  }
+
+  export class MemorySection {
+
+    constructor(
+      public descriptors: MemorySection.MemoryDescriptor[]
+    ) { }
+
+    get kind() {
+      return MemorySection.kind
+    }
+
+    sizeOrThrow(): number {
+      let size = 0
+
+      size += new LEB128.U32(this.descriptors.length).sizeOrThrow()
+
+      for (const descriptor of this.descriptors) {
+        size += 1
+
+        size += new LEB128.U32(descriptor.min).sizeOrThrow()
+
+        if (descriptor.max != null)
+          size += new LEB128.U32(descriptor.max).sizeOrThrow()
+
+        continue
+      }
+
+      return size
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.descriptors.length).writeOrThrow(cursor)
+
+      for (const descriptor of this.descriptors) {
+        cursor.writeUint8OrThrow(descriptor.flag)
+
+        new LEB128.U32(descriptor.min).writeOrThrow(cursor)
+
+        if (descriptor.max != null)
+          new LEB128.U32(descriptor.max).writeOrThrow(cursor)
+
+        continue
+      }
+
+      return
+    }
+
+  }
+
+  export namespace MemorySection {
+
+    export const kind = 0x05
+
+    export interface MemoryDescriptor {
+      flag: number
+      min: number
+      max: Nullable<number>
+    }
+
+    export function readOrThrow(cursor: Cursor) {
+      const count = LEB128.U32.readOrThrow(cursor)
+
+      const descriptors = new Array<MemoryDescriptor>()
+
+      for (let i = 0; i < count.value; i++) {
+        const flag = cursor.readUint8OrThrow()
+
+        const min = LEB128.U32.readOrThrow(cursor).value
+        const max = flag & 0x01 ? LEB128.U32.readOrThrow(cursor).value : null
+
+        descriptors.push({ flag, min, max })
+      }
+
+      return new MemorySection(descriptors)
     }
 
   }
