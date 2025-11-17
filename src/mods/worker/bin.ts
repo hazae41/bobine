@@ -4,7 +4,8 @@ import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { LEB128, Module, Section } from "../../libs/wasm/mod.ts";
+import { meter } from "../../libs/meter/mod.ts";
+import { Module } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -625,54 +626,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    const typeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.TypeSection.kind)! as Section.TypeSection
-    const importSection = wasmAsParsed.body.sections.find(section => section.kind === Section.ImportSection.kind)! as Section.ImportSection
-    const codeSection = wasmAsParsed.body.sections.find(section => section.kind === Section.CodeSection.kind)! as Section.CodeSection
-    const startSection = wasmAsParsed.body.sections.find(section => section.kind === Section.StartSection.kind)! as Section.StartSection
-
-    const typelen = typeSection.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
-
-    importSection.descriptors.unshift({ from: new TextEncoder().encode("sparks"), name: new TextEncoder().encode("consume"), body: new Section.ImportSection.FunctionImport(typelen - 1) })
-
-    startSection.funcidx = startSection.funcidx + 1
-
-    for (const func of codeSection.bodies) {
-      const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
-
-      const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
-
-      for (const instruction of func.instructions) {
-        if ([0x10, 0x12, 0xd2].includes(instruction.opcode)) {
-          const funcidx = instruction.params[0] as LEB128.U32
-
-          instruction.params.length = 0
-
-          instruction.params.push(new LEB128.U32(funcidx.value + 1))
-        }
-
-        if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode)) {
-          subinstructions.push(instruction)
-
-          instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
-          instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x10, [new LEB128.U32(0)]))
-
-          instructions.push(...subinstructions)
-
-          subinstructions.length = 0
-        } else {
-          subinstructions.push(instruction)
-        }
-      }
-
-      instructions.push(...subinstructions)
-
-      subinstructions.length = 0
-
-      func.instructions.length = 0
-      func.instructions.push(...instructions)
-
-      continue
-    }
+    meter(wasmAsParsed, "sparks", "consume")
 
     const wasmAsModule = new WebAssembly.Module(Writable.writeToBytesOrThrow(wasmAsParsed))
 
