@@ -623,12 +623,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    const code = wasmAsParsed.body.table[Section.CodeSection.kind]
+    const typeSection = wasmAsParsed.body.table[Section.TypeSection.kind]!
+    const importSection = wasmAsParsed.body.table[Section.ImportSection.kind]!
+    const codeSection = wasmAsParsed.body.table[Section.CodeSection.kind]!
 
-    if (code == null)
-      throw new Error("No code section found")
+    const typelen = typeSection.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
 
-    for (const func of code.bodies) {
+    importSection.descriptors.push({ from: new TextEncoder().encode("sparks"), name: new TextEncoder().encode("consume"), body: new Section.ImportSection.FunctionImport(typelen - 1) })
+
+    for (const func of codeSection.bodies) {
       const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
       const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
