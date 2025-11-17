@@ -5,8 +5,8 @@ import { Nullable } from "../nullable/mod.ts";
 export class Module {
 
   constructor(
-    readonly head: Head,
-    readonly body: Body
+    public head: Head,
+    public body: Body
   ) { }
 
   sizeOrThrow(): number {
@@ -34,7 +34,7 @@ export namespace Module {
 export class Head {
 
   constructor(
-    readonly version: number
+    public version: number
   ) { }
 
   sizeOrThrow(): number {
@@ -69,7 +69,7 @@ export namespace Head {
 export class Body {
 
   constructor(
-    readonly sections: Section[]
+    public sections: Section[]
   ) { }
 
   sizeOrThrow(): number {
@@ -178,8 +178,8 @@ export namespace Section {
   export class UnknownSection {
 
     constructor(
-      readonly kind: number,
-      readonly data: Uint8Array
+      public kind: number,
+      public data: Uint8Array
     ) { }
 
     sizeOrThrow(): number {
@@ -195,8 +195,8 @@ export namespace Section {
   export class CustomSection {
 
     constructor(
-      readonly name: Uint8Array,
-      readonly data: Uint8Array
+      public name: Uint8Array,
+      public data: Uint8Array
     ) { }
 
     get kind() {
@@ -236,7 +236,7 @@ export namespace Section {
   export class TypeSection {
 
     constructor(
-      readonly descriptors: TypeSection.TypeDescriptor[]
+      public descriptors: TypeSection.TypeDescriptor[]
     ) { }
 
     get kind() {
@@ -310,9 +310,9 @@ export namespace Section {
     export const kind = 0x01
 
     export interface TypeDescriptor {
-      readonly prefix: number
-      readonly subtypes: number[]
-      readonly body: TypeBody
+      prefix: number
+      subtypes: number[]
+      body: TypeBody
     }
 
     export function readOrThrow(cursor: Cursor) {
@@ -374,8 +374,8 @@ export namespace Section {
     export class FuncType {
 
       constructor(
-        readonly params: number[],
-        readonly results: number[]
+        public params: number[],
+        public results: number[]
       ) { }
 
       get kind() {
@@ -439,7 +439,7 @@ export namespace Section {
     export class StructType {
 
       constructor(
-        readonly fields: [number, boolean][]
+        public fields: [number, boolean][]
       ) { }
 
       get kind() {
@@ -494,8 +494,8 @@ export namespace Section {
     export class ArrayType {
 
       constructor(
-        readonly type: number,
-        readonly mutable: boolean
+        public type: number,
+        public mutable: boolean
       ) { }
 
       get kind() {
@@ -531,7 +531,7 @@ export namespace Section {
   export class ImportSection {
 
     constructor(
-      readonly descriptors: ImportSection.ImportDescriptor[]
+      public descriptors: ImportSection.ImportDescriptor[]
     ) { }
 
     get kind() {
@@ -578,9 +578,9 @@ export namespace Section {
     export const kind = 0x02
 
     export interface ImportDescriptor {
-      readonly from: Uint8Array
-      readonly name: Uint8Array
-      readonly body: ImportBody
+      from: Uint8Array
+      name: Uint8Array
+      body: ImportBody
     }
 
     export function readOrThrow(cursor: Cursor) {
@@ -633,7 +633,7 @@ export namespace Section {
     export class FunctionImport {
 
       constructor(
-        readonly typeidx: number
+        public typeidx: number
       ) { }
 
       get kind() {
@@ -663,10 +663,10 @@ export namespace Section {
     export class TableImport {
 
       constructor(
-        readonly type: number,
-        readonly flag: number,
-        readonly min: number,
-        readonly max: Nullable<number>,
+        public type: number,
+        public flag: number,
+        public min: number,
+        public max: Nullable<number>,
       ) { }
 
       get kind() {
@@ -717,9 +717,9 @@ export namespace Section {
     export class MemoryImport {
 
       constructor(
-        readonly flag: number,
-        readonly min: number,
-        readonly max: Nullable<number>,
+        public flag: number,
+        public min: number,
+        public max: Nullable<number>,
       ) { }
 
       get kind() {
@@ -768,8 +768,8 @@ export namespace Section {
     export class GlobalImport {
 
       constructor(
-        readonly type: number,
-        readonly mutability: number,
+        public type: number,
+        public mutability: number,
       ) { }
 
       get kind() {
@@ -805,7 +805,7 @@ export namespace Section {
   export class ExportSection {
 
     constructor(
-      readonly descriptors: ExportSection.ExportDescriptor[]
+      public descriptors: ExportSection.ExportDescriptor[]
     ) { }
 
     get kind() {
@@ -853,9 +853,9 @@ export namespace Section {
 
     export interface ExportDescriptor {
 
-      readonly name: Uint8Array
+      name: Uint8Array
 
-      readonly kind: number
+      kind: number
 
       xidx: number
 
@@ -912,7 +912,7 @@ export namespace Section {
   export class CodeSection {
 
     constructor(
-      readonly bodies: CodeSection.FunctionBody[],
+      public bodies: CodeSection.FunctionBody[],
     ) { }
 
     get kind() {
@@ -959,8 +959,8 @@ export namespace Section {
     export class FunctionBody {
 
       constructor(
-        readonly locals: FunctionBody.Local[],
-        readonly instructions: FunctionBody.Instruction[]
+        public locals: FunctionBody.Local[],
+        public instructions: FunctionBody.Instruction[]
       ) { }
 
       sizeOrThrow(): number {
@@ -1039,8 +1039,8 @@ export namespace Section {
       export class Local {
 
         constructor(
-          readonly size: number,
-          readonly type: number
+          public size: number,
+          public type: number
         ) { }
 
         sizeOrThrow(): number {
@@ -1071,8 +1071,8 @@ export namespace Section {
       export class Instruction {
 
         constructor(
-          readonly opcode: number,
-          readonly params: Writable[]
+          public opcode: number,
+          public params: Writable[]
         ) { }
 
         sizeOrThrow(): number {
@@ -1415,7 +1415,7 @@ export namespace LEB128 {
   export class U64 {
 
     constructor(
-      readonly value: bigint
+      public value: bigint
     ) { }
 
     sizeOrThrow(): number {
@@ -1483,7 +1483,7 @@ export namespace LEB128 {
   export class I64 {
 
     constructor(
-      readonly value: bigint
+      public value: bigint
     ) { }
 
     sizeOrThrow(): number {
@@ -1632,7 +1632,7 @@ export namespace LEB128 {
   export class I32 {
 
     constructor(
-      readonly value: number
+      public value: number
     ) { }
 
     sizeOrThrow(): number {
@@ -1713,7 +1713,7 @@ export namespace LEB128 {
   export class I33 {
 
     constructor(
-      readonly value: number
+      public value: number
     ) { }
 
     sizeOrThrow(): number {
@@ -1796,7 +1796,7 @@ export namespace LEB128 {
 export class U8 {
 
   constructor(
-    readonly value: number
+    public value: number
   ) { }
 
   sizeOrThrow(): number {
@@ -1820,7 +1820,7 @@ export namespace U8 {
 export class F32 {
 
   constructor(
-    readonly value: number
+    public value: number
   ) { }
 
   sizeOrThrow(): number {
@@ -1844,7 +1844,7 @@ export namespace F32 {
 export class F64 {
 
   constructor(
-    readonly value: number
+    public value: number
   ) { }
 
   sizeOrThrow(): number {
