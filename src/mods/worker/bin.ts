@@ -4,7 +4,7 @@ import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { meter } from "../../libs/meter/mod.ts";
+import { meter } from "../../libs/metering/mod.ts";
 import { Module } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
