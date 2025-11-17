@@ -4,7 +4,7 @@ import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { Module, Section } from "../../libs/wasm/mod.ts";
+import { LEB128, Module, Section } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -180,6 +180,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   }
 
   const consume = (amount: number) => {
+    console.log(`Consuming ${amount} sparks`)
+
     sparks -= amount
 
     if (sparks < 0)
@@ -626,10 +628,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     const typeSection = wasmAsParsed.body.table[Section.TypeSection.kind]!
     const importSection = wasmAsParsed.body.table[Section.ImportSection.kind]!
     const codeSection = wasmAsParsed.body.table[Section.CodeSection.kind]!
+    const startSection = wasmAsParsed.body.table[Section.StartSection.kind]!
 
     const typelen = typeSection.descriptors.push({ prefix: Section.TypeSection.FuncType.kind, subtypes: [], body: new Section.TypeSection.FuncType([0x7f], []) })
 
-    importSection.descriptors.push({ from: new TextEncoder().encode("sparks"), name: new TextEncoder().encode("consume"), body: new Section.ImportSection.FunctionImport(typelen - 1) })
+    importSection.descriptors.unshift({ from: new TextEncoder().encode("sparks"), name: new TextEncoder().encode("consume"), body: new Section.ImportSection.FunctionImport(typelen - 1) })
+
+    startSection.funcidx = startSection.funcidx + 1
 
     for (const func of codeSection.bodies) {
       const instructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
@@ -637,22 +642,28 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       const subinstructions = new Array<Section.CodeSection.FunctionBody.Instruction>()
 
       for (const instruction of func.instructions) {
-        subinstructions.push(instruction)
+        if ([0x10, 0x12, 0xd2].includes(instruction.opcode)) {
+          const funcidx = instruction.params[0] as LEB128.U32
 
-        if (![0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode))
-          continue
+          instruction.params.length = 0
 
-        // instructions.push(new Section.CodeSection.Function.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
-        // instructions.push(new Section.CodeSection.Function.Instruction(0x10, [new LEB128.U32(consume as unknown as number)]))
-        instructions.push(...subinstructions)
+          instruction.params.push(new LEB128.U32(funcidx.value + 1))
+        }
 
-        subinstructions.length = 0
+        if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F].includes(instruction.opcode)) {
+          subinstructions.push(instruction)
 
-        continue
+          instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
+          instructions.push(new Section.CodeSection.FunctionBody.Instruction(0x10, [new LEB128.U32(0)]))
+
+          instructions.push(...subinstructions)
+
+          subinstructions.length = 0
+        } else {
+          subinstructions.push(instruction)
+        }
       }
 
-      // instructions.push(new Section.CodeSection.Function.Instruction(0x41, [new LEB128.I32(subinstructions.length)]))
-      // instructions.push(new Section.CodeSection.Function.Instruction(0x10, [new LEB128.U32(consume as unknown as number)]))
       instructions.push(...subinstructions)
 
       subinstructions.length = 0

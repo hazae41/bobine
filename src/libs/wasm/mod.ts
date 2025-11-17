@@ -102,6 +102,8 @@ export namespace Body {
 
     [Section.ImportSection.kind]?: Nullable<Section.ImportSection>
 
+    [Section.StartSection.kind]?: Nullable<Section.StartSection>
+
     [Section.CodeSection.kind]?: Nullable<Section.CodeSection>
 
     [key: number]: Nullable<Section>
@@ -119,8 +121,8 @@ export namespace Body {
 
       const data = cursor.readOrThrow(size.value)
 
-      if (type === Section.Custom.kind) {
-        const section = Readable.readFromBytesOrThrow(Section.Custom, data)
+      if (type === Section.CustomSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.CustomSection, data)
 
         array.push(section)
 
@@ -153,6 +155,19 @@ export namespace Body {
         continue
       }
 
+      if (type === Section.StartSection.kind) {
+        const section = Readable.readFromBytesOrThrow(Section.StartSection, data)
+
+        if (table[Section.StartSection.kind] != null)
+          throw new Error("Duplicate start section")
+
+        table[Section.StartSection.kind] = section
+
+        array.push(section)
+
+        continue
+      }
+
       if (type === Section.CodeSection.kind) {
         const section = Readable.readFromBytesOrThrow(Section.CodeSection, data)
 
@@ -166,7 +181,7 @@ export namespace Body {
         continue
       }
 
-      array.push(new Section.Unknown(type, data))
+      array.push(new Section.UnknownSection(type, data))
 
       continue
     }
@@ -177,16 +192,17 @@ export namespace Body {
 }
 
 export type Section =
-  | Section.Unknown
-  | Section.Custom
+  | Section.UnknownSection
+  | Section.CustomSection
   | Section.TypeSection
   | Section.ImportSection
+  | Section.StartSection
   | Section.CodeSection
 
 export namespace Section {
 
 
-  export class Unknown {
+  export class UnknownSection {
 
     constructor(
       readonly kind: number,
@@ -203,7 +219,7 @@ export namespace Section {
 
   }
 
-  export class Custom {
+  export class CustomSection {
 
     constructor(
       readonly name: Uint8Array,
@@ -211,7 +227,7 @@ export namespace Section {
     ) { }
 
     get kind() {
-      return Custom.kind
+      return CustomSection.kind
     }
 
     sizeOrThrow(): number {
@@ -228,7 +244,7 @@ export namespace Section {
 
   }
 
-  export namespace Custom {
+  export namespace CustomSection {
 
     export const kind = 0
 
@@ -239,7 +255,7 @@ export namespace Section {
 
       const data = cursor.readOrThrow(cursor.remaining)
 
-      return new Custom(name, data)
+      return new CustomSection(name, data)
     }
 
   }
@@ -809,6 +825,36 @@ export namespace Section {
         return new GlobalImport(type, mutability)
       }
 
+    }
+
+  }
+
+  export class StartSection {
+
+    constructor(
+      public funcidx: number
+    ) { }
+
+    get kind() {
+      return StartSection.kind
+    }
+
+    sizeOrThrow(): number {
+      return new LEB128.U32(this.funcidx).sizeOrThrow()
+    }
+
+    writeOrThrow(cursor: Cursor) {
+      new LEB128.U32(this.funcidx).writeOrThrow(cursor)
+    }
+
+  }
+
+  export namespace StartSection {
+
+    export const kind = 0x08
+
+    export function readOrThrow(cursor: Cursor) {
+      return new StartSection(LEB128.U32.readOrThrow(cursor).value)
     }
 
   }

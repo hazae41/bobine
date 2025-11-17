@@ -24,6 +24,7 @@ for (const path of process.argv.slice(2)) {
 
   console.log(remodule.body.table["1"]?.descriptors)
   console.log(remodule.body.table["2"]?.descriptors)
+  console.log(remodule.body.table["8"]?.funcidx)
 
   // writeFileSync("./a.txt", input.toHex())
   writeFileSync("./b.wasm", output)
