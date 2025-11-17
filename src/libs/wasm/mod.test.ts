@@ -3,7 +3,7 @@ import { Cursor } from "@hazae41/cursor";
 import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { Module } from "./mod.ts";
+import { ElementSection, Module } from "./mod.ts";
 
 for (const path of process.argv.slice(2)) {
   const start = performance.now()
@@ -15,6 +15,8 @@ for (const path of process.argv.slice(2)) {
   const output = Writable.writeToBytesOrThrow(module)
 
   Module.readOrThrow(new Cursor(output))
+
+  console.log(module.body.sections.find(section => section.kind === ElementSection.kind))
 
   if (Buffer.compare(Buffer.from(input), Buffer.from(output)) !== 0)
     console.log(`Mismatch for ${path}`)
