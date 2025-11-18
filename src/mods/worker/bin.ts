@@ -1,11 +1,11 @@
 // deno-lint-ignore-file no-explicit-any
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
+import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { meter } from "../../libs/metering/mod.ts";
 import { Pack } from "../../libs/packs/mod.ts";
-import { Module } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -539,7 +539,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     if (!existsSync(`./local/scripts/${module}.metered.wasm`)) {
       const wasmAsBytes = readFileSync(`./local/scripts/${module}.wasm`)
 
-      const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
+      const wasmAsParsed = Readable.readFromBytesOrThrow(Wasm.Module, wasmAsBytes)
 
       meter(wasmAsParsed, "sparks", "consume")
 
