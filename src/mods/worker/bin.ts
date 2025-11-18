@@ -674,7 +674,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const result = Writable.writeToBytesOrThrow(new Pack([instance.exports[method](...Readable.readFromBytesOrThrow(Pack, params).values)]))
+  const input = Readable.readFromBytesOrThrow(Pack, params).values
+  const output = instance.exports[method](...input)
+
+  const result = Writable.writeToBytesOrThrow(new Pack([output]))
 
   // console.log(`Remaining ${sparks} sparks`)
 
