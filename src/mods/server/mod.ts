@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-cond-assign
 /// <reference lib="deno.ns" />
 
+import { Writable } from "@hazae41/binary";
 import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
@@ -111,7 +112,7 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         const wasmAsBytes = await wasmAsEntry.bytes()
         const saltAsBytes = await saltAsEntry.bytes()
 
-        const packAsBytes = Pack.encode([wasmAsBytes, saltAsBytes])
+        const packAsBytes = Writable.writeToBytesOrThrow(new Pack([wasmAsBytes, saltAsBytes]))
 
         const digestOfWasmAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", wasmAsBytes))
         const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))

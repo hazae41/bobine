@@ -231,6 +231,7 @@
         "npm:@hazae41/mutex@^3.0.1",
         "npm:@hazae41/phobos@^2.0.16",
         "npm:@hazae41/tscousin@^1.0.28",
+        "npm:@hazae41/wasm@1",
         "npm:@tursodatabase/database@0.3",
         "npm:@types/node@^24.9.2",
         "npm:@webassemblyjs/wasm-parser@^1.14.1",
