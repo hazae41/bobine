@@ -44,13 +44,13 @@ export class Pack {
     for (const value of this.values) {
       if (typeof value === "number") {
         cursor.writeUint8OrThrow(2)
-        cursor.writeUint32OrThrow(value, true)
+        cursor.writeInt32OrThrow(value, true)
         continue
       }
 
       if (typeof value === "bigint") {
         cursor.writeUint8OrThrow(3)
-        cursor.writeBigUint64OrThrow(value, true)
+        cursor.writeBigInt64OrThrow(value, true)
         continue
       }
 
@@ -90,11 +90,6 @@ export namespace Pack {
       if (type === 0)
         break
 
-      if (type === 1) {
-        values.push(null)
-        continue
-      }
-
       if (type === 2) {
         values.push(cursor.readUint32OrThrow(true))
         continue
@@ -115,6 +110,9 @@ export namespace Pack {
         values.push(Pack.readOrThrow(cursor))
         continue
       }
+
+      values.push(null)
+      continue
     }
 
     return new Pack(values)
