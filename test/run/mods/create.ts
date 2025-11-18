@@ -2,16 +2,6 @@ import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-declare global {
-  interface Uint8Array {
-    toHex(): string;
-  }
-
-  interface Uint8ArrayConstructor {
-    fromHex(hex: string): Uint8Array<ArrayBuffer>;
-  }
-}
-
 const [entrypoint, salt = ""] = process.argv.slice(2)
 
 const exitpoint = join("./bin", relative("./src", entrypoint))
