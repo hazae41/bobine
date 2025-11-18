@@ -84,7 +84,7 @@ export namespace Pack {
   export function readOrThrow(cursor: Cursor): Pack {
     const values = []
 
-    while (cursor.offset < cursor.length) {
+    while (true) {
       const type = cursor.readUint8OrThrow()
 
       if (type === 0)
