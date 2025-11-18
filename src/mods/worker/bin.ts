@@ -1,10 +1,10 @@
 // deno-lint-ignore-file no-explicit-any
 import { Readable, Writable } from "@hazae41/binary";
-import { Cursor } from "@hazae41/cursor";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { meter } from "../../libs/metering/mod.ts";
+import { Pack } from "../../libs/packs/mod.ts";
 import { Module } from "../../libs/wasm/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -17,148 +17,59 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   let sparks = 100000
 
   const blobs = new Map<symbol, Uint8Array>()
-  const packs = new Map<symbol, Pack>()
+  const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
 
   const cache = new Map<symbol, symbol>()
 
   const writes = new Array<[string, Uint8Array, Uint8Array]>()
 
-  class Pack {
+  const repack = (values: Array<number | bigint | symbol | null>): Pack => {
+    return new Pack(values.map(value => {
+      if (typeof value !== "symbol")
+        return value
 
-    constructor(
-      readonly values: Array<number | bigint | symbol | null>
-    ) { }
+      const blob = blobs.get(value)
 
-    sizeOrThrow(): number {
-      let length = 0
+      if (blob != null)
+        return blob
 
-      for (const value of this.values) {
-        if (typeof value === "number") {
-          length += 1 + 4
-          continue
-        }
+      const pack = packs.get(value)
 
-        if (typeof value === "bigint") {
-          length += 1 + 8
-          continue
-        }
+      if (pack != null)
+        return repack(pack)
 
-        if (typeof value === "symbol") {
-          const blob = blobs.get(value)
+      throw new Error("Not found")
+    }))
+  }
 
-          if (blob != null) {
-            length += 1 + 4 + blob.length
-            continue
-          }
+  const unpack = (pack: Pack): Array<number | bigint | symbol | null> => {
+    return pack.values.map(value => {
+      if (value instanceof Pack) {
+        const packref = Symbol()
 
-          const pack = packs.get(value)
+        packs.set(packref, unpack(value))
 
-          if (pack != null) {
-            length += 1 + 4 + pack.sizeOrThrow()
-            continue
-          }
-
-          throw new Error("Could not resolve symbol")
-        }
-
-        length += 1
-        continue
+        return packref
       }
 
-      return length
-    }
+      if (value instanceof Uint8Array) {
+        const blobref = Symbol()
 
-    writeOrThrow(cursor: Cursor): void {
-      for (const value of this.values) {
-        if (typeof value === "number") {
-          cursor.writeUint8OrThrow(1)
-          cursor.writeUint32OrThrow(value, true)
-          continue
-        }
+        blobs.set(blobref, value)
 
-        if (typeof value === "bigint") {
-          cursor.writeUint8OrThrow(2)
-          cursor.writeBigUint64OrThrow(value, true)
-          continue
-        }
-
-        if (typeof value === "symbol") {
-          const blob = blobs.get(value)
-
-          if (blob != null) {
-            cursor.writeUint8OrThrow(3)
-            cursor.writeUint32OrThrow(blob.length, true)
-            cursor.writeOrThrow(blob)
-            continue
-          }
-
-          const pack = packs.get(value)
-
-          if (pack != null) {
-            cursor.writeUint8OrThrow(4)
-            cursor.writeUint32OrThrow(pack.sizeOrThrow(), true)
-            pack.writeOrThrow(cursor)
-            continue
-          }
-
-          throw new Error("Could not resolve symbol")
-        }
-
-        cursor.writeUint8OrThrow(0)
-      }
-    }
-
-    static readOrThrow(cursor: Cursor): Pack {
-      const values = new Array<number | bigint | symbol | null>()
-
-      while (cursor.offset < cursor.length) {
-        const type = cursor.readUint8OrThrow()
-
-        if (type === 0) {
-          values.push(null)
-          continue
-        }
-
-        if (type === 1) {
-          values.push(cursor.readUint32OrThrow(true))
-          continue
-        }
-
-        if (type === 2) {
-          values.push(cursor.readBigUint64OrThrow(true))
-          continue
-        }
-
-        if (type === 3) {
-          const size = cursor.readUint32OrThrow(true)
-          const data = cursor.readOrThrow(size)
-
-          const blobref = Symbol()
-
-          blobs.set(blobref, data)
-
-          values.push(blobref)
-          continue
-        }
-
-        if (type === 4) {
-          const size = cursor.readUint32OrThrow(true)
-          const data = new Cursor(cursor.readOrThrow(size))
-
-          const packref = Symbol()
-
-          packs.set(packref, Pack.readOrThrow(data))
-
-          values.push(packref)
-          continue
-        }
-
-        throw new Error("Unknown type")
+        return blobref
       }
 
-      return new Pack(values)
-    }
+      return value
+    })
+  }
 
+  const encode = (values: Array<number | bigint | symbol | null>): Uint8Array => {
+    return Writable.writeToBytesOrThrow(repack(values))
+  }
+
+  const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
+    return unpack(Readable.readFromBytesOrThrow(Pack, bytes))
   }
 
   const sha256 = (payload: Uint8Array): Uint8Array => {
@@ -377,7 +288,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (saltAsBytes == null)
           throw new Error("Not found")
 
-        const packAsBytes = Writable.writeToBytesOrThrow(new Pack([wasmAsBlobref, saltAsBlobref]))
+        const packAsBytes = encode([wasmAsBlobref, saltAsBlobref])
 
         const digestOfWasmAsBytes = sha256(wasmAsBytes)
         const digestOfPackAsBytes = sha256(packAsBytes)
@@ -427,7 +338,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const resultAsPackref = Symbol()
 
-        packs.set(resultAsPackref, new Pack([exports[moduleAsString][methodAsString](...paramsAsPack.values)]))
+        packs.set(resultAsPackref, [exports[moduleAsString][methodAsString](...paramsAsPack)])
 
         return resultAsPackref
       },
@@ -501,7 +412,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       create: (...values: Array<number | bigint | symbol | null>): symbol => {
         const packref = Symbol()
 
-        packs.set(packref, new Pack(values))
+        packs.set(packref, values)
 
         return packref
       },
@@ -516,7 +427,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const concatAsPackref = Symbol()
 
-        packs.set(concatAsPackref, new Pack([...leftAsPack.values, ...rightAsPack.values]))
+        packs.set(concatAsPackref, [...leftAsPack, ...rightAsPack])
 
         return concatAsPackref
       },
@@ -526,17 +437,17 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (pack == null)
           throw new Error("Not found")
 
-        return pack.values.length
+        return pack.length
       },
       get(packref: symbol, index: number): number | bigint | symbol | null {
         const pack = packs.get(packref)
 
         if (pack == null)
           throw new Error("Not found")
-        if ((index >>> 0) > pack.values.length - 1)
+        if ((index >>> 0) > pack.length - 1)
           throw new Error("Out of bounds")
 
-        return pack.values[index >>> 0]
+        return pack[index >>> 0]
       },
       encode: (packref: symbol): symbol => {
         const pack = packs.get(packref)
@@ -546,7 +457,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const blobref = Symbol()
 
-        blobs.set(blobref, Writable.writeToBytesOrThrow(pack))
+        blobs.set(blobref, encode(pack))
 
         return blobref
       },
@@ -558,7 +469,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const packref = Symbol()
 
-        packs.set(packref, Readable.readFromBytesOrThrow(Pack, bytes))
+        packs.set(packref, decode(bytes))
 
         return packref
       }
@@ -674,10 +585,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const input = Readable.readFromBytesOrThrow(Pack, params).values
-  const output = instance.exports[method](...input)
-
-  const result = Writable.writeToBytesOrThrow(new Pack([output]))
+  const result = encode([instance.exports[method](...decode(params))])
 
   // console.log(`Remaining ${sparks} sparks`)
 

@@ -1,4 +1,4 @@
-import { Cursor } from "@hazae41/cursor";
+import type { Cursor } from "@hazae41/cursor";
 
 export class Pack {
 
@@ -26,13 +26,16 @@ export class Pack {
       }
 
       if (value instanceof Pack) {
-        size += 1 + 4 + value.sizeOrThrow()
+        size += 1 + value.sizeOrThrow()
         continue
       }
 
       size += 1
+
       continue
     }
+
+    size += 1
 
     return size
   }
@@ -40,33 +43,36 @@ export class Pack {
   writeOrThrow(cursor: Cursor) {
     for (const value of this.values) {
       if (typeof value === "number") {
-        cursor.writeUint8OrThrow(1)
+        cursor.writeUint8OrThrow(2)
         cursor.writeUint32OrThrow(value, true)
         continue
       }
 
       if (typeof value === "bigint") {
-        cursor.writeUint8OrThrow(2)
+        cursor.writeUint8OrThrow(3)
         cursor.writeBigUint64OrThrow(value, true)
         continue
       }
 
       if (value instanceof Uint8Array) {
-        cursor.writeUint8OrThrow(3)
+        cursor.writeUint8OrThrow(4)
         cursor.writeUint32OrThrow(value.length, true)
         cursor.writeOrThrow(value)
         continue
       }
 
       if (value instanceof Pack) {
-        cursor.writeUint8OrThrow(4)
-        cursor.writeUint32OrThrow(value.sizeOrThrow(), true)
+        cursor.writeUint8OrThrow(5)
         value.writeOrThrow(cursor)
         continue
       }
 
-      cursor.writeUint8OrThrow(0)
+      cursor.writeUint8OrThrow(1)
+      continue
     }
+
+    cursor.writeUint8OrThrow(0)
+    return
   }
 
 }
@@ -81,31 +87,32 @@ export namespace Pack {
     while (cursor.offset < cursor.length) {
       const type = cursor.readUint8OrThrow()
 
-      if (type === 0) {
+      if (type === 0)
+        break
+
+      if (type === 1) {
         values.push(null)
         continue
       }
 
-      if (type === 1) {
+      if (type === 2) {
         values.push(cursor.readUint32OrThrow(true))
         continue
       }
 
-      if (type === 2) {
-        values.push(cursor.readBigUint64OrThrow(true))
-        continue
-      }
-
       if (type === 3) {
-        const size = cursor.readUint32OrThrow(true)
-        values.push(cursor.readOrThrow(size))
+        values.push(cursor.readBigUint64OrThrow(true))
         continue
       }
 
       if (type === 4) {
         const size = cursor.readUint32OrThrow(true)
-        const data = new Cursor(cursor.readOrThrow(size))
-        values.push(Pack.readOrThrow(data))
+        values.push(cursor.readOrThrow(size))
+        continue
+      }
+
+      if (type === 5) {
+        values.push(Pack.readOrThrow(cursor))
         continue
       }
     }
