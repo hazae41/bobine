@@ -14,7 +14,7 @@ const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(imp
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number) {
   const exports: WebAssembly.Imports = {}
 
-  let sparks = 10000
+  let sparks = 100000
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
@@ -58,8 +58,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       length += 1
       continue
     }
-
-    consume(length)
 
     return length
   }
@@ -109,14 +107,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       cursor.writeUint8OrThrow(0)
     }
 
-    consume(bytes.length)
-
     return bytes
   }
 
   const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
-    consume(bytes.length)
-
     const values = new Array<number | bigint | symbol | null>()
 
     const cursor = new Cursor(bytes)
@@ -170,7 +164,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   }
 
   const sha256 = (payload: Uint8Array): Uint8Array => {
-    consume(payload.length)
+    consume(payload.length * 256)
 
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
@@ -225,16 +219,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (messageAsBytes == null)
           throw new Error("Not found")
 
-        consume(messageAsBytes.length)
-
         console.log(new TextDecoder().decode(messageAsBytes))
       }
     }
 
     imports["blobs"] = {
       save: (offset: number, length: number): symbol => {
-        consume(length)
-
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const blob = Symbol()
@@ -246,8 +236,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return blob
       },
       size: (blob: symbol): number => {
-        consume(1)
-
         const bytes = blobs.get(blob)
 
         if (bytes == null)
@@ -263,8 +251,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (bytes == null)
           throw new Error("Not found")
 
-        consume(bytes.length)
-
         const slice = new Uint8Array(memory.buffer, offset >>> 0, bytes.length)
 
         slice.set(bytes)
@@ -277,8 +263,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
           throw new Error("Not found")
         if (rightAsBytes == null)
           throw new Error("Not found")
-
-        consume(leftAsBytes.length + rightAsBytes.length)
 
         const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
         concatAsBytes.set(leftAsBytes, 0)
@@ -299,12 +283,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (rightAsBytes == null)
           throw new Error("Not found")
 
-        consume(1)
-
         if (leftAsBytes.length !== rightAsBytes.length)
           return false
-
-        consume(leftAsBytes.length + rightAsBytes.length)
 
         return !Buffer.compare(leftAsBytes, rightAsBytes)
       },
@@ -313,8 +293,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (textAsBytes == null)
           throw new Error("Not found")
-
-        consume(textAsBytes.length)
 
         const outputAsBlob = Symbol()
 
@@ -328,8 +306,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (inputAsBytes == null)
           throw new Error("Not found")
 
-        consume(inputAsBytes.length)
-
         const outputAsBlob = Symbol()
 
         blobs.set(outputAsBlob, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
@@ -342,8 +318,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (inputAsBytes == null)
           throw new Error("Not found")
 
-        consume(inputAsBytes.length)
-
         const outputAsBlob = Symbol()
 
         blobs.set(outputAsBlob, new TextEncoder().encode(inputAsBytes.toHex()))
@@ -355,8 +329,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (inputsAsBytes == null)
           throw new Error("Not found")
-
-        consume(inputsAsBytes.length)
 
         const outputAsBlob = Symbol()
 
@@ -371,13 +343,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["symbols"] = {
       create: (): symbol => {
-        consume(1)
-
         return Symbol()
       },
       numerize: (symbol: symbol): number => {
-        consume(1)
-
         const stale = numbers.get(symbol)
 
         if (stale != null)
@@ -390,8 +358,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return fresh
       },
       denumerize: (index: number): symbol => {
-        consume(1)
-
         const symbol = symbols.at(index >>> 0)
 
         if (symbol == null)
@@ -417,8 +383,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const digestOfWasmAsBytes = sha256(wasmAsBytes)
         const digestOfPackAsBytes = sha256(packAsBytes)
-
-        consume(digestOfWasmAsBytes.length + digestOfPackAsBytes.length)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
@@ -475,9 +439,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (moduleAsBytes == null)
           throw new Error("Not found")
 
+        const wasmAsBytes = readFileSync(`./local/scripts/${moduleAsBytes.toHex()}.wasm`)
+
         const wasmAsBlob = Symbol()
 
-        blobs.set(wasmAsBlob, readFileSync(`./local/scripts/${moduleAsBytes.toHex()}.wasm`))
+        blobs.set(wasmAsBlob, wasmAsBytes)
 
         return wasmAsBlob
       },
@@ -517,6 +483,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
           throw new Error("Not found")
         if (payloadAsBytes == null)
           throw new Error("Not found")
+
+        consume(payloadAsBytes.length * 256)
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
@@ -656,17 +624,25 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    const wasmAsBytes = readFileSync(`./local/scripts/${module}.wasm`)
+    let meteredWasmAsBytes: Uint8Array<ArrayBuffer>
 
-    consume(wasmAsBytes.length)
+    if (!existsSync(`./local/scripts/${module}.metered.wasm`)) {
+      const wasmAsBytes = readFileSync(`./local/scripts/${module}.wasm`)
 
-    const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
+      const wasmAsParsed = Readable.readFromBytesOrThrow(Module, wasmAsBytes)
 
-    meter(wasmAsParsed, "sparks", "consume")
+      meter(wasmAsParsed, "sparks", "consume")
 
-    const wasmAsModule = new WebAssembly.Module(Writable.writeToBytesOrThrow(wasmAsParsed))
+      meteredWasmAsBytes = Writable.writeToBytesOrThrow(wasmAsParsed)
 
-    for (const descriptor of WebAssembly.Module.imports(wasmAsModule)) {
+      writeFileSync(`./local/scripts/${module}.metered.wasm`, meteredWasmAsBytes)
+    } else {
+      meteredWasmAsBytes = readFileSync(`./local/scripts/${module}.metered.wasm`)
+    }
+
+    const meteredWasmAsModule = new WebAssembly.Module(meteredWasmAsBytes)
+
+    for (const descriptor of WebAssembly.Module.imports(meteredWasmAsModule)) {
       if (imports[descriptor.module] != null) {
         // NOOP
         continue
@@ -684,12 +660,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       continue
     }
 
-    const wasmAsInstance = new WebAssembly.Instance(wasmAsModule, imports)
+    const meteredWasmAsInstance = new WebAssembly.Instance(meteredWasmAsModule, imports)
 
-    current.instance = wasmAsInstance
-    current.module = wasmAsModule
+    current.instance = meteredWasmAsInstance
+    current.module = meteredWasmAsModule
 
-    exports[module] = wasmAsInstance.exports
+    exports[module] = meteredWasmAsInstance.exports
 
     return current
   }
@@ -701,9 +677,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const result = encode([instance.exports[method](...decode(params))])
 
-  consume(result.length)
-
-  console.log(`Used ${10000 - sparks} sparks`)
+  // console.log(`Remaining ${sparks} sparks`)
 
   return { result, writes }
 }
