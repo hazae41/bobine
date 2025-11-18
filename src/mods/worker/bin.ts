@@ -11,10 +11,10 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(import.meta.url).search}`), { type: "module" })
 
-function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number) {
+function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   const exports: WebAssembly.Imports = {}
 
-  let sparks = 100000
+  let sparks = 0n
 
   const blobs = new Map<symbol, Uint8Array>()
   const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
@@ -73,7 +73,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   }
 
   const sha256 = (payload: Uint8Array): Uint8Array => {
-    consume(payload.length * 256)
+    consume(BigInt(payload.length) * 256n)
 
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
@@ -91,10 +91,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return digest
   }
 
-  const consume = (amount: number) => {
-    sparks -= amount
+  const consume = (amount: bigint) => {
+    sparks += amount
 
-    if (sparks < 0)
+    if (maxsparks != null && sparks > maxsparks)
       throw new Error("Out of sparks")
 
     return
@@ -113,11 +113,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["sparks"] = {
-      remaining: (): number => {
+      remaining: (): bigint => {
         return sparks
       },
-      consume: (amount: number): void => {
-        consume(amount >>> 0)
+      consume: (amount: bigint): void => {
+        consume(BigInt.asUintN(64, amount))
       }
     }
 
@@ -393,7 +393,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (payloadAsBytes == null)
           throw new Error("Not found")
 
-        consume(payloadAsBytes.length * 256)
+        consume(BigInt(payloadAsBytes.length) * 256n)
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
@@ -587,9 +587,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const result = encode([instance.exports[method](...decode(params))])
 
-  // console.log(`Remaining ${sparks} sparks`)
-
-  return { result, writes }
+  return { result, writes, sparks }
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -597,15 +595,15 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
     const request = event.data
 
     if (request.method === "execute") {
-      const [module, method, params] = request.params as [string, string, Uint8Array<ArrayBuffer>]
+      const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
       const start = performance.now()
 
-      const { result, writes } = run(module, method, params, 1)
+      const { result, writes, sparks } = run(module, method, params, 1, maxsparks)
 
       const until = performance.now()
 
-      console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
+      console.log(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
 
       if (writes.length) {
         const result = new Int32Array(new SharedArrayBuffer(4 + 4))
@@ -630,11 +628,11 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
       const start = performance.now()
 
-      const { result } = run(module, method, params, 2)
+      const { result, sparks } = run(module, method, params, 2)
 
       const until = performance.now()
 
-      console.log(`Evaluated ${(until - start).toFixed(2)}ms`)
+      console.log(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
 
       self.postMessage(new RpcOk(request.id, result))
 

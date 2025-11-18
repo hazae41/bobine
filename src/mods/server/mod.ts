@@ -163,6 +163,15 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
 
         const paramsAsBytes = await paramsAsEntry.bytes()
 
+        const effortAsEntry = form.get("effort")
+
+        if (effortAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof effortAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const effortAsBytes = await effortAsEntry.bytes()
+
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
         const aborter = new AbortController()
@@ -186,7 +195,9 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes]))
+        const maxsparks = (2n ** 256n) / BigInt("0x" + effortAsBytes.toHex())
+
+        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes, maxsparks]))
 
         return new Response(await future.promise)
       }
