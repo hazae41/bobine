@@ -46,6 +46,15 @@ Accepts a form data with the following fields
 
 ## WebAssembly API
 
+### <module>
+
+You can use any module method by using the module address as hex
+
+```tsx
+@external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "add")
+declare function add(x: u32, y: u32): u32
+```
+
 ### blobs
 
 You can pass bytes between modules by storing them in the blob storage and loading them via reference
@@ -123,4 +132,64 @@ Get infos about the executing environment
 
 - `env.uuid(): blobref` = get the unique uuid of this environment (similar to a chain id)
 
-###
+### modules
+
+Modules are identified by their address as a blob of bytes (pure sha256-output 32-length bytes without any encoding)
+
+- `modules.load(module: blobref): blobref` = get the code of module as a blob
+
+- `modules.call(module: blobref, method: blobref, params: packref): packref` = dynamically call a module method with the given params as pack and return value as a 1-length pack
+
+- `modules.create(code: blobref, salt: blobref): blobref` = dynamically create a new module with the given code and salt, returns the module address
+
+- `modules.self(): blobref` = get your module address as blob
+
+### storage
+
+You can use a private storage (it works like storage and events at the same time)
+
+- `storage.set(key: blobref, value: blobref): void` = set some value to storage at key
+
+- `storage.get(key: blobref): blobref` = get the latest value from storage at key
+
+### sha256
+
+Use the SHA-256 hashing algorithm
+
+- `sha256.digest(payload: blobref): blobref` = hash the payload and returns the digest
+
+### ed25519
+
+Use the Ed25519 signing algorithm
+
+- `ed25519.verify(pubkey: blobref, signature: blobref, payload: blobref): boolean` = verify a Ed25519 signature
+
+### symbols (experimental)
+
+You can numerize and denumerize any reference to compare them and authenticate them
+
+- `symbols.create(): symbolref` = create a unique reference that can be passed around
+
+- `symbols.numerize(ref: symbolref/blobref/packref): u32` = translate any reference into a unique private pointer that can be stored into data structures
+
+- `symbols.denumerize(pointer: u32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
+
+This can be useful if you want to check for authenticity
+
+```tsx
+let sessions = new Set<u32>()
+
+export function login(password: blobref): symbolref {
+  const session = symbols.create()  
+
+  sessions.put(symbols.numerize(session))
+
+  return session
+}
+
+export function verify(session: symbolref) {
+  return sessions.has(symbols.numerize(session))
+}
+```
+
+You should never accept a pointer in-lieue-of a real reference because they can be easily guessed by an attacking module
