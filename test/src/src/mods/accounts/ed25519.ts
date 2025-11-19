@@ -2,10 +2,10 @@ import { addresses } from "../../libs/address/mod"
 import { blobref, blobs } from "../../libs/blobs/mod"
 import { ed25519 } from "../../libs/ed25519/mod"
 import { env } from "../../libs/env/mod"
+import { refs } from "../../libs/externs/mod"
 import { modules } from "../../libs/modules/mod"
 import { packref, packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
-import { symbols } from "../../libs/symbols/mod"
 
 namespace nonces {
 
@@ -31,7 +31,7 @@ export function get_nonce(address: blobref): u64 {
 const sessions = new Set<usize>()
 
 export function verify(session: packref): bool {
-  return sessions.has(symbols.numerize(session))
+  return sessions.has(refs.numerize(session))
 }
 
 export function call(module: blobref, method: blobref, payload: blobref, pubkey: blobref, signature: blobref): packref {
@@ -48,7 +48,7 @@ export function call(module: blobref, method: blobref, payload: blobref, pubkey:
 
   const session = packs.create2(modules.self(), pubkey)
 
-  sessions.add(symbols.numerize(session))
+  sessions.add(refs.numerize(session))
 
   return modules.call(module, method, packs.concat(packs.create1(session), packs.decode(payload)))
 }

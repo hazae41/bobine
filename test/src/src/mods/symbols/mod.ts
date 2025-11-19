@@ -1,14 +1,15 @@
+import { refs } from "../../libs/externs/mod"
 import { symbols } from "../../libs/symbols/mod"
 
 export function main(): boolean {
-  const a = symbols.create(), ia = symbols.numerize(a)
+  const a = symbols.create(), ia = refs.numerize(a)
 
-  const b = symbols.denumerize(ia), ib = symbols.numerize(b)
+  const b = refs.denumerize(ia), ib = refs.numerize(b)
 
   if (ia !== ib)
     return false
 
-  const c = symbols.create(), ic = symbols.numerize(c)
+  const c = symbols.create(), ic = refs.numerize(c)
 
   if (ia === ic)
     return false

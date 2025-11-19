@@ -1,7 +1,7 @@
 import { blobs } from "../../libs/blobs/mod"
+import { refs } from "../../libs/externs/mod"
 import { modules } from "../../libs/modules/mod"
 import { packs } from "../../libs/packs/mod"
-import { symbols } from "../../libs/symbols/mod"
 
 class Library {
 
@@ -10,11 +10,11 @@ class Library {
   ) { }
 
   static new(module: string): Library {
-    return new Library(symbols.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(module)))))
+    return new Library(refs.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(module)))))
   }
 
   log(message: string): void {
-    modules.call(symbols.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode(message))))
+    modules.call(refs.denumerize(this.pointer), blobs.save(String.UTF8.encode("log")), packs.create1(blobs.save(String.UTF8.encode(message))))
   }
 
 }

@@ -260,13 +260,16 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    const symbols = new Array<symbol>()
-    const numbers = new Map<symbol, number>()
-
     imports["symbols"] = {
       create: (): symbol => {
         return Symbol()
-      },
+      }
+    }
+
+    const symbols = new Array<symbol>()
+    const numbers = new Map<symbol, number>()
+
+    imports["refs"] = {
       numerize: (symbol: symbol): number => {
         const stale = numbers.get(symbol)
 

@@ -4,12 +4,4 @@ export namespace symbols {
   @external("symbols", "create")
   export declare function create(): externref
 
-  // @ts-ignore
-  @external("symbols", "numerize")
-  export declare function numerize(symbol: externref): usize
-
-  // @ts-ignore
-  @external("symbols", "denumerize")
-  export declare function denumerize(index: usize): externref
-
 }
