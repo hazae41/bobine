@@ -1,6 +1,7 @@
 /// <reference types="../libs/bytes/lib.d.ts"/>
 
 import { Readable, Writable } from "@hazae41/binary";
+import { generate } from "../libs/effort/mod.ts";
 import { Pack } from "../libs/packs/mod.ts";
 
 async function execute(module: string, method: string, params: Uint8Array<ArrayBuffer>) {
@@ -8,6 +9,7 @@ async function execute(module: string, method: string, params: Uint8Array<ArrayB
   body.append("module", module)
   body.append("method", method)
   body.append("params", new Blob([params]))
+  body.append("effort", new Blob([await generate(10n ** 5n)]))
 
   const start = performance.now()
 

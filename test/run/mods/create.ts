@@ -3,6 +3,7 @@
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { generate } from "../libs/effort/mod";
 
 const [entrypoint, salt = ""] = process.argv.slice(2)
 
@@ -18,8 +19,15 @@ console.log(`Compiled in ${(end - start).toFixed(2)}ms`)
 
 const body = new FormData()
 
-body.append("code", new Blob([await readFile(exitpoint.replace(/\.ts$/, ".wasm"))]))
-body.append("salt", new Blob([Uint8Array.fromHex(salt.slice(2))]))
+const codeAsBytes = await readFile(exitpoint.replace(/\.ts$/, ".wasm"))
+const saltAsBytes = Uint8Array.fromHex(salt.slice(2))
+
+body.append("code", new Blob([codeAsBytes]))
+body.append("salt", new Blob([saltAsBytes]))
+
+const effortAsBytes = await generate(codeAsBytes.length + saltAsBytes.length)
+
+body.append("effort", new Blob([effortAsBytes]))
 
 {
   const start = performance.now()

@@ -116,8 +116,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       remaining: (): bigint => {
         return sparks
       },
-      consume: (amount: bigint): void => {
-        consume(BigInt.asUintN(64, amount))
+      consume: (amount: number): void => {
+        consume(BigInt(amount >>> 0))
       }
     }
 
