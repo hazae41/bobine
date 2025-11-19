@@ -624,11 +624,11 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
     }
 
     if (request.method === "simulate") {
-      const [module, method, params] = request.params as [string, string, Uint8Array<ArrayBuffer>]
+      const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
       const start = performance.now()
 
-      const { result, sparks } = run(module, method, params, 2)
+      const { result, sparks } = run(module, method, params, 2, maxsparks)
 
       const until = performance.now()
 

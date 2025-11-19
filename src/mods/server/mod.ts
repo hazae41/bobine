@@ -102,6 +102,8 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         if (typeof wasmAsEntry === "string")
           return Response.json(null, { status: 400 })
 
+        const wasmAsBytes = await wasmAsEntry.bytes()
+
         const saltAsEntry = form.get("salt")
 
         if (saltAsEntry == null)
@@ -109,8 +111,26 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         if (typeof saltAsEntry === "string")
           return Response.json(null, { status: 400 })
 
-        const wasmAsBytes = await wasmAsEntry.bytes()
         const saltAsBytes = await saltAsEntry.bytes()
+
+        const effortAsEntry = form.get("effort")
+
+        if (effortAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof effortAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const effortAsBytes = await effortAsEntry.bytes()
+
+        if (effortAsBytes.length !== 32)
+          return Response.json(null, { status: 400 })
+
+        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+
+        if (sparksAsBigInt < (wasmAsBytes.length + saltAsBytes.length))
+          return Response.json(null, { status: 400 })
 
         const packAsBytes = Writable.writeToBytesOrThrow(new Pack([wasmAsBytes, saltAsBytes]))
 
@@ -172,6 +192,13 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
 
         const effortAsBytes = await effortAsEntry.bytes()
 
+        if (effortAsBytes.length !== 32)
+          return Response.json(null, { status: 400 })
+
+        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
         const aborter = new AbortController()
@@ -195,9 +222,7 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        const maxsparks = (2n ** 256n) / BigInt("0x" + effortAsBytes.toHex())
-
-        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes, maxsparks]))
+        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes, sparksAsBigInt]))
 
         return new Response(await future.promise)
       }
@@ -234,6 +259,22 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
 
         const paramsAsBytes = await paramsAsEntry.bytes()
 
+        const effortAsEntry = form.get("effort")
+
+        if (effortAsEntry == null)
+          return Response.json(null, { status: 400 })
+        if (typeof effortAsEntry === "string")
+          return Response.json(null, { status: 400 })
+
+        const effortAsBytes = await effortAsEntry.bytes()
+
+        if (effortAsBytes.length !== 32)
+          return Response.json(null, { status: 400 })
+
+        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
         const aborter = new AbortController()
@@ -257,7 +298,7 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
           future.reject(reason)
         }, { signal: aborter.signal })
 
-        worker.get().postMessage(new RpcRequest(null, "simulate", [moduleAsEntry, methodAsEntry, paramsAsBytes]))
+        worker.get().postMessage(new RpcRequest(null, "simulate", [moduleAsEntry, methodAsEntry, paramsAsBytes, sparksAsBigInt]))
 
         return new Response(await future.promise)
       }
