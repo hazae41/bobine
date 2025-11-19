@@ -1,15 +1,21 @@
-// deno-lint-ignore-file no-explicit-any
+// deno-lint-ignore-file no-explicit-any no-unused-vars
+
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { meter } from "../../libs/metering/mod.ts";
 import { Pack } from "../../libs/packs/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${new URL(import.meta.url).search}`), { type: "module" })
+const url = new URL(import.meta.url)
+
+const databaseAsPath = url.searchParams.get("database")!
+const scriptsAsPath = url.searchParams.get("scripts")!
+
+const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${url.search}`), { type: "module" })
 
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   const exports: WebAssembly.Imports = {}
@@ -296,13 +302,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`./local/scripts/${digestOfPackAsHex}.wasm`)) {
-          mkdirSync(`./local/scripts`, { recursive: true })
+        if (!existsSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`))
+          writeFileSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-          writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
-
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfPackAsHex}.wasm`, "file")
-        }
+        if (!existsSync(`${scriptsAsPath}/${digestOfPackAsHex}.wasm`))
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${scriptsAsPath}/${digestOfPackAsHex}.wasm`, "file")
 
         const moduleAsBlobref = Symbol()
 
@@ -348,7 +352,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (moduleAsBytes == null)
           throw new Error("Not found")
 
-        const wasmAsBytes = readFileSync(`./local/scripts/${moduleAsBytes.toHex()}.wasm`)
+        const wasmAsBytes = readFileSync(`${scriptsAsPath}/${moduleAsBytes.toHex()}.wasm`)
 
         const wasmAsBlobref = Symbol()
 
@@ -536,8 +540,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     let meteredWasmAsBytes: Uint8Array<ArrayBuffer>
 
-    if (!existsSync(`./local/scripts/${module}.metered.wasm`)) {
-      const wasmAsBytes = readFileSync(`./local/scripts/${module}.wasm`)
+    if (!existsSync(`${scriptsAsPath}/${module}.metered.wasm`)) {
+      const wasmAsBytes = readFileSync(`${scriptsAsPath}/${module}.wasm`)
 
       const wasmAsParsed = Readable.readFromBytesOrThrow(Wasm.Module, wasmAsBytes)
 
@@ -545,9 +549,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
       meteredWasmAsBytes = Writable.writeToBytesOrThrow(wasmAsParsed)
 
-      writeFileSync(`./local/scripts/${module}.metered.wasm`, meteredWasmAsBytes)
+      writeFileSync(`${scriptsAsPath}/${module}.metered.wasm`, meteredWasmAsBytes)
     } else {
-      meteredWasmAsBytes = readFileSync(`./local/scripts/${module}.metered.wasm`)
+      meteredWasmAsBytes = readFileSync(`${scriptsAsPath}/${module}.metered.wasm`)
     }
 
     const meteredWasmAsModule = new WebAssembly.Module(meteredWasmAsBytes)

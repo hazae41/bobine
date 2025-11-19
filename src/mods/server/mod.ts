@@ -12,14 +12,21 @@ import { Pack } from "../../libs/packs/mod.ts";
 export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
   const {
     DATABASE_PATH = Deno.env.get(prefix + "DATABASE_PATH"),
+    SCRIPTS_PATH = Deno.env.get(prefix + "SCRIPTS_PATH"),
   } = {}
 
   if (DATABASE_PATH == null)
     throw new Error("DATABASE_PATH is not set")
+  if (SCRIPTS_PATH == null)
+    throw new Error("SCRIPTS_PATH is not set")
 
   Deno.mkdirSync(dirname(DATABASE_PATH), { recursive: true })
 
-  const database = await connect(DATABASE_PATH)
+  return await serve(DATABASE_PATH, SCRIPTS_PATH)
+}
+
+export async function serve(databaseAsPath: string, scriptsAsPath: string): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
+  const database = await connect(databaseAsPath)
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,13 +51,11 @@ export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request
 
   await database.close()
 
-  return serve(DATABASE_PATH)
-}
+  mkdirSync(scriptsAsPath, { recursive: true })
 
-export function serve(database: string): { onHttpRequest(request: Request): Promise<Response> } {
   const setOfEffortsAsHex = new Set<string>()
 
-  const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${database}`), { name: "worker", type: "module" }))
+  const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${databaseAsPath}&scripts=${scriptsAsPath}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     if (request.headers.get("Upgrade") === "websocket") {
@@ -147,13 +152,11 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`./local/scripts/${digestOfPackAsHex}.wasm`)) {
-          mkdirSync(`./local/scripts`, { recursive: true })
+        if (!existsSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`))
+          writeFileSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-          writeFileSync(`./local/scripts/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
-
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `./local/scripts/${digestOfPackAsHex}.wasm`)
-        }
+        if (!existsSync(`${scriptsAsPath}/${digestOfPackAsHex}.wasm`))
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${scriptsAsPath}/${digestOfPackAsHex}.wasm`)
 
         return Response.json(digestOfPackAsHex)
       }

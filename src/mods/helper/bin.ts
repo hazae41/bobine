@@ -1,10 +1,17 @@
+// deno-lint-ignore-file no-unused-vars
+
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
 import { runAsImmediateOrThrow } from "../../libs/sql/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const database = await connect(new URL(import.meta.url).searchParams.get("database")!)
+const url = new URL(import.meta.url)
+
+const databaseAsPath = url.searchParams.get("database")!
+const scriptsAsPath = url.searchParams.get("scripts")!
+
+const database = await connect(databaseAsPath)
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & { result: Int32Array<SharedArrayBuffer> }>) => {
   try {
