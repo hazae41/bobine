@@ -1,16 +1,15 @@
 import { addresses } from "../../libs/address/mod"
-import { blobs } from "../../libs/blobs/mod"
-import { chain } from "../../libs/chain/mod"
+import { blobref, blobs } from "../../libs/blobs/mod"
 import { ed25519 } from "../../libs/ed25519/mod"
 import { env } from "../../libs/env/mod"
 import { modules } from "../../libs/modules/mod"
-import { packs } from "../../libs/packs/mod"
+import { packref, packs } from "../../libs/packs/mod"
 import { storage } from "../../libs/storage/mod"
 import { symbols } from "../../libs/symbols/mod"
 
 namespace nonces {
 
-  export function get(address: externref): u64 {
+  export function get(address: blobref): u64 {
     const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)))
 
     if (!result)
@@ -19,28 +18,28 @@ namespace nonces {
     return packs.get<u64>(packs.decode(result), 0)
   }
 
-  export function set(address: externref, amount: u64): void {
+  export function set(address: blobref, amount: u64): void {
     storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create1(amount)))
   }
 
 }
 
-export function get_nonce(address: externref): u64 {
+export function get_nonce(address: blobref): u64 {
   return nonces.get(address)
 }
 
 const sessions = new Set<usize>()
 
-export function verify(session: packs.pack): bool {
+export function verify(session: packref): bool {
   return sessions.has(symbols.numerize(session))
 }
 
-export function call(module: externref, method: externref, payload: externref, pubkey: externref, signature: externref): packs.pack {
+export function call(module: blobref, method: blobref, payload: blobref, pubkey: blobref, signature: blobref): packref {
   const address = addresses.compute(modules.self(), pubkey)
 
   const nonce = nonces.get(address)
 
-  const message = packs.encode(packs.create5(chain.uuid(), module, method, payload, nonce))
+  const message = packs.encode(packs.create5(env.uuid(), module, method, payload, nonce))
 
   if (!ed25519.verify(pubkey, signature, message) && env.mode === 1)
     throw new Error("Invalid signature")

@@ -115,6 +115,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       mode: mode,
       abort: (): never => {
         throw new Error("Aborted")
+      },
+      uuid: (): symbol => {
+        const blobref = Symbol()
+
+        blobs.set(blobref, Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"))
+
+        return blobref
       }
     }
 
@@ -525,16 +532,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         cache.set(keyAsBlobref, valueAsBlobref)
 
         return valueAsBlobref
-      }
-    }
-
-    imports["chain"] = {
-      uuid: (): symbol => {
-        const blobref = Symbol()
-
-        blobs.set(blobref, Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"))
-
-        return blobref
       }
     }
 

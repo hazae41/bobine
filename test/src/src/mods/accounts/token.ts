@@ -1,22 +1,22 @@
 import { addresses } from "../../libs/address/mod"
-import { blobs } from "../../libs/blobs/mod"
+import { blobref, blobs } from "../../libs/blobs/mod"
 import { modules } from "../../libs/modules/mod"
-import { packs } from "../../libs/packs/mod"
+import { packref, packs } from "../../libs/packs/mod"
 import { sha256 } from "../../libs/sha256/mod"
 import { storage } from "../../libs/storage/mod"
 
 namespace owner {
 
-  export function get(): blobs.blob {
+  export function get(): blobref {
     const result = storage.get(packs.encode(packs.create1(blobs.save(String.UTF8.encode("owner")))))
 
     if (!result)
       return blobs.fromHex(blobs.save(String.UTF8.encode("0000000000000000000000000000000000000000")))
 
-    return packs.get<blobs.blob>(packs.decode(result), 0)
+    return packs.get<blobref>(packs.decode(result), 0)
   }
 
-  export function set(address: externref): void {
+  export function set(address: blobref): void {
     storage.set(packs.encode(packs.create1(blobs.save(String.UTF8.encode("owner")))), packs.encode(packs.create1(address)))
   }
 
@@ -24,7 +24,7 @@ namespace owner {
 
 namespace balances {
 
-  export function get(address: externref): u64 {
+  export function get(address: blobref): u64 {
     const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))
 
     if (!result)
@@ -33,7 +33,7 @@ namespace balances {
     return packs.get<u64>(packs.decode(result), 0)
   }
 
-  export function set(address: externref, amount: u64): void {
+  export function set(address: blobref, amount: u64): void {
     storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)), packs.encode(packs.create1(amount)))
   }
 
@@ -44,7 +44,7 @@ namespace balances {
  * @param creator 
  * @returns nothing
  */
-export function init(creator: blobs.blob): void {
+export function init(creator: blobref): void {
   if (!blobs.equals(modules.self(), sha256.digest(packs.encode(packs.create2(modules.load(modules.self()), creator)))))
     throw new Error("Invalid creator")
 
@@ -58,7 +58,7 @@ export function init(creator: blobs.blob): void {
  * @param target 
  * @returns u64
  */
-export function get_balance(target: blobs.blob): u64 {
+export function get_balance(target: blobref): u64 {
   return balances.get(target)
 }
 
@@ -68,7 +68,7 @@ export function get_balance(target: blobs.blob): u64 {
  * @param target 
  * @param amount 
  */
-export function mint(session: packs.pack, target: blobs.blob, amount: u64): void {
+export function mint(session: packref, target: blobref, amount: u64): void {
   const sender = addresses.verify(session)
 
   if (!blobs.equals(sender, owner.get()))
@@ -85,7 +85,7 @@ export function mint(session: packs.pack, target: blobs.blob, amount: u64): void
  * @param target 
  * @param amount 
  */
-export function transfer(session: packs.pack, target: blobs.blob, amount: u64): void {
+export function transfer(session: packref, target: blobref, amount: u64): void {
   const sender = addresses.verify(session)
 
   const bsender = balances.get(sender)

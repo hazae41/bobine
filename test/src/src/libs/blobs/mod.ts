@@ -1,20 +1,20 @@
-export namespace blobs {
+export type blobref = externref
 
-  export type blob = externref
+export namespace blobs {
 
   // @ts-ignore: decorator
   @external("blobs", "save")
-  export declare function $save(offset: usize, length: usize): blobs.blob
+  export declare function $save(offset: usize, length: usize): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "size")
-  export declare function $size(blob: blobs.blob): usize
+  export declare function $size(blob: blobref): usize
 
   // @ts-ignore: decorator
   @external("blobs", "load")
-  export declare function $load(blob: blobs.blob, offset: usize): void
+  export declare function $load(blob: blobref, offset: usize): void
 
-  export function save(buffer: ArrayBuffer): blob {
+  export function save(buffer: ArrayBuffer): blobref {
     const bytes = Uint8Array.wrap(buffer)
 
     const reference = $save(bytes.dataStart, bytes.length)
@@ -22,7 +22,7 @@ export namespace blobs {
     return reference
   }
 
-  export function load(blob: blobs.blob): ArrayBuffer {
+  export function load(blob: blobref): ArrayBuffer {
     const bytes = new Uint8Array(<i32>$size(blob))
 
     $load(blob, bytes.dataStart)
@@ -32,26 +32,26 @@ export namespace blobs {
 
   // @ts-ignore: decorator
   @external("blobs", "concat")
-  export declare function concat(left: blobs.blob, right: blobs.blob): externref
+  export declare function concat(left: blobref, right: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "equals")
-  export declare function equals(left: blobs.blob, right: blobs.blob): bool
+  export declare function equals(left: blobref, right: blobref): bool
 
   // @ts-ignore: decorator
   @external("blobs", "to_hex")
-  export declare function toHex(bytes: blobs.blob): blobs.blob
+  export declare function toHex(bytes: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "from_hex")
-  export declare function fromHex(hex: blobs.blob): blobs.blob
+  export declare function fromHex(hex: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "to_base64")
-  export declare function toBase64(bytes: blobs.blob): blobs.blob
+  export declare function toBase64(bytes: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "from_base64")
-  export declare function fromBase64(hex: blobs.blob): blobs.blob
+  export declare function fromBase64(hex: blobref): blobref
 
 }
