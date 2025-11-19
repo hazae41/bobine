@@ -130,7 +130,7 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
 
         if (sparksAsBigInt < (wasmAsBytes.length + saltAsBytes.length))
-          return Response.json(null, { status: 400 })
+          return Response.json(null, { status: 402 })
 
         const packAsBytes = Writable.writeToBytesOrThrow(new Pack([wasmAsBytes, saltAsBytes]))
 
