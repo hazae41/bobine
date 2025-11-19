@@ -48,6 +48,8 @@ export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request
 }
 
 export function serve(database: string): { onHttpRequest(request: Request): Promise<Response> } {
+  const setOfEffortsAsHex = new Set<string>()
+
   const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${database}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
@@ -125,9 +127,14 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         if (effortAsBytes.length !== 32)
           return Response.json(null, { status: 400 })
 
-        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+        const effortAsHex = effortAsBytes.toHex()
 
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+        if (setOfEffortsAsHex.has(effortAsHex))
+          return Response.json(null, { status: 402 })
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
 
         if (sparksAsBigInt < (wasmAsBytes.length + saltAsBytes.length))
           return Response.json(null, { status: 402 })
@@ -195,9 +202,14 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         if (effortAsBytes.length !== 32)
           return Response.json(null, { status: 400 })
 
-        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+        const effortAsHex = effortAsBytes.toHex()
 
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+        if (setOfEffortsAsHex.has(effortAsHex))
+          return Response.json(null, { status: 402 })
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
 
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
@@ -271,9 +283,14 @@ export function serve(database: string): { onHttpRequest(request: Request): Prom
         if (effortAsBytes.length !== 32)
           return Response.json(null, { status: 400 })
 
-        const proofAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes))
+        const effortAsHex = effortAsBytes.toHex()
 
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + proofAsBytes.toHex())
+        if (setOfEffortsAsHex.has(effortAsHex))
+          return Response.json(null, { status: 402 })
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
 
         const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
 
