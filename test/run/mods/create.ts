@@ -1,3 +1,5 @@
+/// <reference types="../libs/bytes/lib.d.ts"/>
+
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
