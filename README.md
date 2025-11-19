@@ -166,18 +166,18 @@ Use the Ed25519 signing algorithm
 
 ### symbols (experimental)
 
-You can numerize and denumerize any reference to compare them and authenticate them
-
 - `symbols.create(): symbolref` = create a unique reference that can be passed around
 
-- `symbols.numerize(ref: symbolref/blobref/packref): u32` = translate any reference into a unique private pointer that can be stored into data structures
+### refs (experimental)
 
-- `symbols.denumerize(pointer: u32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
+- `refs.numerize(ref: symbolref/blobref/packref): u32` = translate any reference into a unique private pointer that can be stored into data structures
 
-This can be useful if you want to check for authenticity
+- `refs.denumerize(pointer: u32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
+
+This can be useful if you want to check a reference for authenticity
 
 ```tsx
-let sessions = new Set<u32>()
+const sessions = new Set<u32>()
 
 export function login(password: blobref): symbolref {
   const session = symbols.create()  
@@ -192,4 +192,4 @@ export function verify(session: symbolref) {
 }
 ```
 
-You should never accept a pointer in-lieue-of a real reference because they can be easily guessed by an attacking module
+You should never accept a pointer instead of a real reference because they can be easily guessed by an attacking module
