@@ -152,6 +152,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       pow: (left: bigint, right: bigint): bigint => {
         return left ** right
       },
+      encode: (bigint: bigint): Uint8Array => {
+        const text = bigint.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        return data
+      },
+      decode: (bytes: Uint8Array): bigint => {
+        return BigInt("0x" + bytes.toHex())
+      },
       from_base16: (text: Uint8Array): bigint => {
         return BigInt("0x" + new TextDecoder().decode(text))
       },

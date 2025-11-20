@@ -69,6 +69,32 @@ You can pass bytes between modules by storing them in the blob storage and loadi
 
 - `blob.to_hex/from_hex/to_base64/from_base64(blob: blobref): blobref` = convert blobs to/from hex/base64 without loading them into memory
 
+### bigints
+
+You can work with infinite-precision bigints
+
+- `bigints.add(left: bigintref, right: bigintref): bigintref` = add two bigints
+
+- `bigints.sub(left: bigintref, right: bigintref): bigintref` = subtract two bigints
+
+- `bigints.mul(left: bigintref, right: bigintref): bigintref` = multiply two bigints
+
+- `bigints.div(left: bigintref, right: bigintref): bigintref` = divide two bigints
+
+- `bigints.pow(left: bigintref, right: bigintref): bigintref` = left ** right
+
+- `bigints.encode(bigint: bigintref): blobref` = convert bigint to bytes
+
+- `bigints.decode(base16: blobref): bigintref` = convert bytes to bigint
+
+- `bigints.to_base16(bigint: bigintref): blobref` = convert bigint to hex utf8 bytes
+
+- `bigints.from_base16(base16: blobref): bigintref` = convert hex utf8 bytes to bigint
+
+- `bigints.to_base10(bigint: bigintref): blobref` = convert bigint to base10 utf8 bytes
+
+- `bigints.from_base10(base16: blobref): bigintref` = convert base10 utf8 bytes to bigint
+
 ### packs
 
 You can pack various arguments (numbers, refs) into a pack which can be passed between modules and/or encoded/decoded into bytes
