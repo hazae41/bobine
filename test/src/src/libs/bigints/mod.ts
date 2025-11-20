@@ -32,4 +32,12 @@ export namespace bigints {
   @external("bigints", "to_base16")
   export declare function toBase16(bigint: bigintref): blobref
 
+  // @ts-ignore: decorator
+  @external("bigints", "from_base10")
+  export declare function fromBase10(base10: blobref): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "to_base10")
+  export declare function toBase10(bigint: bigintref): blobref
+
 }
