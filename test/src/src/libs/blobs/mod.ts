@@ -44,7 +44,7 @@ export namespace blobs {
 
   // @ts-ignore: decorator
   @external("blobs", "from_base16")
-  export declare function fromBase16(hex: blobref): blobref
+  export declare function fromBase16(base16: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "to_base64")
@@ -52,6 +52,6 @@ export namespace blobs {
 
   // @ts-ignore: decorator
   @external("blobs", "from_base64")
-  export declare function fromBase64(hex: blobref): blobref
+  export declare function fromBase64(base64: blobref): blobref
 
 }
