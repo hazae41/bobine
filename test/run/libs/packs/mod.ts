@@ -1,3 +1,5 @@
+/// <reference types="../bytes/lib.d.ts"/>
+
 import type { Cursor } from "@hazae41/cursor";
 
 export class Pack {
@@ -16,7 +18,10 @@ export class Pack {
       }
 
       if (typeof value === "bigint") {
-        size += 1 + 8
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        size += 1 + 4 + data.length
         continue
       }
 
@@ -44,13 +49,18 @@ export class Pack {
     for (const value of this.values) {
       if (typeof value === "number") {
         cursor.writeUint8OrThrow(2)
-        cursor.writeInt32OrThrow(value, true)
+        cursor.writeFloat64OrThrow(value, true)
         continue
       }
 
       if (typeof value === "bigint") {
         cursor.writeUint8OrThrow(3)
-        cursor.writeBigInt64OrThrow(value, true)
+
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        cursor.writeUint32OrThrow(data.length, true)
+        cursor.writeOrThrow(data)
         continue
       }
 
@@ -91,12 +101,14 @@ export namespace Pack {
         break
 
       if (type === 2) {
-        values.push(cursor.readUint32OrThrow(true))
+        values.push(cursor.readFloat64OrThrow(true))
         continue
       }
 
       if (type === 3) {
-        values.push(cursor.readBigUint64OrThrow(true))
+        const size = cursor.readUint32OrThrow(true)
+        const data = cursor.readOrThrow(size)
+        values.push(BigInt("0x" + data.toHex()))
         continue
       }
 

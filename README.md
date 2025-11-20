@@ -87,13 +87,14 @@ function writePack(pack: packref) {
 
     if (typeof value === "number") {
       writeUint8(2)
-      writeInt32(value, "little-endian")
+      writeFloat64(value, "little-endian")
       continue
     }
     
     if (typeof value === "bigint") {
       writeUint8(3)
-      writeInt64(value, "little-endian")
+      writeUint32(value.toHex().length, "little-endian")
+      writeBytes(value.toHex())
       continue
     }
 
