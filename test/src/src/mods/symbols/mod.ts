@@ -1,7 +1,7 @@
 import { refs } from "../../libs/externs/mod"
 import { symbols } from "../../libs/symbols/mod"
 
-export function main(): boolean {
+export function main(): bool {
   const a = symbols.create(), ia = refs.numerize(a)
 
   const b = refs.denumerize(ia), ib = refs.numerize(b)

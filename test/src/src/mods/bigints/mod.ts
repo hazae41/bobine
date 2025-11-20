@@ -23,3 +23,7 @@ export function very_big(): bigintref {
 
   return c
 }
+
+export function smol(): u64 {
+  return 12345
+}
