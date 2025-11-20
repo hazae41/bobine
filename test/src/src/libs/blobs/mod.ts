@@ -39,12 +39,12 @@ export namespace blobs {
   export declare function equals(left: blobref, right: blobref): bool
 
   // @ts-ignore: decorator
-  @external("blobs", "to_hex")
-  export declare function toHex(bytes: blobref): blobref
+  @external("blobs", "to_base16")
+  export declare function toBase16(bytes: blobref): blobref
 
   // @ts-ignore: decorator
-  @external("blobs", "from_hex")
-  export declare function fromHex(hex: blobref): blobref
+  @external("blobs", "from_base16")
+  export declare function fromBase16(hex: blobref): blobref
 
   // @ts-ignore: decorator
   @external("blobs", "to_base64")

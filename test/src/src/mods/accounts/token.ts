@@ -11,7 +11,7 @@ namespace owner {
     const result = storage.get(packs.encode(packs.create1(blobs.save(String.UTF8.encode("owner")))))
 
     if (!result)
-      return blobs.fromHex(blobs.save(String.UTF8.encode("0000000000000000000000000000000000000000")))
+      return blobs.fromBase16(blobs.save(String.UTF8.encode("0000000000000000000000000000000000000000")))
 
     return packs.get<blobref>(packs.decode(result), 0)
   }

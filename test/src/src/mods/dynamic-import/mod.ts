@@ -10,7 +10,7 @@ class Library {
   ) { }
 
   static new(module: string): Library {
-    return new Library(refs.numerize(blobs.fromHex(blobs.save(String.UTF8.encode(module)))))
+    return new Library(refs.numerize(blobs.fromBase16(blobs.save(String.UTF8.encode(module)))))
   }
 
   log(message: string): void {
