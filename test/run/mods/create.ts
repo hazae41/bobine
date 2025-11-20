@@ -3,11 +3,11 @@
 import { execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { generate } from "../libs/effort/mod";
+import { generate } from "../libs/effort/mod.ts";
 
 const [entrypoint, salt = ""] = process.argv.slice(2)
 
-const exitpoint = join("./bin", relative("./src", entrypoint))
+const exitpoint = join("./test/src/bin", relative("./test/src/src", entrypoint))
 
 const start = performance.now()
 

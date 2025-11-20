@@ -36,7 +36,7 @@ export function meter(module: Wasm.Module, from: string, name: string) {
       if ([0x03, 0x04, 0x05, 0x0B, 0x0c, 0x0D, 0x0E, 0x0F, 0xd5, 0xd6].includes(instruction.opcode)) {
         subinstructions.push(instruction)
 
-        instructions.push(new Wasm.Instruction(0x42, [new Wasm.LEB128.I64(BigInt(subinstructions.length))]))
+        instructions.push(new Wasm.Instruction(0x41, [new Wasm.LEB128.I32(subinstructions.length)]))
         instructions.push(new Wasm.Instruction(0x10, [new Wasm.LEB128.U32(0)]))
 
         instructions.push(...subinstructions)

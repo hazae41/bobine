@@ -10,4 +10,8 @@ export namespace env {
   @external("env", "uuid")
   export declare function uuid(): blobref
 
+  // @ts-ignore: decorator
+  @external("env", "test")
+  export declare function test(x: blobref): void
+
 }

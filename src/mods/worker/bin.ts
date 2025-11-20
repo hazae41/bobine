@@ -22,64 +22,20 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   let sparks = 0n
 
-  const blobs = new Map<symbol, Uint8Array>()
-  const packs = new Map<symbol, Array<number | bigint | symbol | null>>()
-
-  const cache = new Map<symbol, symbol>()
+  const cache = new Map<Uint8Array, Uint8Array>()
 
   const writes = new Array<[string, Uint8Array, Uint8Array]>()
 
-  const repack = (values: Array<number | bigint | symbol | null>): Pack => {
-    return new Pack(values.map(value => {
-      if (typeof value !== "symbol")
-        return value
-
-      const blob = blobs.get(value)
-
-      if (blob != null)
-        return blob
-
-      const pack = packs.get(value)
-
-      if (pack != null)
-        return repack(pack)
-
-      throw new Error("Not found")
-    }))
+  const pack_encode = (pack: Pack): Uint8Array => {
+    return Writable.writeToBytesOrThrow(pack)
   }
 
-  const unpack = (pack: Pack): Array<number | bigint | symbol | null> => {
-    return pack.values.map(value => {
-      if (value instanceof Pack) {
-        const packref = Symbol()
-
-        packs.set(packref, unpack(value))
-
-        return packref
-      }
-
-      if (value instanceof Uint8Array) {
-        const blobref = Symbol()
-
-        blobs.set(blobref, value)
-
-        return blobref
-      }
-
-      return value
-    })
+  const pack_decode = (bytes: Uint8Array): Pack => {
+    return Readable.readFromBytesOrThrow(Pack, bytes)
   }
 
-  const encode = (values: Array<number | bigint | symbol | null>): Uint8Array => {
-    return Writable.writeToBytesOrThrow(repack(values))
-  }
-
-  const decode = (bytes: Uint8Array): Array<number | bigint | symbol | null> => {
-    return unpack(Readable.readFromBytesOrThrow(Pack, bytes))
-  }
-
-  const sha256 = (payload: Uint8Array): Uint8Array => {
-    consume(BigInt(payload.length) * 256n)
+  const sha256_digest = (payload: Uint8Array): Uint8Array => {
+    sparks_consume(BigInt(payload.length) * 256n)
 
     const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
 
@@ -97,7 +53,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return digest
   }
 
-  const consume = (amount: bigint) => {
+  const sparks_consume = (amount: bigint) => {
     sparks += amount
 
     if (maxsparks != null && sparks > maxsparks)
@@ -116,12 +72,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       abort: (): never => {
         throw new Error("Aborted")
       },
-      uuid: (): symbol => {
-        const blobref = Symbol()
-
-        blobs.set(blobref, Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd"))
-
-        return blobref
+      uuid: (): Uint8Array => {
+        return Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd")
       }
     }
 
@@ -130,133 +82,56 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return sparks
       },
       consume: (amount: number): void => {
-        consume(BigInt(amount >>> 0))
+        sparks_consume(BigInt(amount >>> 0))
       }
     }
 
     imports["console"] = {
-      log: (blobref: symbol): void => {
-        const bytes = blobs.get(blobref)
-
-        if (bytes == null)
-          throw new Error("Not found")
-
-        console.log(new TextDecoder().decode(bytes))
+      log: (blob: Uint8Array): void => {
+        console.log(new TextDecoder().decode(blob))
       }
     }
 
     imports["blobs"] = {
-      save: (offset: number, length: number): symbol => {
+      save: (offset: number, length: number): Uint8Array => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const blobref = Symbol()
+        const view = new Uint8Array(memory.buffer, offset >>> 0, length >>> 0)
 
-        const slice = new Uint8Array(memory.buffer, offset >>> 0, length >>> 0)
-
-        blobs.set(blobref, slice.slice())
-
-        return blobref
+        return view.slice()
       },
-      size: (blobref: symbol): number => {
-        const bytes = blobs.get(blobref)
-
-        if (bytes == null)
-          throw new Error("Not found")
-
-        return bytes.length
+      size: (blob: Uint8Array): number => {
+        return blob.length
       },
-      load: (blobref: symbol, offset: number): void => {
+      load: (blob: Uint8Array, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
-        const bytes = blobs.get(blobref)
+        const view = new Uint8Array(memory.buffer, offset >>> 0, blob.length)
 
-        if (bytes == null)
-          throw new Error("Not found")
-
-        const slice = new Uint8Array(memory.buffer, offset >>> 0, bytes.length)
-
-        slice.set(bytes)
+        view.set(blob)
       },
-      concat: (leftAsBlobref: symbol, rightAsBlobref: symbol): symbol => {
-        const leftAsBytes = blobs.get(leftAsBlobref)
-        const rightAsBytes = blobs.get(rightAsBlobref)
+      concat: (left: Uint8Array, right: Uint8Array): Uint8Array => {
+        const concat = new Uint8Array(left.length + right.length)
 
-        if (leftAsBytes == null)
-          throw new Error("Not found")
-        if (rightAsBytes == null)
-          throw new Error("Not found")
+        concat.set(left, 0)
+        concat.set(right, left.length)
 
-        const concatAsBytes = new Uint8Array(leftAsBytes.length + rightAsBytes.length)
-        concatAsBytes.set(leftAsBytes, 0)
-        concatAsBytes.set(rightAsBytes, leftAsBytes.length)
-
-        const concatAsBlobref = Symbol()
-
-        blobs.set(concatAsBlobref, concatAsBytes)
-
-        return concatAsBlobref
+        return concat
       },
-      equals: (leftAsBlobref: symbol, rightAsBlobref: symbol): boolean => {
-        const leftAsBytes = blobs.get(leftAsBlobref)
-        const rightAsBytes = blobs.get(rightAsBlobref)
-
-        if (leftAsBytes == null)
-          throw new Error("Not found")
-        if (rightAsBytes == null)
-          throw new Error("Not found")
-
-        if (leftAsBytes.length !== rightAsBytes.length)
-          return false
-
-        return !Buffer.compare(leftAsBytes, rightAsBytes)
+      equals: (left: Uint8Array, right: Uint8Array): boolean => {
+        return !Buffer.compare(left, right)
       },
-      from_hex: (textAsBlobref: symbol): symbol => {
-        const textAsBytes = blobs.get(textAsBlobref)
-
-        if (textAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlobref = Symbol()
-
-        blobs.set(outputAsBlobref, Uint8Array.fromHex(new TextDecoder().decode(textAsBytes)))
-
-        return outputAsBlobref
+      from_hex: (text: Uint8Array): Uint8Array => {
+        return Uint8Array.fromHex(new TextDecoder().decode(text))
       },
-      from_base64: (inputAsBlobref: symbol): symbol => {
-        const inputAsBytes = blobs.get(inputAsBlobref)
-
-        if (inputAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlobref = Symbol()
-
-        blobs.set(outputAsBlobref, Uint8Array.fromBase64(new TextDecoder().decode(inputAsBytes)))
-
-        return outputAsBlobref
+      from_base64: (text: Uint8Array): Uint8Array => {
+        return Uint8Array.fromBase64(new TextDecoder().decode(text))
       },
-      to_hex: (inputAsBlobref: symbol): symbol => {
-        const inputAsBytes = blobs.get(inputAsBlobref)
-
-        if (inputAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlobref = Symbol()
-
-        blobs.set(outputAsBlobref, new TextEncoder().encode(inputAsBytes.toHex()))
-
-        return outputAsBlobref
+      to_hex: (bytes: Uint8Array): Uint8Array => {
+        return new TextEncoder().encode(bytes.toHex())
       },
-      to_base64: (inputAsBlobref: symbol): symbol => {
-        const inputsAsBytes = blobs.get(inputAsBlobref)
-
-        if (inputsAsBytes == null)
-          throw new Error("Not found")
-
-        const outputAsBlobref = Symbol()
-
-        blobs.set(outputAsBlobref, new TextEncoder().encode(inputsAsBytes.toBase64()))
-
-        return outputAsBlobref
+      to_base64: (bytes: Uint8Array): Uint8Array => {
+        return new TextEncoder().encode(bytes.toBase64())
       }
     }
 
@@ -266,48 +141,38 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    const symbols = new Array<symbol>()
-    const numbers = new Map<symbol, number>()
+    const refs = new Array<symbol>()
+    const ptrs = new Map<symbol, number>()
 
     imports["refs"] = {
-      numerize: (symbol: symbol): number => {
-        const stale = numbers.get(symbol)
+      numerize: (ref: symbol): number => {
+        const stale = ptrs.get(ref)
 
         if (stale != null)
           return stale
 
-        const fresh = symbols.push(symbol) - 1
+        const fresh = refs.push(ref) - 1
 
-        numbers.set(symbol, fresh)
+        ptrs.set(ref, fresh)
 
         return fresh
       },
-      denumerize: (index: number): symbol => {
-        const symbol = symbols.at(index >>> 0)
+      denumerize: (ptr: number): symbol => {
+        const ref = refs.at(ptr >>> 0)
 
-        if (symbol == null)
+        if (ref == null)
           throw new Error("Not found")
 
-        return symbol
+        return ref
       }
     }
 
     imports["modules"] = {
-      create: (wasmAsBlobref: symbol, saltAsBlobref: symbol): symbol => {
-        const wasmAsBytes = blobs.get(wasmAsBlobref)
+      create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): Uint8Array => {
+        const packAsBytes = pack_encode(new Pack([wasmAsBytes, saltAsBytes]))
 
-        if (wasmAsBytes == null)
-          throw new Error("Not found")
-
-        const saltAsBytes = blobs.get(saltAsBlobref)
-
-        if (saltAsBytes == null)
-          throw new Error("Not found")
-
-        const packAsBytes = encode([wasmAsBlobref, saltAsBlobref])
-
-        const digestOfWasmAsBytes = sha256(wasmAsBytes)
-        const digestOfPackAsBytes = sha256(packAsBytes)
+        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
+        const digestOfPackAsBytes = sha256_digest(packAsBytes)
 
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
@@ -318,25 +183,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (!existsSync(`${scriptsAsPath}/${digestOfPackAsHex}.wasm`))
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${scriptsAsPath}/${digestOfPackAsHex}.wasm`, "file")
 
-        const moduleAsBlobref = Symbol()
-
-        blobs.set(moduleAsBlobref, digestOfPackAsBytes)
-
-        return moduleAsBlobref
+        return digestOfPackAsBytes
       },
-      call: (moduleAsBlobref: symbol, methodAsBlobref: symbol, paramsAsPackref: symbol): symbol => {
-        const moduleAsBytes = blobs.get(moduleAsBlobref)
-
-        if (moduleAsBytes == null)
-          throw new Error("Not found")
-
+      call: (moduleAsBytes: Uint8Array, methodAsBytes: Uint8Array, paramsAsPack: Pack): Pack => {
         const moduleAsString = moduleAsBytes.toHex()
-
-        const methodAsBytes = blobs.get(methodAsBlobref)
-
-        if (methodAsBytes == null)
-          throw new Error("Not found")
-
         const methodAsString = new TextDecoder().decode(methodAsBytes)
 
         if (exports[moduleAsString] == null)
@@ -345,73 +195,29 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (typeof exports[moduleAsString][methodAsString] !== "function")
           throw new Error("Not found")
 
-        const paramsAsPack = packs.get(paramsAsPackref)
-
-        if (paramsAsPack == null)
-          throw new Error("Not found")
-
-        const resultAsPackref = Symbol()
-
-        packs.set(resultAsPackref, [exports[moduleAsString][methodAsString](...paramsAsPack)])
-
-        return resultAsPackref
+        return new Pack([exports[moduleAsString][methodAsString](...paramsAsPack.values)])
       },
-      load: (moduleAsBlobref: symbol): symbol => {
-        const moduleAsBytes = blobs.get(moduleAsBlobref)
-
-        if (moduleAsBytes == null)
-          throw new Error("Not found")
-
-        const wasmAsBytes = readFileSync(`${scriptsAsPath}/${moduleAsBytes.toHex()}.wasm`)
-
-        const wasmAsBlobref = Symbol()
-
-        blobs.set(wasmAsBlobref, wasmAsBytes)
-
-        return wasmAsBlobref
+      load: (moduleAsBytes: Uint8Array): Uint8Array => {
+        return readFileSync(`${scriptsAsPath}/${moduleAsBytes.toHex()}.wasm`)
       },
-      self: (): symbol => {
-        const blobref = Symbol()
-
-        blobs.set(blobref, Uint8Array.fromHex(module))
-
-        return blobref
+      self: (): Uint8Array => {
+        return Uint8Array.fromHex(module)
       }
     }
 
     imports["sha256"] = {
-      digest: (payloadAsBlobref: symbol): symbol => {
-        const payloadAsBytes = blobs.get(payloadAsBlobref)
-
-        if (payloadAsBytes == null)
-          throw new Error("Not found")
-
-        const blobref = Symbol()
-
-        blobs.set(blobref, sha256(payloadAsBytes))
-
-        return blobref
+      digest: (payload: Uint8Array): Uint8Array => {
+        return sha256_digest(payload)
       }
     }
 
     imports["ed25519"] = {
-      verify: (pubkeyAsBlobref: symbol, signatureAsBlobref: symbol, payloadAsBlobref: symbol): boolean => {
-        const pubkeyAsBytes = blobs.get(pubkeyAsBlobref)
-        const signatureAsBytes = blobs.get(signatureAsBlobref)
-        const payloadAsBytes = blobs.get(payloadAsBlobref)
-
-        if (pubkeyAsBytes == null)
-          throw new Error("Not found")
-        if (signatureAsBytes == null)
-          throw new Error("Not found")
-        if (payloadAsBytes == null)
-          throw new Error("Not found")
-
-        consume(BigInt(payloadAsBytes.length) * 256n)
+      verify: (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
+        sparks_consume(BigInt(payload.length) * 256n)
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-        helper.postMessage({ method: "ed25519_verify", params: [pubkeyAsBytes, signatureAsBytes, payloadAsBytes], result })
+        helper.postMessage({ method: "ed25519_verify", params: [pubkey, signature, payload], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -423,102 +229,48 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["packs"] = {
-      create: (...values: Array<number | bigint | symbol | null>): symbol => {
-        const packref = Symbol()
-
-        packs.set(packref, values)
-
-        return packref
+      create: (...values: Array<Pack.Value>): Pack => {
+        return new Pack(values)
       },
-      concat: (leftAsPackref: symbol, rightAsPackref: symbol): symbol => {
-        const leftAsPack = packs.get(leftAsPackref)
-        const rightAsPack = packs.get(rightAsPackref)
-
-        if (leftAsPack == null)
-          throw new Error("Not found")
-        if (rightAsPack == null)
-          throw new Error("Not found")
-
-        const concatAsPackref = Symbol()
-
-        packs.set(concatAsPackref, [...leftAsPack, ...rightAsPack])
-
-        return concatAsPackref
+      concat: (left: Pack, right: Pack): Pack => {
+        return new Pack([...left.values, ...right.values])
       },
-      length: (packref: symbol): number => {
-        const pack = packs.get(packref)
-
-        if (pack == null)
-          throw new Error("Not found")
-
-        return pack.length
+      length: (pack: Pack): number => {
+        return pack.values.length
       },
-      get(packref: symbol, index: number): number | bigint | symbol | null {
-        const pack = packs.get(packref)
+      get(pack: Pack, index: number): Pack.Value {
+        const value = pack.values[index >>> 0]
 
-        if (pack == null)
+        if (value === undefined)
           throw new Error("Not found")
-        if ((index >>> 0) > pack.length - 1)
-          throw new Error("Out of bounds")
 
-        return pack[index >>> 0]
+        return value
       },
-      encode: (packref: symbol): symbol => {
-        const pack = packs.get(packref)
-
-        if (pack == null)
-          throw new Error("Not found")
-
-        const blobref = Symbol()
-
-        blobs.set(blobref, encode(pack))
-
-        return blobref
+      encode: (pack: Pack): Uint8Array => {
+        return pack_encode(pack)
       },
-      decode: (blobref: symbol): symbol => {
-        const bytes = blobs.get(blobref)
-
-        if (bytes == null)
-          throw new Error("Not found")
-
-        const packref = Symbol()
-
-        packs.set(packref, decode(bytes))
-
-        return packref
+      decode: (blob: Uint8Array): Pack => {
+        return pack_decode(blob)
       }
     }
 
     imports["storage"] = {
-      set: (keyAsBlobref: symbol, valueAsBlobref: symbol): void => {
-        const keyAsBytes = blobs.get(keyAsBlobref)
-        const valueAsBytes = blobs.get(valueAsBlobref)
+      set: (key: Uint8Array, value: Uint8Array): void => {
+        cache.set(key, value)
 
-        if (keyAsBytes == null)
-          throw new Error("Not found")
-        if (valueAsBytes == null)
-          throw new Error("Not found")
-
-        cache.set(keyAsBlobref, valueAsBlobref)
-
-        writes.push([module, keyAsBytes, valueAsBytes])
+        writes.push([module, key, value])
 
         return
       },
-      get: (keyAsBlobref: symbol): symbol | null => {
-        const keyAsBytes = blobs.get(keyAsBlobref)
+      get: (key: Uint8Array): Uint8Array | null => {
+        const stale = cache.get(key)
 
-        if (keyAsBytes == null)
-          throw new Error("Not found")
-
-        const staleValueAsBlob = cache.get(keyAsBlobref)
-
-        if (staleValueAsBlob != null)
-          return staleValueAsBlob
+        if (stale != null)
+          return stale
 
         const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
-        helper.postMessage({ method: "storage_get", params: [module, keyAsBytes], result })
+        helper.postMessage({ method: "storage_get", params: [module, key], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -527,14 +279,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[1] === 2)
           return null
 
-        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
+        const fresh = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
-        const valueAsBlobref = Symbol()
+        cache.set(key, fresh)
 
-        blobs.set(valueAsBlobref, valueAsBytes)
-        cache.set(keyAsBlobref, valueAsBlobref)
-
-        return valueAsBlobref
+        return fresh
       }
     }
 
@@ -589,7 +338,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const result = encode([instance.exports[method](...decode(params))])
+  const result = pack_encode(new Pack(instance.exports[method](...pack_decode(params).values)))
 
   return { result, writes, sparks }
 }
