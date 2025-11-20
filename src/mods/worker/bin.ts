@@ -373,7 +373,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const result = pack_encode(new Pack(instance.exports[method](...pack_decode(params).values)))
+  const result = pack_encode(new Pack([instance.exports[method](...pack_decode(params).values)]))
 
   return { result, writes, sparks }
 }
