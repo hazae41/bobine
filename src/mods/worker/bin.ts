@@ -136,6 +136,36 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
+    imports["bigints"] = {
+      add: (left: bigint, right: bigint): bigint => {
+        return left + right
+      },
+      sub: (left: bigint, right: bigint): bigint => {
+        return left - right
+      },
+      mul: (left: bigint, right: bigint): bigint => {
+        return left * right
+      },
+      div: (left: bigint, right: bigint): bigint => {
+        return left / right
+      },
+      pow: (left: bigint, right: bigint): bigint => {
+        return left ** right
+      },
+      from_base16: (text: Uint8Array): bigint => {
+        return BigInt("0x" + new TextDecoder().decode(text))
+      },
+      to_base16: (bigint: bigint): Uint8Array => {
+        return new TextEncoder().encode(bigint.toString(16))
+      },
+      from_base10: (text: Uint8Array): bigint => {
+        return BigInt(new TextDecoder().decode(text))
+      },
+      to_base10: (bigint: bigint): Uint8Array => {
+        return new TextEncoder().encode(bigint.toString())
+      }
+    }
+
     imports["symbols"] = {
       create: (): symbol => {
         return Symbol()
