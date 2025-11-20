@@ -142,11 +142,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    const refs = new Array<symbol>()
-    const ptrs = new Map<symbol, number>()
+    const refs = new Array<unknown>()
+    const ptrs = new Map<unknown, number>()
 
     imports["refs"] = {
-      numerize: (ref: symbol): number => {
+      numerize: (ref: unknown): number => {
         const stale = ptrs.get(ref)
 
         if (stale != null)
@@ -158,7 +158,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return fresh
       },
-      denumerize: (ptr: number): symbol => {
+      denumerize: (ptr: number): unknown => {
         const ref = refs.at(ptr >>> 0)
 
         if (ref == null)
