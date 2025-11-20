@@ -2,7 +2,6 @@ import { blobref, blobs } from "../../libs/blobs/mod";
 import { console } from "../../libs/console/mod";
 import { refs } from "../../libs/externs/mod";
 import { modules } from "../../libs/modules/mod";
-import { packref } from "../../libs/packs/mod";
 import { symbolref } from "../../libs/symbols/mod";
 
 // @ts-ignore
@@ -23,7 +22,7 @@ declare function session_logmeback(module: blobref): void
 
 const sessions = new Set<usize>();
 
-export function onsession(session: packref): void {
+export function onsession(session: symbolref): void {
   sessions.add(refs.numerize(session));
 }
 
