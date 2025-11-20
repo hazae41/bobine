@@ -122,13 +122,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       equals: (left: Uint8Array, right: Uint8Array): boolean => {
         return !Buffer.compare(left, right)
       },
-      from_hex: (text: Uint8Array): Uint8Array => {
+      from_base16: (text: Uint8Array): Uint8Array => {
         return Uint8Array.fromHex(new TextDecoder().decode(text))
       },
       from_base64: (text: Uint8Array): Uint8Array => {
         return Uint8Array.fromBase64(new TextDecoder().decode(text))
       },
-      to_hex: (bytes: Uint8Array): Uint8Array => {
+      to_base16: (bytes: Uint8Array): Uint8Array => {
         return new TextEncoder().encode(bytes.toHex())
       },
       to_base64: (bytes: Uint8Array): Uint8Array => {
