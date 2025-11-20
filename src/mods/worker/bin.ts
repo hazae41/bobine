@@ -18,12 +18,11 @@ const scriptsAsPath = url.searchParams.get("scripts")!
 const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${url.search}`), { type: "module" })
 
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
-  const exports: WebAssembly.Imports = {}
-
   let sparks = 0n
 
-  const cache = new Map<Uint8Array, Uint8Array>()
+  const exports: WebAssembly.Imports = {}
 
+  const caches = new Map<string, Map<Uint8Array, Uint8Array>>()
   const writes = new Array<[string, Uint8Array, Uint8Array]>()
 
   const pack_encode = (pack: Pack): Uint8Array => {
@@ -64,6 +63,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
     const current: WebAssembly.WebAssemblyInstantiatedSource = {} as any
+
+    caches.set(module, new Map())
 
     const imports: WebAssembly.Imports = {}
 
@@ -256,6 +257,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["storage"] = {
       set: (key: Uint8Array, value: Uint8Array): void => {
+        const cache = caches.get(module)!
+
         cache.set(key, value)
 
         writes.push([module, key, value])
@@ -263,6 +266,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return
       },
       get: (key: Uint8Array): Uint8Array | null => {
+        const cache = caches.get(module)!
+
         const stale = cache.get(key)
 
         if (stale != null)
