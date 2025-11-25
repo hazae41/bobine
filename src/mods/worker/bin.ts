@@ -33,10 +33,19 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return Readable.readFromBytesOrThrow(Pack, bytes)
   }
 
+  const sparks_consume = (amount: bigint) => {
+    sparks += amount
+
+    if (maxsparks != null && sparks > maxsparks)
+      throw new Error("Out of sparks")
+
+    return
+  }
+
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
     sparks_consume(BigInt(payload.length) * 256n)
 
-    const result = new Int32Array(new SharedArrayBuffer((1 + 32) * 4))
+    const result = new Int32Array(new SharedArrayBuffer(4 + 32))
 
     helper.postMessage({ method: "sha256_digest", params: [payload], result })
 
@@ -45,20 +54,39 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     if (result[0] === 2)
       throw new Error("Internal error")
 
-    const digest = new Uint8Array(32)
-
-    digest.set(new Uint8Array(result.buffer, 4, 32))
-
-    return digest
+    return new Uint8Array(result.buffer, 4, 32).slice()
   }
 
-  const sparks_consume = (amount: bigint) => {
-    sparks += amount
+  const ed25519_verify = (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
+    sparks_consume(BigInt(payload.length) * 256n)
 
-    if (maxsparks != null && sparks > maxsparks)
-      throw new Error("Out of sparks")
+    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
 
-    return
+    helper.postMessage({ method: "ed25519_verify", params: [pubkey, signature, payload], result })
+
+    if (Atomics.wait(result, 0, 0) !== "ok")
+      throw new Error("Failed to wait")
+    if (result[0] === 2)
+      throw new Error("Internal error")
+
+    return result[1] === 1
+  }
+
+  const ed25519_sign = (payload: Uint8Array): Uint8Array => {
+    sparks_consume(BigInt(payload.length) * 256n)
+
+    const repayload = pack_encode(new Pack([Uint8Array.fromHex(module), payload]))
+
+    const result = new Int32Array(new SharedArrayBuffer(4 + 64))
+
+    helper.postMessage({ method: "ed25519_sign", params: [repayload], result })
+
+    if (Atomics.wait(result, 0, 0) !== "ok")
+      throw new Error("Failed to wait")
+    if (result[0] === 2)
+      throw new Error("Internal error")
+
+    return new Uint8Array(result.buffer, 4, 64).slice()
   }
 
   const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
@@ -253,18 +281,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["ed25519"] = {
       verify: (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
-        sparks_consume(BigInt(payload.length) * 256n)
-
-        const result = new Int32Array(new SharedArrayBuffer(4 + 4))
-
-        helper.postMessage({ method: "ed25519_verify", params: [pubkey, signature, payload], result })
-
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
-
-        return result[1] === 1
+        return ed25519_verify(pubkey, signature, payload)
+      },
+      sign: (payload: Uint8Array): Uint8Array => {
+        return ed25519_sign(payload)
       }
     }
 

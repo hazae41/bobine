@@ -100,6 +100,22 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
       return
     }
 
+    if (request.method === "ed25519_sign") {
+      const [payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+      const keypairAsRef = await crypto.subtle.generateKey("Ed25519", true, ["sign"])
+
+      const signatureAsBytes = new Uint8Array(await crypto.subtle.sign("Ed25519", keypairAsRef.privateKey, payloadAsBytes))
+
+      request.result[0] = 1
+
+      new Uint8Array(request.result.buffer).set(signatureAsBytes, 4)
+
+      Atomics.notify(request.result, 0)
+
+      return
+    }
+
     throw new RpcMethodNotFoundError()
   } catch (error: unknown) {
     const request = event.data
