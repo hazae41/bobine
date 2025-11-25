@@ -13,19 +13,30 @@ export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request
   const {
     DATABASE_PATH = Deno.env.get(prefix + "DATABASE_PATH"),
     SCRIPTS_PATH = Deno.env.get(prefix + "SCRIPTS_PATH"),
+    ED25519_PRIVATE_KEY_HEX = Deno.env.get(prefix + "ED25519_PRIVATE_KEY_HEX"),
+    ED25519_PUBLIC_KEY_HEX = Deno.env.get(prefix + "ED25519_PUBLIC_KEY_HEX"),
   } = {}
 
   if (DATABASE_PATH == null)
     throw new Error("DATABASE_PATH is not set")
   if (SCRIPTS_PATH == null)
     throw new Error("SCRIPTS_PATH is not set")
+  if (ED25519_PRIVATE_KEY_HEX == null)
+    throw new Error("ED25519_PRIVATE_KEY_HEX is not set")
+  if (ED25519_PUBLIC_KEY_HEX == null)
+    throw new Error("ED25519_PUBLIC_KEY_HEX is not set")
 
   Deno.mkdirSync(dirname(DATABASE_PATH), { recursive: true })
 
-  return await serve(DATABASE_PATH, SCRIPTS_PATH)
+  return await serve(DATABASE_PATH, SCRIPTS_PATH, ED25519_PRIVATE_KEY_HEX, ED25519_PUBLIC_KEY_HEX)
 }
 
-export async function serve(databaseAsPath: string, scriptsAsPath: string): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
+export async function serve(
+  databaseAsPath: string,
+  scriptsAsPath: string,
+  ed25519PrivateKeyAsHex: string,
+  ed25519PublicKeyAsHex: string
+): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
   const database = await connect(databaseAsPath)
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
@@ -55,7 +66,7 @@ export async function serve(databaseAsPath: string, scriptsAsPath: string): Prom
 
   const setOfEffortsAsHex = new Set<string>()
 
-  const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${databaseAsPath}&scripts=${scriptsAsPath}`), { name: "worker", type: "module" }))
+  const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${databaseAsPath}&scripts=${scriptsAsPath}&ed25519PrivateKeyAsHex=${ed25519PrivateKeyAsHex}&ed25519PublicKeyAsHex=${ed25519PublicKeyAsHex}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     if (request.headers.get("Upgrade") === "websocket") {

@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-explicit-any no-unused-vars
+// deno-lint-ignore-file no-explicit-any no-unused-vars ban-unused-ignore
 
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
@@ -12,7 +12,6 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const url = new URL(import.meta.url)
 
-const databaseAsPath = url.searchParams.get("database")!
 const scriptsAsPath = url.searchParams.get("scripts")!
 
 const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${url.search}`), { type: "module" })

@@ -9,7 +9,9 @@ declare const self: DedicatedWorkerGlobalScope;
 const url = new URL(import.meta.url)
 
 const databaseAsPath = url.searchParams.get("database")!
-const scriptsAsPath = url.searchParams.get("scripts")!
+
+const ed25519PrivkeyAsBytes = Uint8Array.fromHex(url.searchParams.get("ed25519PrivateKeyAsHex")!)
+const ed25519PubkeyAsBytes = Uint8Array.fromHex(url.searchParams.get("ed25519PublicKeyAsHex")!)
 
 const database = await connect(databaseAsPath)
 
@@ -87,9 +89,9 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (request.method === "ed25519_verify") {
       const [pubkeyAsBytes, signatureAsBytes, payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 
-      const pubkeyAsRef = await crypto.subtle.importKey("raw", pubkeyAsBytes, "Ed25519", true, ["verify"])
+      const pubkeyAsKey = await crypto.subtle.importKey("raw", pubkeyAsBytes, "Ed25519", true, ["verify"])
 
-      const verified = await crypto.subtle.verify("Ed25519", pubkeyAsRef, signatureAsBytes, payloadAsBytes)
+      const verified = await crypto.subtle.verify("Ed25519", pubkeyAsKey, signatureAsBytes, payloadAsBytes)
 
       request.result[0] = 1
 
@@ -103,9 +105,9 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (request.method === "ed25519_sign") {
       const [payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 
-      const keypairAsRef = await crypto.subtle.generateKey("Ed25519", true, ["sign"])
+      const privkeyAsKey = await crypto.subtle.importKey("pkcs8", ed25519PrivkeyAsBytes, "Ed25519", false, ["sign"]);
 
-      const signatureAsBytes = new Uint8Array(await crypto.subtle.sign("Ed25519", keypairAsRef.privateKey, payloadAsBytes))
+      const signatureAsBytes = new Uint8Array(await crypto.subtle.sign("Ed25519", privkeyAsKey, payloadAsBytes))
 
       request.result[0] = 1
 
