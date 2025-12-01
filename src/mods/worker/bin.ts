@@ -455,6 +455,10 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
       return
     }
 
+    if (request.method === "verify") {
+      // TODO
+    }
+
     throw new RpcMethodNotFoundError()
   } catch (cause: unknown) {
     const request = event.data
