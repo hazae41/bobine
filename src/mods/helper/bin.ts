@@ -1,19 +1,12 @@
-// deno-lint-ignore-file no-unused-vars
-
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
 import { runAsImmediateOrThrow } from "../../libs/sql/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const url = new URL(import.meta.url)
+const params = new URL(import.meta.url).searchParams
 
-const databaseAsPath = url.searchParams.get("database")!
-
-const ed25519PrivkeyAsBytes = Uint8Array.fromHex(url.searchParams.get("ed25519PrivateKeyAsHex")!)
-const ed25519PubkeyAsBytes = Uint8Array.fromHex(url.searchParams.get("ed25519PublicKeyAsHex")!)
-
-const database = await connect(databaseAsPath)
+const database = await connect(params.get("database")!)
 
 self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & { result: Int32Array<SharedArrayBuffer> }>) => {
   try {
@@ -103,9 +96,9 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     }
 
     if (request.method === "ed25519_sign") {
-      const [payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+      const [privkeyAsBytes, payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 
-      const privkeyAsKey = await crypto.subtle.importKey("pkcs8", ed25519PrivkeyAsBytes, "Ed25519", false, ["sign"]);
+      const privkeyAsKey = await crypto.subtle.importKey("pkcs8", privkeyAsBytes, "Ed25519", false, ["sign"]);
 
       const signatureAsBytes = new Uint8Array(await crypto.subtle.sign("Ed25519", privkeyAsKey, payloadAsBytes))
 

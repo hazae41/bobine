@@ -10,11 +10,14 @@ import { Pack } from "../../libs/packs/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const url = new URL(import.meta.url)
+const params = new URL(import.meta.url).searchParams
 
-const scriptsAsPath = url.searchParams.get("scripts")!
+const scriptsAsPath = params.get("scripts")!
 
-const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts${url.search}`), { type: "module" })
+const ed25519PrivkeyAsHex = params.get("ed25519PrivateKeyAsHex")!
+const ed25519PrivkeyAsBytes = Uint8Array.fromHex(ed25519PrivkeyAsHex)
+
+const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts?${params.toString()}`), { type: "module" })
 
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
@@ -71,14 +74,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return result[1] === 1
   }
 
-  const ed25519_sign = (payload: Uint8Array): Uint8Array => {
-    sparks_consume(BigInt(payload.length) * 256n)
+  const ed25519_sign = (subpayload: Uint8Array): Uint8Array => {
+    sparks_consume(BigInt(subpayload.length) * 256n)
 
-    const repayload = pack_encode(new Pack([Uint8Array.fromHex(module), payload]))
+    const payload = pack_encode(new Pack([Uint8Array.fromHex(module), subpayload]))
 
     const result = new Int32Array(new SharedArrayBuffer(4 + 64))
 
-    helper.postMessage({ method: "ed25519_sign", params: [repayload], result })
+    helper.postMessage({ method: "ed25519_sign", params: [ed25519PrivkeyAsBytes, payload], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
