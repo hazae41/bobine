@@ -1,15 +1,17 @@
+import { readFileSync } from "node:fs";
+import process from "node:process";
 import { serveWithEnv } from "./mod.ts";
 
 const {
-  PORT = Deno.env.get("PORT") || "8080",
-  CERT = Deno.env.get("CERT"),
-  KEY = Deno.env.get("KEY"),
-} = Deno.env.toObject()
+  PORT = process.env.PORT || "8080",
+  CERT = process.env.CERT,
+  KEY = process.env.KEY,
+} = process.env
 
 const port = Number(PORT)
 
-const cert = CERT != null ? Deno.readTextFileSync(CERT) : undefined
-const key = KEY != null ? Deno.readTextFileSync(KEY) : undefined
+const cert = CERT != null ? readFileSync(CERT, "utf8") : undefined
+const key = KEY != null ? readFileSync(KEY, "utf8") : undefined
 
 const server = await serveWithEnv()
 

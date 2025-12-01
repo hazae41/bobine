@@ -7,14 +7,15 @@ import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import process from "node:process";
 import { Pack } from "../../libs/packs/mod.ts";
 
 export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
   const {
-    DATABASE_PATH = Deno.env.get(prefix + "DATABASE_PATH"),
-    SCRIPTS_PATH = Deno.env.get(prefix + "SCRIPTS_PATH"),
-    ED25519_PRIVATE_KEY_HEX = Deno.env.get(prefix + "ED25519_PRIVATE_KEY_HEX"),
-    ED25519_PUBLIC_KEY_HEX = Deno.env.get(prefix + "ED25519_PUBLIC_KEY_HEX"),
+    DATABASE_PATH = process.env[prefix + "DATABASE_PATH"],
+    SCRIPTS_PATH = process.env[prefix + "SCRIPTS_PATH"],
+    ED25519_PRIVATE_KEY_HEX = process.env[prefix + "ED25519_PRIVATE_KEY_HEX"],
+    ED25519_PUBLIC_KEY_HEX = process.env[prefix + "ED25519_PUBLIC_KEY_HEX"],
   } = {}
 
   if (DATABASE_PATH == null)
@@ -26,7 +27,7 @@ export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request
   if (ED25519_PUBLIC_KEY_HEX == null)
     throw new Error("ED25519_PUBLIC_KEY_HEX is not set")
 
-  Deno.mkdirSync(dirname(DATABASE_PATH), { recursive: true })
+  mkdirSync(dirname(DATABASE_PATH), { recursive: true })
 
   return await serve(DATABASE_PATH, SCRIPTS_PATH, ED25519_PRIVATE_KEY_HEX, ED25519_PUBLIC_KEY_HEX)
 }
