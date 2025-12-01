@@ -1,6 +1,6 @@
 {
   "name": "@hazae41/bobine",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "imports": {
     "@/": "./src/",
     "@hazae41/binary": "jsr:@hazae41/binary@^2.0.2",
