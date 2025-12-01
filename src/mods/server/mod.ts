@@ -1,5 +1,4 @@
-// deno-lint-ignore-file no-cond-assign
-/// <reference lib="deno.ns" />
+// deno-lint-ignore-file no-cond-assign no-unused-vars require-await
 
 import { Writable } from "@hazae41/binary";
 import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
@@ -10,7 +9,7 @@ import { dirname } from "node:path";
 import process from "node:process";
 import { Pack } from "../../libs/packs/mod.ts";
 
-export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
+export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
   const {
     DATABASE_PATH = process.env[prefix + "DATABASE_PATH"],
     SCRIPTS_PATH = process.env[prefix + "SCRIPTS_PATH"],
@@ -37,7 +36,7 @@ export async function serve(
   scriptsAsPath: string,
   ed25519PrivateKeyAsHex: string,
   ed25519PublicKeyAsHex: string
-): Promise<{ onHttpRequest(request: Request): Promise<Response> }> {
+): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
   const database = await connect(databaseAsPath)
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
@@ -70,44 +69,6 @@ export async function serve(
   const worker = new Mutex(new Worker(import.meta.resolve(`@/mods/worker/bin.ts?database=${databaseAsPath}&scripts=${scriptsAsPath}&ed25519PrivateKeyAsHex=${ed25519PrivateKeyAsHex}&ed25519PublicKeyAsHex=${ed25519PublicKeyAsHex}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
-    if (request.headers.get("Upgrade") === "websocket") {
-      const uuid = new URL(request.url).searchParams.get("session")
-
-      if (uuid == null)
-        return Response.json(null, { status: 401 })
-
-      const { socket, response } = Deno.upgradeWebSocket(request)
-
-      const routeOrThrow = (_message: string) => {
-        return
-      }
-
-      const handleOrClose = async (request: string) => {
-        try {
-          if (!request)
-            return
-
-          const response = await routeOrThrow(request)
-
-          if (response == null)
-            return
-
-          socket.send(JSON.stringify(response))
-        } catch {
-          socket.close()
-        }
-      }
-
-      socket.addEventListener("message", async (event) => {
-        if (typeof event.data !== "string")
-          return
-        return await handleOrClose(event.data)
-      })
-
-      return response
-    }
-
-    // deno-lint-ignore no-unused-vars
     let match: URLPatternResult | null
 
     if (match = new URLPattern("/api/create", request.url).exec(request.url)) {
@@ -341,5 +302,33 @@ export async function serve(
     return Response.json(null, { status: 404 })
   }
 
-  return { onHttpRequest }
+  const onWebSocketRequest = async (request: Request, socket: WebSocket) => {
+    const routeOrThrow = (_message: string) => {
+      return
+    }
+
+    const handleOrClose = async (request: string) => {
+      try {
+        if (!request)
+          return
+
+        const response = await routeOrThrow(request)
+
+        if (response == null)
+          return
+
+        socket.send(JSON.stringify(response))
+      } catch {
+        socket.close()
+      }
+    }
+
+    socket.addEventListener("message", async (event) => {
+      if (typeof event.data !== "string")
+        return
+      return await handleOrClose(event.data)
+    })
+  }
+
+  return { onHttpRequest, onWebSocketRequest }
 }

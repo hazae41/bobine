@@ -19,6 +19,14 @@ const route = async (request: Request) => {
   if (request.method === "OPTIONS")
     return new Response(null, { status: 204 })
 
+  if (request.headers.get("Upgrade") === "websocket") {
+    const { socket, response } = Deno.upgradeWebSocket(request)
+
+    await server.onWebSocketRequest(request, socket)
+
+    return response
+  }
+
   return await server.onHttpRequest(request)
 }
 
