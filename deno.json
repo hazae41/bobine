@@ -16,6 +16,9 @@
     "./worker": "./src/mods/worker/bin.ts",
     "./helper": "./src/mods/helper/bin.ts"
   },
+  "exclude": [
+    "./test"
+  ],
   "lint": {
     "rules": {
       "exclude": [
