@@ -189,7 +189,9 @@ Use the SHA-256 hashing algorithm
 
 Use the Ed25519 signing algorithm
 
-- `ed25519.verify(pubkey: blobref, signature: blobref, payload: blobref): boolean` = verify a Ed25519 signature
+- `ed25519.verify(pubkey: blobref, signature: blobref, payload: blobref): boolean` = verify a signature
+
+- `ed25519.sign(payload: blobref): blobref` = (experimental) sign payload using the miner's private key
 
 ### symbols (experimental)
 
