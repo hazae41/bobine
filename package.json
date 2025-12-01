@@ -21,10 +21,6 @@
       "types": "./out/mod.d.ts",
       "import": "./out/mod.js"
     },
-    "./server": {
-      "types": "./out/mods/server/bin.d.ts",
-      "import": "./out/mods/server/bin.js"
-    },
     "./worker": {
       "types": "./out/mods/worker/bin.d.ts",
       "import": "./out/mods/worker/bin.js"

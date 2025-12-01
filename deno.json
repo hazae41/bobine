@@ -13,7 +13,6 @@
   },
   "exports": {
     ".": "./src/mod.ts",
-    "./server": "./src/mods/server/bin.ts",
     "./worker": "./src/mods/worker/bin.ts",
     "./helper": "./src/mods/helper/bin.ts"
   },
