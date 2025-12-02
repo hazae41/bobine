@@ -17,7 +17,7 @@ const scriptsAsPath = params.get("scripts")!
 const ed25519PrivkeyAsHex = params.get("ed25519PrivateKeyAsHex")!
 const ed25519PrivkeyAsBytes = Uint8Array.fromHex(ed25519PrivkeyAsHex)
 
-const helper = new Worker(import.meta.resolve(`@/mods/helper/bin.ts?${params.toString()}`), { type: "module" })
+const helper = new Worker(import.meta.resolve(`../helper/bin.ts?${params.toString()}`), { type: "module" })
 
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
