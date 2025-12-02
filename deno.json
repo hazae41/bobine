@@ -34,5 +34,8 @@
       "deno.unstable",
       "webworker"
     ]
-  }
+  },
+  "unstable": [
+    "sloppy-imports"
+  ]
 }

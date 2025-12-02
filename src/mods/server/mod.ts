@@ -66,7 +66,7 @@ export async function serve(
 
   const setOfEffortsAsHex = new Set<string>()
 
-  const worker = new Mutex(new Worker(import.meta.resolve(`../worker/bin.ts?database=${databaseAsPath}&scripts=${scriptsAsPath}&ed25519PrivateKeyAsHex=${ed25519PrivateKeyAsHex}&ed25519PublicKeyAsHex=${ed25519PublicKeyAsHex}`), { name: "worker", type: "module" }))
+  const worker = new Mutex(new Worker(import.meta.resolve(`../worker/bin.js?database=${databaseAsPath}&scripts=${scriptsAsPath}&ed25519PrivateKeyAsHex=${ed25519PrivateKeyAsHex}&ed25519PublicKeyAsHex=${ed25519PublicKeyAsHex}`), { name: "worker", type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     let match: URLPatternResult | null
