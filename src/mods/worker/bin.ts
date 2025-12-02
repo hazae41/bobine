@@ -15,7 +15,7 @@ const params = new URL(import.meta.url).searchParams
 const scriptsAsPath = params.get("scripts")!
 
 const ed25519PrivkeyAsHex = params.get("ed25519PrivateKeyAsHex")!
-const ed25519PrivkeyAsBytes = new Uint8Array([])
+const ed25519PrivkeyAsBytes = Uint8Array.fromHex(ed25519PrivkeyAsHex)
 
 const helper = new Worker(import.meta.resolve(`../helper/bin.js?${params.toString()}`), { type: "module" })
 
