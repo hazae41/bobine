@@ -7,17 +7,13 @@ import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { meter } from "../../libs/metering/mod.ts";
 import { Pack } from "../../libs/packs/mod.ts";
+import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const params = new URL(import.meta.url).searchParams
+const config = await fetch(self.name).then(res => res.json()) as Config
 
-const scriptsAsPath = params.get("scripts")!
-
-const ed25519PrivkeyAsHex = params.get("ed25519PrivateKeyAsHex")!
-const ed25519PrivkeyAsBytes = Uint8Array.fromHex(ed25519PrivkeyAsHex)
-
-const helper = new Worker(import.meta.resolve(`../helper/bin.js?${params.toString()}`), { type: "module" })
+const helper = new Worker(import.meta.resolve("../helper/bin.js"), { name: self.name, type: "module" })
 
 function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
@@ -81,7 +77,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     const result = new Int32Array(new SharedArrayBuffer(4 + 64))
 
-    helper.postMessage({ method: "ed25519_sign", params: [ed25519PrivkeyAsBytes, payload], result })
+    helper.postMessage({ method: "ed25519_sign", params: [payload], result })
 
     if (Atomics.wait(result, 0, 0) !== "ok")
       throw new Error("Failed to wait")
@@ -247,12 +243,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`))
-          writeFileSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+        if (!existsSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`))
+          writeFileSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-        if (!existsSync(`${scriptsAsPath}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${scriptsAsPath}/${digestOfPackAsHex}.wasm`, "file")
-
+        if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
         return digestOfPackAsBytes
       },
       call: (moduleAsBytes: Uint8Array, methodAsBytes: Uint8Array, paramsAsPack: Pack): Pack => {
@@ -268,7 +263,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         return new Pack([exports[moduleAsString][methodAsString](...paramsAsPack.values)])
       },
       load: (moduleAsBytes: Uint8Array): Uint8Array => {
-        return readFileSync(`${scriptsAsPath}/${moduleAsBytes.toHex()}.wasm`)
+        return readFileSync(`${config.scripts.path}/${moduleAsBytes.toHex()}.wasm`)
       },
       self: (): Uint8Array => {
         return Uint8Array.fromHex(module)
@@ -355,8 +350,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     let meteredWasmAsBytes: Uint8Array<ArrayBuffer>
 
-    if (!existsSync(`${scriptsAsPath}/${module}.metered.wasm`)) {
-      const wasmAsBytes = readFileSync(`${scriptsAsPath}/${module}.wasm`)
+    if (!existsSync(`${config.scripts.path}/${module}.metered.wasm`)) {
+      const wasmAsBytes = readFileSync(`${config.scripts.path}/${module}.wasm`)
 
       const wasmAsParsed = Readable.readFromBytesOrThrow(Wasm.Module, wasmAsBytes)
 
@@ -364,9 +359,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
       meteredWasmAsBytes = Writable.writeToBytesOrThrow(wasmAsParsed)
 
-      writeFileSync(`${scriptsAsPath}/${module}.metered.wasm`, meteredWasmAsBytes)
+      writeFileSync(`${config.scripts.path}/${module}.metered.wasm`, meteredWasmAsBytes)
     } else {
-      meteredWasmAsBytes = readFileSync(`${scriptsAsPath}/${module}.metered.wasm`)
+      meteredWasmAsBytes = readFileSync(`${config.scripts.path}/${module}.metered.wasm`)
     }
 
     const meteredWasmAsModule = new WebAssembly.Module(meteredWasmAsBytes)
@@ -412,6 +407,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const request = event.data
+
+    if (request.method === "config") {
+      const [config] = request.params as [any]
+
+      self.postMessage(new RpcOk(request.id, null))
+
+      return
+    }
 
     if (request.method === "execute") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]

@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import process from "node:process";
 import { Pack } from "../../libs/packs/mod.ts";
+import { Config } from "../config/mod.ts";
 
 export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
   const {
@@ -28,16 +29,22 @@ export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request
 
   mkdirSync(dirname(DATABASE_PATH), { recursive: true })
 
-  return await serve(DATABASE_PATH, SCRIPTS_PATH, ED25519_PRIVATE_KEY_HEX, ED25519_PUBLIC_KEY_HEX)
+  return await serve({
+    database: {
+      path: DATABASE_PATH
+    },
+    scripts: {
+      path: SCRIPTS_PATH
+    },
+    ed25519: {
+      pvtKeyAsHex: ED25519_PRIVATE_KEY_HEX,
+      pubKeyAsHex: ED25519_PUBLIC_KEY_HEX
+    }
+  })
 }
 
-export async function serve(
-  databaseAsPath: string,
-  scriptsAsPath: string,
-  ed25519PrivateKeyAsHex: string,
-  ed25519PublicKeyAsHex: string
-): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
-  const database = await connect(databaseAsPath)
+export async function serve(config: Config): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
+  const database = await connect(config.database.path)
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,11 +69,13 @@ export async function serve(
 
   await database.close()
 
-  mkdirSync(scriptsAsPath, { recursive: true })
+  mkdirSync(config.scripts.path, { recursive: true })
 
   const setOfEffortsAsHex = new Set<string>()
 
-  const worker = new Mutex(new Worker(import.meta.resolve(`../worker/bin.js?database=${databaseAsPath}&scripts=${scriptsAsPath}&ed25519PrivateKeyAsHex=${ed25519PrivateKeyAsHex}&ed25519PublicKeyAsHex=${ed25519PublicKeyAsHex}`), { name: "worker", type: "module" }))
+  const name = URL.createObjectURL(new Blob([JSON.stringify(config)], { type: 'application/json' }));
+
+  const worker = new Mutex(new Worker(import.meta.resolve("../worker/bin.js"), { name: name, type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     let match: URLPatternResult | null
@@ -125,12 +134,11 @@ export async function serve(
         const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`))
-          writeFileSync(`${scriptsAsPath}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+        if (!existsSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`))
+          writeFileSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
 
-        if (!existsSync(`${scriptsAsPath}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${scriptsAsPath}/${digestOfPackAsHex}.wasm`)
-
+        if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
+          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`)
         return Response.json(digestOfPackAsHex)
       }
 
