@@ -13,7 +13,7 @@ async function execute(module: string, method: string, params: Uint8Array<ArrayB
 
   const start = performance.now()
 
-  const response = await fetch("http://localhost:8080/api/execute", { method: "POST", body });
+  const response = await fetch("https://bob0.deno0.hazae41.me/api/execute", { method: "POST", body });
 
   const until = performance.now()
 
