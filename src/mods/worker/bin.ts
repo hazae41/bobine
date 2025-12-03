@@ -408,14 +408,6 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
   try {
     const request = event.data
 
-    if (request.method === "config") {
-      const [config] = request.params as [any]
-
-      self.postMessage(new RpcOk(request.id, null))
-
-      return
-    }
-
     if (request.method === "execute") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
