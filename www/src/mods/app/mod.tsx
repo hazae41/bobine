@@ -71,18 +71,39 @@ export function App() {
       }
     })
 
-    const wasm = await future.promise
-
-    console.log(wasm)
+    return await future.promise
   }, [])
 
   useEffect(() => void f(`
-    import { blobref } from "@/libs/blobs/mod.ts";
+    import { blobref, blobs } from "@/libs/blobs/mod.ts"
+    import { packref, packs } from "@/libs/packs/mod.ts"
 
-    export function add(a: i32, b: i32): i32 {
+    namespace counter {
+
+      export function get(): bigintref {
+        const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)))
+
+        if (!result)
+          return 0
+
+        return packs.get<u64>(packs.decode(result), 0)
+      }
+
+      export function set(address: blobref, amount: u64): void {
+        storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create1(amount)))
+      }
+
+    }
+
+    export function get(): bigintref {
+
+    }
+
+    export function add(): void {
       return a + b;
     }
-  `), [])
+
+  `).then(console.log), [])
 
   return <div className="text-2xl font-sans">
     {delocalize(HelloWorld)}
