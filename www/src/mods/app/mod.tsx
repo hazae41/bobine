@@ -1,5 +1,6 @@
-import { delocalize, Localized } from "@/libs/locale/mod.ts";
-import React from "react";
+// deno-lint-ignore-file no-cond-assign
+import React, { useCallback, useEffect } from "react";
+import { delocalize, Localized } from "../../libs/locale/mod.ts";
 
 React;
 
@@ -37,6 +38,52 @@ const HelloWorld = {
 } satisfies Localized
 
 export function App() {
+  const f = useCallback(async (module: string) => {
+    const asc = await import("assemblyscript/asc")
+
+    const future = Promise.withResolvers<Uint8Array>()
+
+    await asc.main([
+      "mod.ts",
+      "--outFile", "mod.wasm",
+      "--runtime", "stub",
+      "--optimizeLevel", "3",
+      "--enable", "reference-types"
+    ], {
+      listFiles() {
+        return ["mod.ts"]
+      },
+      async readFile(filename: string) {
+        if (filename === "mod.ts")
+          return module
+
+        let match: RegExpMatchArray | null = null
+
+        if (match = filename.match(/^node_modules\/@\/libs\/(.*)$/))
+          return await fetch(`/libs/${match[1]}`).then(res => res.text())
+
+        return null
+      },
+      writeFile(filename: string, content: Uint8Array) {
+        if (filename !== "mod.wasm")
+          return
+        future.resolve(content)
+      }
+    })
+
+    const wasm = await future.promise
+
+    console.log(wasm)
+  }, [])
+
+  useEffect(() => void f(`
+    import { blobref } from "@/libs/blobs/mod.ts";
+
+    export function add(a: i32, b: i32): i32 {
+      return a + b;
+    }
+  `), [])
+
   return <div className="text-2xl font-sans">
     {delocalize(HelloWorld)}
   </div>
