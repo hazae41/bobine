@@ -1,0 +1,111 @@
+{
+  "name": "Starter",
+  "short_name": "Starter",
+  "description": "A cool webapp with React and Tailwind",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/appicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any maskable"
+    }
+  ],
+  "background": {
+    "service_worker": "/service.worker.js"
+  },
+  "paths": [
+    {
+      "locale": "en"
+    },
+    {
+      "locale": "zh"
+    },
+    {
+      "locale": "hi"
+    },
+    {
+      "locale": "es"
+    },
+    {
+      "locale": "ar"
+    },
+    {
+      "locale": "fr"
+    },
+    {
+      "locale": "de"
+    },
+    {
+      "locale": "ru"
+    },
+    {
+      "locale": "pt"
+    },
+    {
+      "locale": "ja"
+    },
+    {
+      "locale": "pa"
+    },
+    {
+      "locale": "bn"
+    },
+    {
+      "locale": "id"
+    },
+    {
+      "locale": "ur"
+    },
+    {
+      "locale": "ms"
+    },
+    {
+      "locale": "it"
+    },
+    {
+      "locale": "tr"
+    },
+    {
+      "locale": "ta"
+    },
+    {
+      "locale": "te"
+    },
+    {
+      "locale": "ko"
+    },
+    {
+      "locale": "vi"
+    },
+    {
+      "locale": "pl"
+    },
+    {
+      "locale": "ro"
+    },
+    {
+      "locale": "nl"
+    },
+    {
+      "locale": "el"
+    },
+    {
+      "locale": "th"
+    },
+    {
+      "locale": "cs"
+    },
+    {
+      "locale": "hu"
+    },
+    {
+      "locale": "sv"
+    },
+    {
+      "locale": "da"
+    }
+  ]
+}
