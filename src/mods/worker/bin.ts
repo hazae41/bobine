@@ -5,6 +5,7 @@ import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } 
 import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { log } from "../../libs/debug/mod.ts";
 import { meter } from "../../libs/metering/mod.ts";
 import { Pack } from "../../libs/packs/mod.ts";
 import type { Config } from "../config/mod.ts";
@@ -115,7 +116,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["console"] = {
       log: (blob: Uint8Array): void => {
-        console.log(new TextDecoder().decode(blob))
+        log?.(new TextDecoder().decode(blob))
       }
     }
 
@@ -456,7 +457,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
       const until = performance.now()
 
-      console.log(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
+      log?.(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
 
       if (writes.length) {
         const result = new Int32Array(new SharedArrayBuffer(4 + 4))
@@ -468,7 +469,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
         if (result[0] === 2)
           throw new Error("Internal error")
 
-        console.log(`Wrote ${writes.length} events to storage`)
+        log?.(`Wrote ${writes.length} events to storage`)
       }
 
       self.postMessage(new RpcOk(request.id, result))
@@ -485,7 +486,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
 
       const until = performance.now()
 
-      console.log(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
+      log?.(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
 
       self.postMessage(new RpcOk(request.id, result))
 
