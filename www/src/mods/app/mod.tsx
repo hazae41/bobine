@@ -75,34 +75,31 @@ export function App() {
   }, [])
 
   useEffect(() => void f(`
-    import { blobref, blobs } from "@/libs/blobs/mod.ts"
-    import { packref, packs } from "@/libs/packs/mod.ts"
+    import { bigintref, bigints } from "@/libs/bigints/mod"
+    import { blobs } from "@/libs/blobs/mod.ts"
+    import { storage } from "@/libs/storage/mod"
 
-    namespace counter {
+    export function add(): bigintref {
+      const key = blobs.save(String.UTF8.encode("counter"))
 
-      export function get(): bigintref {
-        const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)))
+      const val = storage.get(key)
 
-        if (!result)
-          return 0
+      if (!val) {
+        const fresh = bigints.one()
 
-        return packs.get<u64>(packs.decode(result), 0)
+        storage.set(key, bigints.encode(fresh))
+
+        return fresh
       }
 
-      export function set(address: blobref, amount: u64): void {
-        storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create1(amount)))
-      }
+      const stale = bigints.decode(val)
 
+      const fresh = bigints.inc(stale)
+
+      storage.set(key, bigints.encode(fresh))
+
+      return fresh
     }
-
-    export function get(): bigintref {
-
-    }
-
-    export function add(): void {
-      return a + b;
-    }
-
   `).then(console.log), [])
 
   return <div className="text-2xl font-sans">
