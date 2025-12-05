@@ -1,6 +1,17 @@
 # Bobine
 
-Your neighbor's chain of compute
+A blockchain in your garage
+
+## Features
+
+- Ultra simple
+- WebAssembly modules
+- Based on web technologies
+- Resistant to 50% attacks
+- Account* abstraction
+- Verifiable without ZK
+
+\* There are no built-in accounting concepts, only pure generic APIs for cryptography and storage
 
 ## HTTP API
 

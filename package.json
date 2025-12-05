@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@hazae41/bobine",
   "version": "0.0.5",
-  "description": "Your neighbor's chain of compute",
+  "description": "A blockchain in your garage",
   "repository": "github:hazae41/bobine",
   "author": "hazae41",
   "license": "MIT",
