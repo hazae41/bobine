@@ -162,7 +162,72 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
+    imports["packs"] = {
+      create: (...values: Array<Pack.Value>): Pack => {
+        return new Pack(values)
+      },
+      concat: (left: Pack, right: Pack): Pack => {
+        return new Pack([...left.values, ...right.values])
+      },
+      length: (pack: Pack): number => {
+        return pack.values.length
+      },
+      get(pack: Pack, index: number): Pack.Value {
+        const value = pack.values[index >>> 0]
+
+        if (value === undefined)
+          throw new Error("Not found")
+
+        return value
+      },
+      encode: (pack: Pack): Uint8Array => {
+        return pack_encode(pack)
+      },
+      decode: (blob: Uint8Array): Pack => {
+        return pack_decode(blob)
+      }
+    }
+
     imports["bigints"] = {
+      zero: (): bigint => {
+        return 0n
+      },
+      one: (): bigint => {
+        return 1n
+      },
+      two: (): bigint => {
+        return 2n
+      },
+      three: (): bigint => {
+        return 3n
+      },
+      four: (): bigint => {
+        return 4n
+      },
+      five: (): bigint => {
+        return 5n
+      },
+      six: (): bigint => {
+        return 6n
+      },
+      seven: (): bigint => {
+        return 7n
+      },
+      eight: (): bigint => {
+        return 8n
+      },
+      nine: (): bigint => {
+        return 9n
+      },
+      ten: (): bigint => {
+        return 10n
+      },
+      inc: (value: bigint): bigint => {
+        return value + 1n
+      },
+      dec: (value: bigint): bigint => {
+        return value - 1n
+      },
       add: (left: bigint, right: bigint): bigint => {
         return left + right
       },
@@ -198,38 +263,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       },
       to_base10: (bigint: bigint): Uint8Array => {
         return new TextEncoder().encode(bigint.toString())
-      }
-    }
-
-    imports["symbols"] = {
-      create: (): symbol => {
-        return Symbol()
-      }
-    }
-
-    const refs = new Array<unknown>()
-    const ptrs = new Map<unknown, number>()
-
-    imports["refs"] = {
-      numerize: (ref: unknown): number => {
-        const stale = ptrs.get(ref)
-
-        if (stale != null)
-          return stale
-
-        const fresh = refs.push(ref) - 1
-
-        ptrs.set(ref, fresh)
-
-        return fresh
-      },
-      denumerize: (ptr: number): unknown => {
-        const ref = refs.at(ptr >>> 0)
-
-        if (ref == null)
-          throw new Error("Not found")
-
-        return ref
       }
     }
 
@@ -270,47 +303,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    imports["sha256"] = {
-      digest: (payload: Uint8Array): Uint8Array => {
-        return sha256_digest(payload)
-      }
-    }
-
-    imports["ed25519"] = {
-      verify: (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
-        return ed25519_verify(pubkey, signature, payload)
-      },
-      sign: (payload: Uint8Array): Uint8Array => {
-        return ed25519_sign(payload)
-      }
-    }
-
-    imports["packs"] = {
-      create: (...values: Array<Pack.Value>): Pack => {
-        return new Pack(values)
-      },
-      concat: (left: Pack, right: Pack): Pack => {
-        return new Pack([...left.values, ...right.values])
-      },
-      length: (pack: Pack): number => {
-        return pack.values.length
-      },
-      get(pack: Pack, index: number): Pack.Value {
-        const value = pack.values[index >>> 0]
-
-        if (value === undefined)
-          throw new Error("Not found")
-
-        return value
-      },
-      encode: (pack: Pack): Uint8Array => {
-        return pack_encode(pack)
-      },
-      decode: (blob: Uint8Array): Pack => {
-        return pack_decode(blob)
-      }
-    }
-
     imports["storage"] = {
       set: (key: Uint8Array, value: Uint8Array): void => {
         const cache = caches.get(module)!
@@ -345,6 +337,53 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         cache.set(key, fresh)
 
         return fresh
+      }
+    }
+
+    imports["symbols"] = {
+      create: (): symbol => {
+        return Symbol()
+      }
+    }
+
+    const refs = new Array<unknown>()
+    const ptrs = new Map<unknown, number>()
+
+    imports["refs"] = {
+      numerize: (ref: unknown): number => {
+        const stale = ptrs.get(ref)
+
+        if (stale != null)
+          return stale
+
+        const fresh = refs.push(ref) - 1
+
+        ptrs.set(ref, fresh)
+
+        return fresh
+      },
+      denumerize: (ptr: number): unknown => {
+        const ref = refs.at(ptr >>> 0)
+
+        if (ref == null)
+          throw new Error("Not found")
+
+        return ref
+      }
+    }
+
+    imports["sha256"] = {
+      digest: (payload: Uint8Array): Uint8Array => {
+        return sha256_digest(payload)
+      }
+    }
+
+    imports["ed25519"] = {
+      verify: (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
+        return ed25519_verify(pubkey, signature, payload)
+      },
+      sign: (payload: Uint8Array): Uint8Array => {
+        return ed25519_sign(payload)
       }
     }
 

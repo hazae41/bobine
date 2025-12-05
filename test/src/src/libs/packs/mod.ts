@@ -52,6 +52,10 @@ export namespace packs {
   @external("packs", "create")
   export declare function create9<A, B, C, D, E, F, G, H, I>(arg0: A, arg1: B, arg2: C, arg3: D, arg4: E, arg5: F, arg6: G, arg7: H, arg8: I): packref
 
+  // @ts-ignore: decorator
+  @external("packs", "length")
+  export declare function length(pack: packref): usize
+
   // @ts-ignore
   @external("packs", "get")
   export declare function get<T>(pack: packref, index: usize): T

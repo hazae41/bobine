@@ -5,6 +5,58 @@ export type bigintref = externref
 export namespace bigints {
 
   // @ts-ignore: decorator
+  @external("bigints", "zero")
+  export declare function zero(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "one")
+  export declare function one(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "two")
+  export declare function two(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "three")
+  export declare function three(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "four")
+  export declare function four(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "five")
+  export declare function five(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "six")
+  export declare function six(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "seven")
+  export declare function seven(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "eight")
+  export declare function eight(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "nine")
+  export declare function nine(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "ten")
+  export declare function ten(): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "inc")
+  export declare function inc(value: bigintref): bigintref
+
+  // @ts-ignore: decorator
+  @external("bigints", "dec")
+  export declare function dec(value: bigintref): bigintref
+
+  // @ts-ignore: decorator
   @external("bigints", "add")
   export declare function add(left: bigintref, right: bigintref): bigintref
 
