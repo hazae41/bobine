@@ -1,7 +1,7 @@
 {
-  "name": "Starter",
-  "short_name": "Starter",
-  "description": "A cool webapp with React and Tailwind",
+  "name": "Bobine",
+  "short_name": "Bobine",
+  "description": "A blockchain in your garage",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
