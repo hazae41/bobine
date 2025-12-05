@@ -37,6 +37,39 @@ const HelloWorld = {
   da: "Hej verden",
 } satisfies Localized
 
+const Motto = {
+  en: "Your neighbor's blockchain",
+  zh: "你邻居的区块链",
+  hi: "आपके पड़ोसी का ब्लॉकचेन",
+  es: "La blockchain de tu vecino",
+  ar: "بلوكشين جارك",
+  fr: "Une blockchain chez ton voisin",
+  de: "Die Blockchain deines Nachbarn",
+  ru: "Блокчейн вашего соседа",
+  pt: "A blockchain do seu vizinho",
+  ja: "あなたの隣人のブロックチェーン",
+  pa: "ਤੁਹਾਡੇ ਪੜੋਸੀ ਦਾ ਬਲੌਕਚੇਨ",
+  bn: "আপনার প্রতিবেশীর ব্লকচেইন",
+  id: "Blockchain tetangga Anda",
+  ur: "آپ کے پڑوسی کا بلاک چین",
+  ms: "Rantai blok jiran anda",
+  it: "La blockchain del tuo vicino",
+  tr: "Komşunuzun blok zinciri",
+  ta: "உங்கள் அயலவர் பிளாக்செயின்",
+  te: "మీ పొరుగువారి బ్లాక్‌చెయిన్",
+  ko: "이웃의 블록체인",
+  vi: "Chuỗi khối của hàng xóm bạn",
+  pl: "Blockchain twojego sąsiada",
+  ro: "Blockchain vecinului tău",
+  nl: "De blockchain van je buurman",
+  el: "Το blockchain του γείτονά σας",
+  th: "บล็อกเชนของเพื่อนบ้านของคุณ",
+  cs: "Blockchain vašeho souseda",
+  hu: "A szomszédod blokklánca",
+  sv: "Din grannes blockchain",
+  da: "Din nabos blockchain",
+} satisfies Localized
+
 export function App() {
   const f = useCallback(async (module: string) => {
     const asc = await import("assemblyscript/asc")
