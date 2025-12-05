@@ -7,8 +7,8 @@
     "version": "deno -RW ./x.vsync.ts && git add deno.json",
     "prepare": "deno -RW ./x.dsync.ts && deno install",
     "prepack": "glace ./src/mods/www --out=./out",
-    "produce": "glace ./src/mods/www --out=./out --watch & deno -RNE ./src/mods/srv/bin.ts",
-    "develop": "glace ./src/mods/www --out=./out --dev --watch & deno -RNE ./src/mods/srv/bin.ts --dev"
+    "produce": "glace ./src/mods/www --out=./out --watch=./src & deno -RNE ./src/mods/srv/bin.ts",
+    "develop": "glace ./src/mods/www --out=./out --dev --watch=./src & deno -RNE ./src/mods/srv/bin.ts --dev"
   },
   "files": [
     "./out"
@@ -18,12 +18,12 @@
     "@hazae41/labase": "^1.0.15",
     "@hazae41/rewind": "^2.3.12",
     "assemblyscript": "^0.28.9",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@hazae41/glace": "^1.0.14",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2"
+    "@hazae41/glace": "^1.0.15",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
   }
 }
