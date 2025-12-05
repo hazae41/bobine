@@ -1,8 +1,6 @@
 // deno-lint-ignore-file no-cond-assign
 import React, { JSX, useCallback, useEffect } from "react";
-import { Outline } from "../../libs/heroicons/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
-import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 React;
@@ -159,6 +157,8 @@ export function App() {
 
   return <div className="p-safe h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
+      <img className="absolute h-[400px] rotate-180 top-0" src="/engie.png" />
+      <div className="grow" />
       <div className="grow" />
       <div className="text-center text-6xl font-medium">
         {delocalize(Title)}
@@ -166,13 +166,6 @@ export function App() {
       <div className="h-4" />
       <div className="text-center text-default-contrast text-2xl">
         {delocalize(Subtitle)}
-      </div>
-      <div className="grow" />
-      <div className="flex items-center">
-        <ClickableOppositeAnchor>
-          <Outline.BoltIcon className="size-5" />
-          {delocalize(Try)}
-        </ClickableOppositeAnchor>
       </div>
       <div className="grow" />
     </div>
