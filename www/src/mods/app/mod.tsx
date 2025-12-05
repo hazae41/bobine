@@ -155,19 +155,23 @@ export function App() {
     }
   `).then(console.log).catch(console.error), [])
 
-  return <div className="p-safe h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
-    <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
-      <img className="absolute h-[400px] rotate-180 top-0" src="/engie.png" />
-      <div className="grow" />
-      <div className="grow" />
-      <div className="text-center text-6xl font-medium">
-        {delocalize(Title)}
+  return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
+    <div className="w-full flex justify-center">
+      <img className="h-[400px] rotate-180" src="/engie.png" />
+    </div>
+    <div className="p-safe">
+      <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
+        <div className="text-center text-6xl font-medium">
+          {delocalize(Title)}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {delocalize(Subtitle)}
+        </div>
+        <div className="grow" />
       </div>
-      <div className="h-4" />
-      <div className="text-center text-default-contrast text-2xl">
-        {delocalize(Subtitle)}
+      <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
       </div>
-      <div className="grow" />
     </div>
   </div>
 }
