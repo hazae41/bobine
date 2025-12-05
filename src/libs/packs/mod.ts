@@ -1,3 +1,5 @@
+/// <reference types="../bytes/lib.d.ts"/>
+
 import type { Cursor } from "@hazae41/cursor";
 
 export class Pack {
@@ -10,6 +12,11 @@ export class Pack {
     let size = 0
 
     for (const value of this.values) {
+      if (value == null) {
+        size += 1
+        continue
+      }
+
       if (typeof value === "number") {
         size += 1 + 4
         continue
@@ -33,9 +40,7 @@ export class Pack {
         continue
       }
 
-      size += 1
-
-      continue
+      throw new Error("Unknown pack value")
     }
 
     size += 1
@@ -45,6 +50,11 @@ export class Pack {
 
   writeOrThrow(cursor: Cursor) {
     for (const value of this.values) {
+      if (value == null) {
+        cursor.writeUint8OrThrow(1)
+        continue
+      }
+
       if (typeof value === "number") {
         cursor.writeUint8OrThrow(2)
         cursor.writeFloat64OrThrow(value, true)
@@ -75,8 +85,7 @@ export class Pack {
         continue
       }
 
-      cursor.writeUint8OrThrow(1)
-      continue
+      throw new Error("Unknown pack value")
     }
 
     cursor.writeUint8OrThrow(0)
@@ -87,7 +96,7 @@ export class Pack {
 
 export namespace Pack {
 
-  export type Value = number | bigint | Uint8Array | Pack | null
+  export type Value = null | number | bigint | Uint8Array | Pack
 
   export function readOrThrow(cursor: Cursor): Pack {
     const values = []
@@ -97,6 +106,11 @@ export namespace Pack {
 
       if (type === 0)
         break
+
+      if (type === 1) {
+        values.push(null)
+        continue
+      }
 
       if (type === 2) {
         values.push(cursor.readFloat64OrThrow(true))
@@ -121,8 +135,7 @@ export namespace Pack {
         continue
       }
 
-      values.push(null)
-      continue
+      throw new Error("Unknown pack type")
     }
 
     return new Pack(values)

@@ -24,6 +24,6 @@ export function very_big(): bigintref {
   return c
 }
 
-export function smol(): u64 {
+export function smol(): i64 {
   return 12345
 }

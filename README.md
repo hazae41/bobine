@@ -52,16 +52,16 @@ You can use any module method by using the module address as hex
 
 ```tsx
 @external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "add")
-declare function add(x: u32, y: u32): u32
+declare function add(x: i32, y: i32): i32
 ```
 
 ### blobs
 
 You can pass bytes between modules by storing them in the blob storage and loading them via reference
 
-- `blobs.save(offset: u32, length: u32): blobref` = save `length` bytes at `offset` of your memory to the blob storage
+- `blobs.save(offset: i32, length: i32): blobref` = save `length` bytes at `offset` of your memory to the blob storage
 
-- `blobs.load(blob: blobref, offset: u32): void` = load some blob into your memory at `offset`
+- `blobs.load(blob: blobref, offset: i32): void` = load some blob into your memory at `offset`
 
 - `blobs.equals(left: blobref, right: blobref): bool` = check if two blobs are equals without loading them into memory
 
@@ -106,18 +106,18 @@ You can pack various arguments (numbers, refs) into a pack which can be passed b
 ```tsx
 function writePack(pack: packref) {
   for (const value of values) {
-    if (value == null) {
+    if (isNull(value)) {
       writeUint8(1)
       continue
     }
 
-    if (typeof value === "number") {
+    if (isNumber(value)) {
       writeUint8(2)
       writeFloat64(value, "little-endian")
       continue
     }
     
-    if (typeof value === "bigint") {
+    if (isBigInt(value)) {
       writeUint8(3)
       writeUint32(value.toHex().length, "little-endian")
       writeBytes(value.toHex())
@@ -137,8 +137,7 @@ function writePack(pack: packref) {
       continue
     }
 
-    writeUint8(1) // anything else if encoded as null
-    continue
+    throw new Error()
   }
 
   writeUint8(0)
@@ -149,13 +148,13 @@ function writePack(pack: packref) {
 
 - `packs.concat(left: packref, right: packref)` = concatenate two packs into one (basically does `[...left, ...right]`)
 
-- `packs.get<T>(pack: packref, index: u32): T` = get the value of a pack at `index` (throws if not found)
+- `packs.get<T>(pack: packref, index: i32): T` = get the value of a pack at `index` (throws if not found)
 
 ### env
 
 Get infos about the executing environment
 
-- `env.mode: u32` = `1` if execution, `2` is simulation
+- `env.mode: i32` = `1` if execution, `2` is simulation
 
 - `env.uuid(): blobref` = get the unique uuid of this environment (similar to a chain id)
 
@@ -199,14 +198,14 @@ Use the Ed25519 signing algorithm
 
 ### refs (experimental)
 
-- `refs.numerize(ref: symbolref/blobref/packref): u32` = translate any reference into a unique private pointer that can be stored into data structures
+- `refs.numerize(ref: symbolref/blobref/packref): i32` = translate any reference into a unique private pointer that can be stored into data structures
 
-- `refs.denumerize(pointer: u32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
+- `refs.denumerize(pointer: i32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
 
 This can be useful if you want to check a reference for authenticity
 
 ```tsx
-const sessions = new Set<u32>()
+const sessions = new Set<i32>()
 
 export function login(password: blobref): symbolref {
   const session = symbols.create()  

@@ -24,16 +24,16 @@ namespace owner {
 
 namespace balances {
 
-  export function get(address: blobref): u64 {
+  export function get(address: blobref): i64 {
     const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)))
 
     if (!result)
       return 0
 
-    return packs.get<u64>(packs.decode(result), 0)
+    return packs.get<i64>(packs.decode(result), 0)
   }
 
-  export function set(address: blobref, amount: u64): void {
+  export function set(address: blobref, amount: i64): void {
     storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("balance")), address)), packs.encode(packs.create1(amount)))
   }
 
@@ -56,9 +56,9 @@ export function init(creator: blobref): void {
 /**
  * Get the balance of a specific address
  * @param target 
- * @returns u64
+ * @returns i64
  */
-export function get_balance(target: blobref): u64 {
+export function get_balance(target: blobref): i64 {
   return balances.get(target)
 }
 
@@ -68,7 +68,7 @@ export function get_balance(target: blobref): u64 {
  * @param target 
  * @param amount 
  */
-export function mint(session: packref, target: blobref, amount: u64): void {
+export function mint(session: packref, target: blobref, amount: i64): void {
   const sender = addresses.verify(session)
 
   if (!blobs.equals(sender, owner.get()))
@@ -85,7 +85,7 @@ export function mint(session: packref, target: blobref, amount: u64): void {
  * @param target 
  * @param amount 
  */
-export function transfer(session: packref, target: blobref, amount: u64): void {
+export function transfer(session: packref, target: blobref, amount: i64): void {
   const sender = addresses.verify(session)
 
   const bsender = balances.get(sender)

@@ -9,22 +9,22 @@ import { storage } from "../../libs/storage/mod"
 
 namespace nonces {
 
-  export function get(address: blobref): u64 {
+  export function get(address: blobref): i64 {
     const result = storage.get(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)))
 
     if (!result)
       return 0
 
-    return packs.get<u64>(packs.decode(result), 0)
+    return packs.get<i64>(packs.decode(result), 0)
   }
 
-  export function set(address: blobref, amount: u64): void {
+  export function set(address: blobref, amount: i64): void {
     storage.set(packs.encode(packs.create2(blobs.save(String.UTF8.encode("nonce")), address)), packs.encode(packs.create1(amount)))
   }
 
 }
 
-export function get_nonce(address: blobref): u64 {
+export function get_nonce(address: blobref): i64 {
   return nonces.get(address)
 }
 
