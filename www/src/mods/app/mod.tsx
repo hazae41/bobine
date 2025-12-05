@@ -170,8 +170,40 @@ export function App() {
         </div>
         <div className="grow" />
       </div>
-      <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
+      <div className="p-4 min-h-[calc(100dvh-16rem)] flex-none flex flex-col items-center">
+        <div className="text-center text-4xl font-medium">
+          counter.ts
+        </div>
+        <div className="h-4" />
+        <div className="h-full w-[min(800px,100dvw)] bg-default-contrast rounded-xl p-4 whitespace-pre-wrap">
+          {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
+import { blobs } from "@/libs/blobs/mod.ts"
+import { storage } from "@/libs/storage/mod.ts"
+
+export function add(): bigintref {
+  const key = blobs.save(String.UTF8.encode("counter"))
+
+  const val = storage.get(key)
+
+  if (!val) {
+    const fresh = bigints.one()
+
+    storage.set(key, bigints.encode(fresh))
+
+    return fresh
+  }
+
+  const stale = bigints.decode(val)
+
+  const fresh = bigints.inc(stale)
+
+  storage.set(key, bigints.encode(fresh))
+
+  return fresh
+}`}
+        </div>
       </div>
+      <div className="h-[50dvh]" />
     </div>
   </div>
 }
