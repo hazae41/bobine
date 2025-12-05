@@ -17,6 +17,7 @@
     "@hazae41/immutable": "^2.0.15",
     "@hazae41/labase": "^1.0.15",
     "@hazae41/rewind": "^2.3.12",
+    "@heroicons/react": "^2.2.0",
     "assemblyscript": "^0.28.9",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"

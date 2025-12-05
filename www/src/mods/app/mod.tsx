@@ -1,6 +1,9 @@
 // deno-lint-ignore-file no-cond-assign
-import React, { useCallback, useEffect } from "react";
+import React, { JSX, useCallback, useEffect } from "react";
+import { Outline } from "../../libs/heroicons/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
+import { Try } from "../../libs/messages/mod.ts";
+import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 React;
 
@@ -155,7 +158,7 @@ export function App() {
   `).then(console.log).catch(console.error), [])
 
   return <div className="p-safe h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
-    <div className="h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
+    <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
       <div className="grow" />
       <div className="text-center text-6xl font-medium">
         {delocalize(Title)}
@@ -165,6 +168,33 @@ export function App() {
         {delocalize(Subtitle)}
       </div>
       <div className="grow" />
+      <div className="flex items-center">
+        <ClickableOppositeAnchor>
+          <Outline.BoltIcon className="size-5" />
+          {delocalize(Try)}
+        </ClickableOppositeAnchor>
+      </div>
+      <div className="grow" />
     </div>
+  </div>
+}
+
+export function ClickableOppositeAnchor(props: ChildrenProps & JSX.IntrinsicElements["a"] & { "aria-disabled"?: boolean }) {
+  const { children, "aria-disabled": disabled = false, ...rest } = props
+
+  return <a className="group po-2 bg-opposite text-opposite rounded-xl outline-none aria-[disabled=false]:hover:bg-opposite-double-contrast focus-visible:outline-opposite aria-disabled:opacity-50 transition-opacity"
+    aria-disabled={disabled}
+    {...rest}>
+    <GapperAndClickerInAnchorDiv>
+      {children}
+    </GapperAndClickerInAnchorDiv>
+  </a>
+}
+
+export function GapperAndClickerInAnchorDiv(props: ChildrenProps) {
+  const { children } = props
+
+  return <div className="h-full w-full flex justify-center items-center gap-2 group-aria-[disabled=false]:group-active:scale-90 transition-transform">
+    {children}
   </div>
 }

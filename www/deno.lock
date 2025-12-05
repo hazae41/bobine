@@ -340,6 +340,7 @@
         "npm:@hazae41/immutable@^2.0.15",
         "npm:@hazae41/labase@^1.0.15",
         "npm:@hazae41/rewind@^2.3.12",
+        "npm:@heroicons/react@^2.2.0",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.7",
         "npm:assemblyscript@~0.28.9",
