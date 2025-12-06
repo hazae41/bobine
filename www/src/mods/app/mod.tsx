@@ -185,8 +185,18 @@ export function App() {
           {"You can write modules in any language that compiles to WebAssembly"}
         </div>
         <div className="h-16" />
-        <div className="h-full max-h-[400px] overflow-y-scroll bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono text-sm">
-          {new TextDecoder().decode(Uint8Array.fromHex(hexdump))}
+        <div className="w-full max-w-[600px] flex flex-col">
+          <div className="text-2xl font-medium">
+            counter.wasm
+          </div>
+          <div className="h-2" />
+          <div className="text-default-contrast">
+            {"WebAssembly"}
+          </div>
+          <div className="h-4" />
+          <div className="h-full max-h-[400px] overflow-y-scroll bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+            {hexdump}
+          </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
@@ -198,12 +208,12 @@ export function App() {
         </div>
         <div className="h-16" />
         <div className="w-full max-w-[600px] flex flex-col">
-          <div className="text-4xl font-medium">
+          <div className="text-2xl font-medium">
             counter.ts
           </div>
           <div className="h-2" />
-          <div className="text-xl text-default-contrast">
-            {"AssemblyScript + Standard library"}
+          <div className="text-default-contrast">
+            {"AssemblyScript"}
           </div>
           <div className="h-4" />
           <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono"
@@ -240,6 +250,22 @@ export function add(): bigintref {
               {delocalize(Try)}
             </WideClickableOppositeAnchor>
           </div>
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Gas paid via proof-of-work"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"No gas token, just compute some hashes to pay for your transactions"}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Full account abstraction"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"No built-in concept of accounts, use any accounting module"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
