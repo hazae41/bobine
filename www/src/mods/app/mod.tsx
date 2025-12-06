@@ -1,7 +1,12 @@
 // deno-lint-ignore-file no-cond-assign
+import hljs from "highlight.js/lib/core";
+import typescript from "highlight.js/lib/languages/typescript";
 import React, { JSX, useCallback, useEffect } from "react";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
+import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
+
+hljs.registerLanguage("typescript", typescript);
 
 React;
 
@@ -157,10 +162,10 @@ export function App() {
 
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="w-full flex justify-center">
-      <img className="h-[400px] rotate-180" src="/engie.png" />
+      <img className="h-[40dvh] rotate-180" src="/engie.png" />
     </div>
     <div className="p-safe">
-      <div className="p-4 h-[max(24rem,100dvh-16rem)] flex-none flex flex-col items-center">
+      <div className="p-4 min-h-[calc(100dvh-16rem)] flex-none flex flex-col items-center">
         <div className="text-center text-6xl font-medium">
           {delocalize(Title)}
         </div>
@@ -171,12 +176,14 @@ export function App() {
         <div className="grow" />
       </div>
       <div className="p-4 min-h-[calc(100dvh-16rem)] flex-none flex flex-col items-center">
-        <div className="text-center text-4xl font-medium">
-          counter.ts
-        </div>
-        <div className="h-4" />
-        <div className="h-full w-[min(800px,100dvw)] bg-default-contrast rounded-xl p-4 whitespace-pre-wrap">
-          {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
+        <div className="w-full max-w-[600px] flex flex-col">
+          <div className="text-center text-2xl font-medium">
+            counter.ts
+          </div>
+          <div className="h-4" />
+          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap"
+            ref={e => void (e.innerHTML = hljs.highlight(e.innerHTML, { language: "typescript" }).value)}>
+            {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
 import { storage } from "@/libs/storage/mod.ts"
 
@@ -201,6 +208,13 @@ export function add(): bigintref {
 
   return fresh
 }`}
+          </div>
+          <div className="h-4" />
+          <div className="flex">
+            <WideClickableOppositeAnchor>
+              {delocalize(Try)}
+            </WideClickableOppositeAnchor>
+          </div>
         </div>
       </div>
       <div className="h-[50dvh]" />
@@ -212,6 +226,18 @@ export function ClickableOppositeAnchor(props: ChildrenProps & JSX.IntrinsicElem
   const { children, "aria-disabled": disabled = false, ...rest } = props
 
   return <a className="group po-2 bg-opposite text-opposite rounded-xl outline-none aria-[disabled=false]:hover:bg-opposite-double-contrast focus-visible:outline-opposite aria-disabled:opacity-50 transition-opacity"
+    aria-disabled={disabled}
+    {...rest}>
+    <GapperAndClickerInAnchorDiv>
+      {children}
+    </GapperAndClickerInAnchorDiv>
+  </a>
+}
+
+export function WideClickableOppositeAnchor(props: ChildrenProps & JSX.IntrinsicElements["a"] & { "aria-disabled"?: boolean }) {
+  const { children, "aria-disabled": disabled = false, ...rest } = props
+
+  return <a className="flex-1 group po-2 bg-opposite border border-opposite text-opposite rounded-xl outline-none whitespace-nowrap aria-[disabled=false]:hover:bg-opposite-double-contrast focus-visible:outline-default-contrast aria-disabled:opacity-50 transition-opacity"
     aria-disabled={disabled}
     {...rest}>
     <GapperAndClickerInAnchorDiv>

@@ -351,6 +351,7 @@
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.7",
         "npm:assemblyscript@~0.28.9",
+        "npm:highlight.js@^11.11.1",
         "npm:react-dom@^19.2.1",
         "npm:react@^19.2.1"
       ]

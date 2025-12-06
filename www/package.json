@@ -19,6 +19,7 @@
     "@hazae41/rewind": "^2.3.12",
     "@heroicons/react": "^2.2.0",
     "assemblyscript": "^0.28.9",
+    "highlight.js": "^11.11.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
   },
