@@ -1,7 +1,7 @@
 {
   "imports": {
     "@/": "./src/",
-    "@hazae41/glace": "jsr:@hazae41/glace@^1.0.15",
+    "@hazae41/glace": "jsr:@hazae41/glace@^1.0.20",
     "@hazae41/immutable": "jsr:@hazae41/immutable@^2.0.15",
     "@hazae41/labase": "jsr:@hazae41/labase@^1.0.15",
     "@hazae41/rewind": "jsr:@hazae41/rewind@^2.3.12"

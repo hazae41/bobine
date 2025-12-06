@@ -1,15 +1,16 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hazae41/glace@^1.0.15": "1.0.15",
+    "jsr:@hazae41/glace@^1.0.20": "1.0.20",
     "jsr:@hazae41/immutable@^2.0.15": "2.0.15",
     "jsr:@hazae41/mutex@^3.0.1": "3.0.1",
     "jsr:@hazae41/result-and-option@^2.0.8": "2.0.9",
     "jsr:@hazae41/rewind@^2.3.12": "2.3.12",
-    "npm:@hazae41/glace@^1.0.15": "1.0.15",
+    "npm:@hazae41/glace@^1.0.20": "1.0.20",
     "npm:@hazae41/immutable@^2.0.15": "2.0.15",
     "npm:@hazae41/labase@^1.0.15": "1.0.15",
     "npm:@hazae41/rewind@^2.3.12": "2.3.12",
+    "npm:@heroicons/react@^2.2.0": "2.2.0_react@19.2.1",
     "npm:@types/node@*": "24.2.0",
     "npm:@types/react-dom@^19.2.3": "19.2.3_@types+react@19.2.7",
     "npm:@types/react@^19.2.7": "19.2.7",
@@ -21,8 +22,8 @@
     "npm:tailwindcss@^4.1.14": "4.1.14"
   },
   "jsr": {
-    "@hazae41/glace@1.0.15": {
-      "integrity": "bd6f067a2fc28d6637a1f538237644c8f749c426f57be1553c097311be49e7fb",
+    "@hazae41/glace@1.0.20": {
+      "integrity": "3dec2c2f85218ed4b3173c947128919d18080ccd31f4906520062f1d4133c625",
       "dependencies": [
         "jsr:@hazae41/mutex",
         "npm:esbuild",
@@ -179,8 +180,8 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
-    "@hazae41/glace@1.0.15": {
-      "integrity": "sha512-z4gsm67cV1fUGzkWYnt7p1pQFrFI973LALmlgqu9QWDU3LCW4gUewf7rSXqCXv6/e7VjBbt2V7J/BMcXUer62Q==",
+    "@hazae41/glace@1.0.20": {
+      "integrity": "sha512-2ASwQd8V0kYzUCvsIhMyYaWIDmRlSgM2borPs6SKKVJXKICnVFnmKGup54/EWXJWd11+MRzZrhJ6unp7bfU2Lw==",
       "dependencies": [
         "@hazae41/mutex",
         "esbuild",
@@ -210,6 +211,12 @@
       "integrity": "sha512-MIdp4RPgX6PYIcyT77YAfLOAhS09v01cHQTnhDbxJkqM0jo6cb8TmxeLa1w/8zTEki+QVjlM79OdYI3x21Z8bA==",
       "dependencies": [
         "tailwindcss@4.1.14"
+      ]
+    },
+    "@heroicons/react@2.2.0_react@19.2.1": {
+      "integrity": "sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==",
+      "dependencies": [
+        "react"
       ]
     },
     "@types/node@20.19.25": {
@@ -329,14 +336,14 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hazae41/glace@^1.0.15",
+      "jsr:@hazae41/glace@^1.0.20",
       "jsr:@hazae41/immutable@^2.0.15",
       "jsr:@hazae41/labase@^1.0.15",
       "jsr:@hazae41/rewind@^2.3.12"
     ],
     "packageJson": {
       "dependencies": [
-        "npm:@hazae41/glace@^1.0.15",
+        "npm:@hazae41/glace@^1.0.20",
         "npm:@hazae41/immutable@^2.0.15",
         "npm:@hazae41/labase@^1.0.15",
         "npm:@hazae41/rewind@^2.3.12",
