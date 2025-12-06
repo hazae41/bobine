@@ -6,7 +6,6 @@ import typescript from "highlight.js/lib/languages/typescript";
 import React, { JSX, useCallback, useEffect } from "react";
 import { hexdump } from "../../libs/hexdump/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
-import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
@@ -244,12 +243,6 @@ export function add(): bigintref {
   return fresh
 }`}
           </div>
-          <div className="h-4" />
-          <div className="flex">
-            <WideClickableOppositeAnchor>
-              {delocalize(Try)}
-            </WideClickableOppositeAnchor>
-          </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
@@ -330,7 +323,7 @@ export function add(): bigintref {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
-          {"No gas token, just compute some hashes to pay for your transactions"}
+          {"Never run out of gas, just compute some hashes to pay for your transactions"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
