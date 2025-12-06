@@ -253,19 +253,84 @@ export function add(): bigintref {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
+          {"Full account abstraction"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"No built-in concept of accounts, use any accounting module you want"}
+        </div>
+        <div className="h-16" />
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              secp256k1.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Bitcoin, Ethereum
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              ed25519.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Solana, Signal, Tor
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              secp256r1.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Passkeys, Hyperledger
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              mldsa44.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Post-quantum
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              schnorr.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Multi-signature
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="">
+              custom.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              Your own scheme
+            </div>
+          </div>
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Capability-based security"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"No more approve-then-transfer, modules can get temporary access"}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
           {"Gas paid via proof-of-work"}
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
           {"No gas token, just compute some hashes to pay for your transactions"}
-        </div>
-        <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
-          {"Full account abstraction"}
-        </div>
-        <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
-          {"No built-in concept of accounts, use any accounting module"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
