@@ -1,7 +1,10 @@
+/// <reference types="@/libs/bytes/lib.d.ts"/>
+
 // deno-lint-ignore-file no-cond-assign
 import hljs from "highlight.js/lib/core";
 import typescript from "highlight.js/lib/languages/typescript";
 import React, { JSX, useCallback, useEffect } from "react";
+import { hexdump } from "../../libs/hexdump/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
 import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
@@ -165,7 +168,7 @@ export function App() {
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
     </div>
     <div className="p-safe">
-      <div className="p-4 min-h-[calc(100dvh-16rem)] flex-none flex flex-col items-center">
+      <div className="p-4 flex-none flex flex-col items-center">
         <div className="text-center text-6xl font-medium">
           {delocalize(Title)}
         </div>
@@ -173,15 +176,37 @@ export function App() {
         <div className="text-center text-default-contrast text-2xl">
           {delocalize(Subtitle)}
         </div>
-        <div className="grow" />
-      </div>
-      <div className="p-4 min-h-[calc(100dvh-16rem)] flex-none flex flex-col items-center">
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Embracing WebAssembly"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"You can write modules in any language that compiles to WebAssembly"}
+        </div>
+        <div className="h-16" />
+        <div className="h-full max-h-[400px] overflow-y-scroll bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono text-sm">
+          {new TextDecoder().decode(Uint8Array.fromHex(hexdump))}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"No extra tooling required"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"Just upload any .wasm file, and execute any exported function"}
+        </div>
+        <div className="h-16" />
         <div className="w-full max-w-[600px] flex flex-col">
-          <div className="text-center text-2xl font-medium">
+          <div className="text-4xl font-medium">
             counter.ts
           </div>
+          <div className="h-2" />
+          <div className="text-xl text-default-contrast">
+            {"AssemblyScript + Standard library"}
+          </div>
           <div className="h-4" />
-          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap"
+          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono"
             ref={e => void (e.innerHTML = hljs.highlight(e.innerHTML, { language: "typescript" }).value)}>
             {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
@@ -216,8 +241,8 @@ export function add(): bigintref {
             </WideClickableOppositeAnchor>
           </div>
         </div>
+        <div className="h-[max(24rem,50dvh)]" />
       </div>
-      <div className="h-[50dvh]" />
     </div>
   </div>
 }
