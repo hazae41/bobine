@@ -1,0 +1,13 @@
+@import "../node_modules/@hazae41/labase/src/index.css";
+
+.hljs-keyword {
+  @apply text-red-500 dark:text-red-400;
+}
+
+.hljs-string {
+  @apply text-sky-500 dark:text-sky-400;
+}
+
+.hljs-title {
+  @apply text-violet-500 dark:text-violet-400;
+}

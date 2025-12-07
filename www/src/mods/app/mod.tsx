@@ -1,8 +1,12 @@
 /// <reference types="@/libs/bytes/lib.d.ts"/>
 
 // deno-lint-ignore-file no-cond-assign
+
 import hljs from "highlight.js/lib/core";
+
+// @deno-types="npm:highlight.js"
 import typescript from "highlight.js/lib/languages/typescript";
+
 import React, { JSX, useCallback, useEffect } from "react";
 import { hexdump } from "../../libs/hexdump/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
