@@ -1,15 +1,16 @@
 /// <reference types="@/libs/bytes/lib.d.ts"/>
 
-// deno-lint-ignore-file no-cond-assign
-
 import hljs from "highlight.js/lib/core";
 
 // @deno-types="npm:highlight.js"
 import typescript from "highlight.js/lib/languages/typescript";
 
-import React, { JSX, useCallback, useEffect } from "react";
+import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import React, { JSX, useCallback, useEffect, useState } from "react";
+import { Outline } from "../../libs/heroicons/mod.ts";
 import { hexdump } from "../../libs/hexdump/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
+import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
@@ -83,88 +84,146 @@ const Subtitle = {
 } satisfies Localized
 
 export function App() {
-  const f = useCallback(async (module: string) => {
-    const asc = await import("assemblyscript/asc")
+  // const f = useCallback(async (module: string) => {
+  //   const asc = await import("assemblyscript/asc")
 
-    const future = Promise.withResolvers<Uint8Array>()
+  //   const future = Promise.withResolvers<Uint8Array>()
 
-    const { error } = await asc.main([
-      "mod.ts",
-      "--outFile", "mod.wasm",
-      "--runtime", "stub",
-      "--optimizeLevel", "3",
-      "--enable", "reference-types"
-    ], {
-      stdout: {
-        write(message: string) {
-          console.log(message)
-        }
-      },
-      stderr: {
-        write(message: string) {
-          console.error(message)
-        }
-      },
-      listFiles() {
-        console.log("listFiles")
+  //   const { error } = await asc.main([
+  //     "mod.ts",
+  //     "--outFile", "mod.wasm",
+  //     "--runtime", "stub",
+  //     "--optimizeLevel", "3",
+  //     "--enable", "reference-types"
+  //   ], {
+  //     stdout: {
+  //       write(message: string) {
+  //         console.log(message)
+  //       }
+  //     },
+  //     stderr: {
+  //       write(message: string) {
+  //         console.error(message)
+  //       }
+  //     },
+  //     listFiles() {
+  //       console.log("listFiles")
 
-        return ["mod.ts"]
-      },
-      async readFile(filename: string) {
-        console.log("readFile", filename)
+  //       return ["mod.ts"]
+  //     },
+  //     async readFile(filename: string) {
+  //       console.log("readFile", filename)
 
-        if (filename === "mod.ts")
-          return module
+  //       if (filename === "mod.ts")
+  //         return module
 
-        let match: RegExpMatchArray | null = null
+  //       let match: RegExpMatchArray | null = null
 
-        if (match = filename.match(/^node_modules\/@\/libs\/(.*)$/))
-          return await fetch(`/libs/${match[1]}`).then(res => res.text())
+  //       if (match = filename.match(/^node_modules\/@\/libs\/(.*)$/))
+  //         return await fetch(`/libs/${match[1]}`).then(res => res.text())
 
-        return null
-      },
-      writeFile(filename: string, content: Uint8Array) {
-        console.log("writeFile", filename)
+  //       return null
+  //     },
+  //     writeFile(filename: string, content: Uint8Array) {
+  //       console.log("writeFile", filename)
 
-        if (filename !== "mod.wasm")
-          return
-        future.resolve(content)
-      }
-    })
+  //       if (filename !== "mod.wasm")
+  //         return
+  //       future.resolve(content)
+  //     }
+  //   })
 
-    if (error != null)
-      future.reject(new Error(error.message))
+  //   if (error != null)
+  //     future.reject(new Error(error.message))
 
-    return await future.promise
+  //   return await future.promise
+  // }, [])
+
+  // useEffect(() => void f(`
+  //   import { bigintref, bigints } from "@/libs/bigints/mod.ts"
+  //   import { blobs } from "@/libs/blobs/mod.ts"
+  //   import { storage } from "@/libs/storage/mod.ts"
+
+  //   export function add(): bigintref {
+  //     const key = blobs.save(String.UTF8.encode("counter"))
+
+  //     const val = storage.get(key)
+
+  //     if (!val) {
+  //       const fresh = bigints.one()
+
+  //       storage.set(key, bigints.encode(fresh))
+
+  //       return fresh
+  //     }
+
+  //     const stale = bigints.decode(val)
+
+  //     const fresh = bigints.inc(stale)
+
+  //     storage.set(key, bigints.encode(fresh))
+
+  //     return fresh
+  //   }
+  // `).then(console.log).catch(console.error), [])
+
+  const [loading, setLoading] = useState(false)
+
+  const [messages, setMessages] = useState<string[]>([])
+
+  const [worker, setWorker] = useState<Worker>()
+
+  useEffect(() => {
+    const worker = new Worker("/sparks.worker.js", { type: "module" })
+
+    setWorker(worker)
+
+    return () => worker.terminate()
   }, [])
 
-  useEffect(() => void f(`
-    import { bigintref, bigints } from "@/libs/bigints/mod.ts"
-    import { blobs } from "@/libs/blobs/mod.ts"
-    import { storage } from "@/libs/storage/mod.ts"
+  const onGenerateClick = useCallback(async () => {
+    if (worker == null)
+      return
+    if (loading)
+      return
 
-    export function add(): bigintref {
-      const key = blobs.save(String.UTF8.encode("counter"))
+    using stack = new DisposableStack()
 
-      const val = storage.get(key)
+    setLoading(true)
 
-      if (!val) {
-        const fresh = bigints.one()
+    stack.defer(() => setLoading(false))
 
-        storage.set(key, bigints.encode(fresh))
+    const future = Promise.withResolvers<bigint>()
 
-        return fresh
-      }
+    const aborter = new AbortController()
+    stack.defer(() => aborter.abort())
 
-      const stale = bigints.decode(val)
+    worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<bigint>>) => {
+      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+    }, { signal: aborter.signal })
 
-      const fresh = bigints.inc(stale)
+    worker.addEventListener("error", (event: ErrorEvent) => {
+      future.reject(event.error)
+    }, { signal: aborter.signal })
 
-      storage.set(key, bigints.encode(fresh))
+    worker.addEventListener("messageerror", (event: MessageEvent) => {
+      future.reject(event.data)
+    }, { signal: aborter.signal })
 
-      return fresh
-    }
-  `).then(console.log).catch(console.error), [])
+    worker.postMessage(new RpcRequest(crypto.randomUUID(), "generate", []))
+
+    const value = await future.promise
+
+    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages])
+  }, [loading, worker])
+
+  const [code, setCode] = useState<HTMLDivElement>()
+
+  useEffect(() => {
+    if (!code)
+      return
+    code.innerHTML = hljs.highlight(code.innerHTML, { language: "typescript" }).value
+  }, [code])
 
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="w-full flex justify-center">
@@ -179,6 +238,8 @@ export function App() {
         <div className="text-center text-default-contrast text-2xl">
           {delocalize(Subtitle)}
         </div>
+        <div className="h-16" />
+        <Outline.ChevronDownIcon className="size-6 text-default-half-contrast" />
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
           {"Embracing WebAssembly"}
@@ -197,8 +258,10 @@ export function App() {
             {"WebAssembly"}
           </div>
           <div className="h-4" />
-          <div className="h-full max-h-[400px] overflow-y-scroll bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
-            {hexdump}
+          <div className="bg-default-contrast rounded-xl p-4 pe-2">
+            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
+              {hexdump}
+            </div>
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
@@ -220,7 +283,7 @@ export function App() {
           </div>
           <div className="h-4" />
           <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono"
-            ref={e => void (e.innerHTML = hljs.highlight(e.innerHTML, { language: "typescript" }).value)}>
+            ref={setCode}>
             {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
 import { storage } from "@/libs/storage/mod.ts"
@@ -259,7 +322,7 @@ export function add(): bigintref {
         <div className="h-16" />
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               secp256k1.wasm
             </div>
             <div className="h-2" />
@@ -268,7 +331,7 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               ed25519.wasm
             </div>
             <div className="h-2" />
@@ -277,7 +340,7 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               secp256r1.wasm
             </div>
             <div className="h-2" />
@@ -286,7 +349,7 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               mldsa44.wasm
             </div>
             <div className="h-2" />
@@ -295,7 +358,7 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               schnorr.wasm
             </div>
             <div className="h-2" />
@@ -304,7 +367,7 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="">
+            <div className="text-xl font-medium">
               custom.wasm
             </div>
             <div className="h-2" />
@@ -328,6 +391,20 @@ export function add(): bigintref {
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
           {"Never run out of gas, just compute some hashes to pay for your transactions"}
+        </div>
+        <div className="h-16" />
+        <div className="w-full max-w-[600px] flex flex-col">
+          <div className="bg-default-contrast rounded-xl p-4 pe-2">
+            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
+              {messages.join("\n")}
+            </div>
+          </div>
+          <div className="h-4" />
+          <WideClickableOppositeButton
+            onClick={onGenerateClick}
+            disabled={loading}>
+            {delocalize(Try)}
+          </WideClickableOppositeButton>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
@@ -357,6 +434,25 @@ export function WideClickableOppositeAnchor(props: ChildrenProps & JSX.Intrinsic
       {children}
     </GapperAndClickerInAnchorDiv>
   </a>
+}
+
+export function WideClickableOppositeButton(props: ChildrenProps & JSX.IntrinsicElements["button"]) {
+  const { children, ...rest } = props
+
+  return <button className="flex-1 group po-2 bg-opposite text-opposite rounded-xl outline-none whitespace-nowrap enabled:hover:bg-opposite-double-contrast focus-visible:outline-opposite disabled:opacity-50 transition-opacity"
+    {...rest}>
+    <GapperAndClickerInButtonDiv>
+      {children}
+    </GapperAndClickerInButtonDiv>
+  </button>
+}
+
+export function GapperAndClickerInButtonDiv(props: ChildrenProps) {
+  const { children } = props
+
+  return <div className="h-full w-full flex justify-center items-center gap-2 group-enabled:group-active:scale-90 transition-transform">
+    {children}
+  </div>
 }
 
 export function GapperAndClickerInAnchorDiv(props: ChildrenProps) {
