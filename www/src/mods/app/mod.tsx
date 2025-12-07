@@ -320,7 +320,7 @@ export function add(): bigintref {
             <div className="h-4" />
             <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
               <Code language="rust">
-                {`use bobine::{bigints, blobs, storage};
+                {`use stdbob::{bigints, blobs, storage};
 
 #[no_mangle]
 pub extern "C" fn add() -> bigints::BigIntRef {
@@ -457,9 +457,7 @@ export function Code(props: ChildrenProps & { language: string }) {
   useEffect(() => {
     if (!code)
       return
-    console.log(code.textContent)
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
-    console.log(code.innerHTML)
   }, [code, language])
 
   return <code ref={setCode}>
