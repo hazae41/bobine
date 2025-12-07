@@ -436,6 +436,22 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"All sales final"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"Finality is instant, no reorg, no 50% attack"}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Easily verifiable"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"No complex ZK proofs, you can verify in your garage"}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
       </div>
     </div>
   </div>
