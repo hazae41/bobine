@@ -14,7 +14,7 @@
     "./out"
   ],
   "dependencies": {
-    "@hazae41/immutable": "^2.0.15",
+    "@hazae41/immutable": "^2.0.19",
     "@hazae41/jsonrpc": "^1.1.11",
     "@hazae41/labase": "^1.0.16",
     "@hazae41/rewind": "^2.3.12",
@@ -25,7 +25,7 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@hazae41/glace": "^1.0.21",
+    "@hazae41/glace": "^1.0.22",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3"
   }

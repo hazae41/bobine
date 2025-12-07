@@ -406,7 +406,6 @@ export function add(): bigintref {
             {delocalize(Try)}
           </WideClickableOppositeButton>
         </div>
-        <div className="h-[max(24rem,50dvh)]" />
       </div>
     </div>
   </div>

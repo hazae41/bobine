@@ -1,12 +1,10 @@
 /// <reference lib="webworker" />
 
-import { immutable } from "@hazae41/immutable"
+import { immutable } from "@hazae41/immutable";
 
 declare const self: ServiceWorkerGlobalScope
 
-/**
- * Declare global template
- */
+declare const CACHE: string
 declare const FILES: [string, string][]
 
 /**
@@ -15,27 +13,27 @@ declare const FILES: [string, string][]
 // @ts-ignore: process not found
 // deno-lint-ignore no-process-global
 if (process.env.NODE_ENV === "production") {
-  const cache = new immutable.cache.Cache(new Map(FILES))
+  const cacher = new immutable.cache.Cacher(CACHE, new Map(FILES))
 
   self.addEventListener("install", (event) => {
     /**
      * Precache new version and auto-activate as the update was already accepted
      */
-    event.waitUntil(cache.precache().then(() => self.skipWaiting()))
+    event.waitUntil(cacher.precache().then(() => self.skipWaiting()))
   })
 
   self.addEventListener("activate", (event) => {
     /**
      * Take control of all clients and uncache previous versions
      */
-    event.waitUntil(self.clients.claim().then(() => cache.uncache()))
+    event.waitUntil(self.clients.claim().then(() => cacher.uncache()))
   })
 
   /**
    * Respond with cache
    */
   self.addEventListener("fetch", (event) => {
-    const response = cache.handle(event.request)
+    const response = cacher.handle(event.request)
 
     if (response == null)
       return

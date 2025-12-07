@@ -1,13 +1,17 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hazae41/glace@^1.0.21": "1.0.21",
-    "jsr:@hazae41/immutable@^2.0.15": "2.0.15",
+    "jsr:@hazae41/glace@^1.0.22": "1.0.22",
+    "jsr:@hazae41/immutable@^2.0.19": "2.0.19",
+    "jsr:@hazae41/jsonrpc@^1.1.11": "1.1.11",
     "jsr:@hazae41/mutex@^3.0.1": "3.0.1",
-    "jsr:@hazae41/result-and-option@^2.0.8": "2.0.9",
+    "jsr:@hazae41/result-and-option@^2.0.10": "2.0.10",
+    "jsr:@hazae41/result-and-option@^2.0.8": "2.0.10",
     "jsr:@hazae41/rewind@^2.3.12": "2.3.12",
-    "npm:@hazae41/glace@^1.0.21": "1.0.21",
-    "npm:@hazae41/immutable@^2.0.15": "2.0.15",
+    "npm:@hazae41/glace@^1.0.22": "1.0.22",
+    "npm:@hazae41/immutable@^2.0.19": "2.0.19",
+    "npm:@hazae41/jsonrpc@^1.1.11": "1.1.11",
+    "npm:@hazae41/labase@^1.0.16": "1.0.16",
     "npm:@hazae41/rewind@^2.3.12": "2.3.12",
     "npm:@heroicons/react@^2.2.0": "2.2.0_react@19.2.1",
     "npm:@types/node@*": "24.2.0",
@@ -19,28 +23,34 @@
     "npm:highlight.js@^11.11.1": "11.11.1",
     "npm:react-dom@^19.2.1": "19.2.1_react@19.2.1",
     "npm:react@^19.2.1": "19.2.1",
-    "npm:tailwindcss@^4.1.14": "4.1.14"
+    "npm:tailwindcss@^4.1.14": "4.1.17"
   },
   "jsr": {
-    "@hazae41/glace@1.0.21": {
-      "integrity": "289921b83d2620579ab29e983f47e4ed0b5ea8ab046d1fbb03440bccd372ce1f",
+    "@hazae41/glace@1.0.22": {
+      "integrity": "3c8abb0e435438769b265b9e12387888f23791077cd69b6435b063d1ef8f2c3b",
       "dependencies": [
         "jsr:@hazae41/mutex",
         "npm:esbuild",
         "npm:happy-dom"
       ]
     },
-    "@hazae41/immutable@2.0.15": {
-      "integrity": "610b2f22d09fc09c47a5e475ccca120e1cff17cc554b926f0d06c09a9716ef45",
+    "@hazae41/immutable@2.0.19": {
+      "integrity": "cc05b1e5459b42a5bd285c6f48ed4ca2f81914e94d67780caf3e86a415c00052",
       "dependencies": [
-        "jsr:@hazae41/result-and-option"
+        "jsr:@hazae41/result-and-option@^2.0.8"
+      ]
+    },
+    "@hazae41/jsonrpc@1.1.11": {
+      "integrity": "701b1664fa6095708dd5bd896f4f6e694b39fa45538518ab65b87aa1d98f1734",
+      "dependencies": [
+        "jsr:@hazae41/result-and-option@^2.0.10"
       ]
     },
     "@hazae41/mutex@3.0.1": {
       "integrity": "2bc69f28589bbbee7ba496227948beaea8d9ac4c3157d2392eaa4064a94b7bbe"
     },
-    "@hazae41/result-and-option@2.0.9": {
-      "integrity": "e785739ccbce2dcc8a3d32e65298e5f2123d3d09c9baa26e2128661192bef646"
+    "@hazae41/result-and-option@2.0.10": {
+      "integrity": "4a5046c435aad139014959315dd92fe7cf9bcc14fa975361c66b8d8303e4d583"
     },
     "@hazae41/rewind@2.3.12": {
       "integrity": "906070dbaca34ccd5c95203d2885528501e1469a41835f68e06b2131d3b85d1a",
@@ -180,8 +190,8 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
-    "@hazae41/glace@1.0.21": {
-      "integrity": "sha512-VK0yLTnKp2oC9Ip9ylgAT6sTka43cxpqWZh9b4uUa8WwE6NkxmLI69fYO8RZnBGukdnjfd8lGWTBOqZuKuu+eA==",
+    "@hazae41/glace@1.0.22": {
+      "integrity": "sha512-k5o43ehi0vE7QWjmo5niDcPLnZy1ft86h5N59rq/BPV6/AJ7ypJZMLy5TQ7TCYj160Z4Kqjgigl4rPCCRwfRNw==",
       "dependencies": [
         "@hazae41/mutex",
         "esbuild",
@@ -189,23 +199,29 @@
       ],
       "bin": true
     },
-    "@hazae41/immutable@2.0.15": {
-      "integrity": "sha512-lb9rMtDJLzmA0Q38Bobhe6WfbLSGnTeSPXFS1Y2Uwp2EIeM+csEEIlD5fxnf25+wSKNpwTfmMipBpJo0QaCx2w==",
+    "@hazae41/immutable@2.0.19": {
+      "integrity": "sha512-iLkj43n7LStd0KNkZpEy1GWvTKdHTCzMvpFsv3yM/+lvgTwfYxyuxIjzsuXpIY08Z9yXMp3i3octfDSBLhQTvw==",
       "dependencies": [
         "@hazae41/result-and-option"
       ]
     },
-    "@hazae41/labase@1.0.15": {
-      "integrity": "sha512-E1akKjz3KeCBZkUAjod6Iq4mr7BAc70Hg5lvY9VASWvsbivrz0k9FCFWn02BWb7RJHlrviG9iMJFAL0tFZMUgQ==",
+    "@hazae41/jsonrpc@1.1.11": {
+      "integrity": "sha512-hIOKQXO87bu9u2H4epWAl5jLSq0sPOkVUcwrC/pZHGOlOBPKe6oykldwuj0Kg4Qu+C3M3Z1eJfQv/Ly/vyx28Q==",
       "dependencies": [
-        "tailwindcss@4.1.16"
+        "@hazae41/result-and-option"
+      ]
+    },
+    "@hazae41/labase@1.0.16": {
+      "integrity": "sha512-28eaJ52x83de3cnElAX9TeLueFpJkAL1yptkGLGJk+iAqJ+NkhMgYAPb6DLI3+U7tmAg4+AtVzh35Cld7rXVyg==",
+      "dependencies": [
+        "tailwindcss@4.1.17"
       ]
     },
     "@hazae41/mutex@3.0.1": {
       "integrity": "sha512-HJX26LvYfO/F668m9j6VhVqm6uhED/RrCaH6RLrWXgt1i3O/qqqEndrjqpPquLapHuyuBarbmbyEZtLHxARF7Q=="
     },
-    "@hazae41/result-and-option@2.0.9": {
-      "integrity": "sha512-TJXaigplInNduffCpHH2NjSgzGhHvRVTkSvLCEVOsk2dbZkoK5c4qwfKGZvRoEoW/wv5Mk0P7C/Heh8x/Es1MQ=="
+    "@hazae41/result-and-option@2.0.10": {
+      "integrity": "sha512-Msf15N4OBCSsAxdonghJmbwERQqgc0ZWVPi1yE+oI8maC1FBFacQrym+xNF+lnXXgaTheLAUnx3B8yCA5Z1EWw=="
     },
     "@hazae41/rewind@2.3.12": {
       "integrity": "sha512-MIdp4RPgX6PYIcyT77YAfLOAhS09v01cHQTnhDbxJkqM0jo6cb8TmxeLa1w/8zTEki+QVjlM79OdYI3x21Z8bA==",
@@ -324,8 +340,8 @@
     "tailwindcss@4.1.14": {
       "integrity": "sha512-b7pCxjGO98LnxVkKjaZSDeNuljC4ueKUddjENJOADtubtdo8llTaJy7HwBMeLNSSo2N5QIAgklslK1+Ir8r6CA=="
     },
-    "tailwindcss@4.1.16": {
-      "integrity": "sha512-pONL5awpaQX4LN5eiv7moSiSPd/DLDzKVRJz8Q9PgzmAdd1R4307GQS2ZpfiN7ZmekdQrfhZZiSE5jkLR4WNaA=="
+    "tailwindcss@4.1.17": {
+      "integrity": "sha512-j9Ee2YjuQqYT9bbRTfTZht9W/ytp5H+jJpZKiYdP/bpnXARAuELt9ofP0lPnmHjbga7SNQIxdTAXCmtKVYjN+Q=="
     },
     "undici-types@6.21.0": {
       "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
@@ -339,15 +355,16 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hazae41/glace@^1.0.21",
-      "jsr:@hazae41/immutable@^2.0.15",
-      "jsr:@hazae41/labase@^1.0.15",
+      "jsr:@hazae41/glace@^1.0.22",
+      "jsr:@hazae41/immutable@^2.0.19",
+      "jsr:@hazae41/jsonrpc@^1.1.11",
+      "jsr:@hazae41/labase@^1.0.16",
       "jsr:@hazae41/rewind@^2.3.12"
     ],
     "packageJson": {
       "dependencies": [
-        "npm:@hazae41/glace@^1.0.21",
-        "npm:@hazae41/immutable@^2.0.15",
+        "npm:@hazae41/glace@^1.0.22",
+        "npm:@hazae41/immutable@^2.0.19",
         "npm:@hazae41/jsonrpc@^1.1.11",
         "npm:@hazae41/labase@^1.0.16",
         "npm:@hazae41/rewind@^2.3.12",
