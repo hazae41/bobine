@@ -5,6 +5,9 @@ import hljs from "highlight.js/lib/core";
 // @deno-types="npm:highlight.js"
 import typescript from "highlight.js/lib/languages/typescript";
 
+// @deno-types="npm:highlight.js"
+import rust from "highlight.js/lib/languages/rust";
+
 import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 import React, { JSX, useCallback, useEffect, useState } from "react";
 import { Outline } from "../../libs/heroicons/mod.ts";
@@ -14,6 +17,7 @@ import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("rust", rust);
 
 React;
 
@@ -217,14 +221,6 @@ export function App() {
     setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages])
   }, [loading, worker])
 
-  const [code, setCode] = useState<HTMLDivElement>()
-
-  useEffect(() => {
-    if (!code)
-      return
-    code.innerHTML = hljs.highlight(code.innerHTML, { language: "typescript" }).value
-  }, [code])
-
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="w-full flex justify-center">
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
@@ -273,18 +269,19 @@ export function App() {
           {"Just upload any .wasm file, and execute any exported function"}
         </div>
         <div className="h-16" />
-        <div className="w-full max-w-[600px] flex flex-col">
-          <div className="text-2xl font-medium">
-            counter.ts
-          </div>
-          <div className="h-2" />
-          <div className="text-default-contrast">
-            {"AssemblyScript"}
-          </div>
-          <div className="h-4" />
-          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono"
-            ref={setCode}>
-            {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
+        <div className="w-full flex flex-wrap justify-center gap-16">
+          <div className="w-full max-w-[600px] flex flex-col">
+            <div className="text-2xl font-medium">
+              counter.ts
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              {"AssemblyScript"}
+            </div>
+            <div className="h-4" />
+            <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+              <Code language="typescript">
+                {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
 import { storage } from "@/libs/storage/mod.ts"
 
@@ -309,6 +306,46 @@ export function add(): bigintref {
 
   return fresh
 }`}
+              </Code>
+            </div>
+          </div>
+          <div className="w-full max-w-[600px] flex flex-col">
+            <div className="text-2xl font-medium">
+              counter.rs
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              {"Rust"}
+            </div>
+            <div className="h-4" />
+            <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+              <Code language="rust">
+                {`use bobine::{bigints, blobs, storage};
+
+#[no_mangle]
+pub extern "C" fn add() -> bigints::BigIntRef {
+    let key = blobs::save("counter".as_bytes());
+
+    let val = storage::get(&key);
+
+    if val.is_none() {
+        let fresh = bigints::one();
+
+        storage::set(&key, &bigints::encode(&fresh));
+
+        return fresh;
+    }
+
+    let stale = bigints::decode(&val.unwrap());
+
+    let fresh = bigints::inc(&stale);
+
+    storage::set(&key, &bigints::encode(&fresh));
+    
+    fresh
+}`}
+              </Code>
+            </div>
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
@@ -406,9 +443,28 @@ export function add(): bigintref {
             {delocalize(Try)}
           </WideClickableOppositeButton>
         </div>
+        <div className="h-[max(24rem,50dvh)]" />
       </div>
     </div>
   </div>
+}
+
+export function Code(props: ChildrenProps & { language: string }) {
+  const { children, language } = props
+
+  const [code, setCode] = useState<HTMLElement>()
+
+  useEffect(() => {
+    if (!code)
+      return
+    console.log(code.textContent)
+    code.innerHTML = hljs.highlight(code.textContent, { language }).value
+    console.log(code.innerHTML)
+  }, [code, language])
+
+  return <code ref={setCode}>
+    {children}
+  </code>
 }
 
 export function ClickableOppositeAnchor(props: ChildrenProps & JSX.IntrinsicElements["a"] & { "aria-disabled"?: boolean }) {
