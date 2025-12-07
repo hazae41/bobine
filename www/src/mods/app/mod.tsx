@@ -13,7 +13,6 @@ import React, { JSX, useCallback, useEffect, useState } from "react";
 import { Outline } from "../../libs/heroicons/mod.ts";
 import { hexdump } from "../../libs/hexdump/mod.ts";
 import { delocalize, Localized } from "../../libs/locale/mod.ts";
-import { Try } from "../../libs/messages/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
@@ -171,10 +170,6 @@ export function App() {
   //   }
   // `).then(console.log).catch(console.error), [])
 
-  const [loading, setLoading] = useState(false)
-
-  const [messages, setMessages] = useState<string[]>([])
-
   const [worker, setWorker] = useState<Worker>()
 
   useEffect(() => {
@@ -185,17 +180,10 @@ export function App() {
     return () => worker.terminate()
   }, [])
 
-  const onGenerateClick = useCallback(async () => {
-    if (worker == null)
-      return
-    if (loading)
-      return
+  const [messages, setMessages] = useState<string[]>([])
 
+  const generate = useCallback(async (worker: Worker) => {
     using stack = new DisposableStack()
-
-    setLoading(true)
-
-    stack.defer(() => setLoading(false))
 
     const future = Promise.withResolvers<bigint>()
 
@@ -218,8 +206,18 @@ export function App() {
 
     const value = await future.promise
 
-    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages])
-  }, [loading, worker])
+    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages.slice(0, 100)])
+  }, [])
+
+  const loop = useCallback(async (worker: Worker) => {
+    while (true) await generate(worker)
+  }, [generate, worker])
+
+  useEffect(() => {
+    if (worker == null)
+      return
+    loop(worker).catch(console.error)
+  }, [loop, worker])
 
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="w-full flex justify-center">
@@ -436,12 +434,6 @@ pub extern "C" fn add() -> bigints::BigIntRef {
               {messages.join("\n")}
             </div>
           </div>
-          <div className="h-4" />
-          <WideClickableOppositeButton
-            onClick={onGenerateClick}
-            disabled={loading}>
-            {delocalize(Try)}
-          </WideClickableOppositeButton>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
