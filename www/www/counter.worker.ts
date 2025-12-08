@@ -3,6 +3,8 @@ import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from 
 const response = await fetch("/counter.wasm")
 const module = await WebAssembly.compileStreaming(response)
 
+let stored: Uint8Array | null = null
+
 async function execute() {
   const imports: WebAssembly.Imports = {}
 
@@ -42,10 +44,10 @@ async function execute() {
 
   imports["storage"] = {
     set: (key: Uint8Array, value: Uint8Array): void => {
-      // NOOP
+      stored = value
     },
     get: (key: Uint8Array): Uint8Array | null => {
-      return null
+      return stored
     }
   }
 

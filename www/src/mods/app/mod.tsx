@@ -430,15 +430,33 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
-          {"Expect hundreds to thousands of transactions per second"}
+          {"Expect thousands of transactions per second"}
         </div>
         <div className="h-32" />
-        <div className="text-6xl">
-          <WasmMachine />
+        <div className="">
+          50K TPS
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
-          {"(live transactions per second running in your browser)"}
+        <div className="relative w-full max-w-[800px] aspect-2/1 overflow-hidden">
+          <div className="absolute h-full w-full flex flex-col items-center justify-end p-16">
+            <div className="text-4xl">
+              <WasmMachine />
+            </div>
+          </div>
+          <div className="absolute w-full aspect-square rounded-full border-2 border-white/10 bg-radial-[at_6%_26%] from-white/10 to-transparent to-50%" />
+        </div>
+        <div className="h-4" />
+        <div className="w-full max-w-[800px] flex items-center justify-between">
+          <div className="">
+            0 TPS
+          </div>
+          <div className="">
+            100K TPS
+          </div>
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-xl">
+          {"Live transactions per second running in your browser"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
@@ -631,7 +649,7 @@ export function WasmMachine() {
   }, [loop, worker, running])
 
   return <div ref={setDiv}>
-    ~{count} TPS
+    {count} TPS
   </div>
 }
 
