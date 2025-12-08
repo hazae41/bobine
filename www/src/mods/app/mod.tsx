@@ -244,14 +244,15 @@ export function App() {
         </div>
         <div className="h-16" />
         <div className="w-full max-w-[600px] flex flex-col">
-          <div className="text-2xl font-medium">
-            counter.wasm
+          <div className="p-4">
+            <div className="text-2xl font-medium">
+              counter.wasm
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              {"WebAssembly"}
+            </div>
           </div>
-          <div className="h-2" />
-          <div className="text-default-contrast">
-            {"WebAssembly"}
-          </div>
-          <div className="h-4" />
           <div className="bg-default-contrast rounded-xl p-4 pe-2">
             <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
               {hexdump}
@@ -269,14 +270,15 @@ export function App() {
         <div className="h-16" />
         <div className="w-full flex flex-wrap justify-center gap-16">
           <div className="w-full max-w-[600px] flex flex-col">
-            <div className="text-2xl font-medium">
-              counter.ts
+            <div className="p-4">
+              <div className="text-2xl font-medium">
+                counter.ts
+              </div>
+              <div className="h-2" />
+              <div className="text-default-contrast">
+                {"AssemblyScript"}
+              </div>
             </div>
-            <div className="h-2" />
-            <div className="text-default-contrast">
-              {"AssemblyScript"}
-            </div>
-            <div className="h-4" />
             <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
               <Code language="typescript">
                 {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
@@ -308,14 +310,15 @@ export function add(): bigintref {
             </div>
           </div>
           <div className="w-full max-w-[600px] flex flex-col">
-            <div className="text-2xl font-medium">
-              counter.rs
+            <div className="p-4">
+              <div className="text-2xl font-medium">
+                counter.rs
+              </div>
+              <div className="h-2" />
+              <div className="text-default-contrast">
+                {"Rust"}
+              </div>
             </div>
-            <div className="h-2" />
-            <div className="text-default-contrast">
-              {"Rust"}
-            </div>
-            <div className="h-4" />
             <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
               <Code language="rust">
                 {`use stdbob::{bigints, blobs, storage};
@@ -421,14 +424,15 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-16" />
         <div className="w-full max-w-[800px] flex flex-col">
-          <div className="text-2xl font-medium">
-            vault.ts
+          <div className="p-4">
+            <div className="text-2xl font-medium">
+              vault.ts
+            </div>
+            <div className="h-2" />
+            <div className="text-default-contrast">
+              {"AssemblyScript"}
+            </div>
           </div>
-          <div className="h-2" />
-          <div className="text-default-contrast">
-            {"AssemblyScript"}
-          </div>
-          <div className="h-4" />
           <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
             <Code language="typescript">
               {`export function deposit(session: sessionref, amount: bigintref): void {
