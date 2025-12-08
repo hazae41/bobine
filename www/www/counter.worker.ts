@@ -66,7 +66,7 @@ self.addEventListener("message", async (event) => {
       const start = performance.now()
       const until = start + 1000
 
-      let count = 0n
+      let count = 0
 
       for (; performance.now() < until; count++)
         await execute()
