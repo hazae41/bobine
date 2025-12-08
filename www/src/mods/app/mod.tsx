@@ -558,7 +558,7 @@ export function WasmMachine() {
     return () => worker.terminate()
   }, [])
 
-  const [count, setCount] = useState<number>(0)
+  const [count, setCount] = useState<number>(1)
 
   const run = useCallback(async () => {
     if (worker == null)
@@ -628,14 +628,10 @@ export function WasmMachine() {
     return () => aborter.abort()
   }, [loop, worker, running])
 
-  const x = Math.round(50 - 50 * Math.cos((Math.min(count, 100000) / 100000) * Math.PI))
-  const y = Math.floor(100 * 100 * Math.sin((Math.min(count, 100000) / 100000) * Math.PI)) / 100
+  const x = Math.round(100 * (50 - 50 * Math.cos((Math.log(Math.min(count, 50000)) / Math.log(50000)) * Math.PI))) / 100
+  const y = Math.floor(100 * (100 * Math.sin((Math.log(Math.min(count, 50000)) / Math.log(50000)) * Math.PI))) / 100
 
   return <>
-    <div className="">
-      50K TPS
-    </div>
-    <div className="h-4" />
     <div className="relative w-full max-w-[400px] aspect-2/1 overflow-hidden">
       <div className="absolute z-10 h-full w-full flex flex-col items-center justify-end">
         <div className="text-2xl">
@@ -645,7 +641,7 @@ export function WasmMachine() {
         </div>
       </div>
       <div className="absolute w-full aspect-square rounded-full border-2 border-white/10" />
-      <div className={`absolute bg-white left-[${x}%] bottom-[${y}%] size-2 rounded-full`} />
+      <div className={`absolute bg-white left-[${x}%] bottom-[${y}%] size-1 rounded-full`} />
     </div>
     <div className="h-4" />
     <div className="w-full max-w-[400px] flex items-center justify-between">
@@ -653,7 +649,7 @@ export function WasmMachine() {
         0 TPS
       </div>
       <div className="">
-        100K TPS
+        50K TPS
       </div>
     </div>
   </>
