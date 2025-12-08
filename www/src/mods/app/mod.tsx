@@ -170,55 +170,6 @@ export function App() {
   //   }
   // `).then(console.log).catch(console.error), [])
 
-  const [worker, setWorker] = useState<Worker>()
-
-  useEffect(() => {
-    const worker = new Worker("/sparks.worker.js", { type: "module" })
-
-    setWorker(worker)
-
-    return () => worker.terminate()
-  }, [])
-
-  const [messages, setMessages] = useState<string[]>([])
-
-  const generate = useCallback(async (worker: Worker) => {
-    using stack = new DisposableStack()
-
-    const future = Promise.withResolvers<bigint>()
-
-    const aborter = new AbortController()
-    stack.defer(() => aborter.abort())
-
-    worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<bigint>>) => {
-      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-    }, { signal: aborter.signal })
-
-    worker.addEventListener("error", (event: ErrorEvent) => {
-      future.reject(event.error)
-    }, { signal: aborter.signal })
-
-    worker.addEventListener("messageerror", (event: MessageEvent) => {
-      future.reject(event.data)
-    }, { signal: aborter.signal })
-
-    worker.postMessage(new RpcRequest(crypto.randomUUID(), "generate", []))
-
-    const value = await future.promise
-
-    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages.slice(0, 100)])
-  }, [])
-
-  const loop = useCallback(async (worker: Worker) => {
-    while (true) await generate(worker)
-  }, [generate, worker])
-
-  useEffect(() => {
-    if (worker == null)
-      return
-    loop(worker).catch(console.error)
-  }, [loop, worker])
-
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
     <div className="w-full flex justify-center">
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
@@ -453,7 +404,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="w-full max-w-[600px] flex flex-col">
           <div className="bg-default-contrast rounded-xl p-4 pe-2">
             <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
-              {messages.join("\n")}
+              <SparksMachine />
             </div>
           </div>
         </div>
@@ -481,6 +432,14 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="text-center text-default-contrast text-2xl">
           {"Expect hundreds to thousands of transactions per second"}
         </div>
+        <div className="h-32" />
+        <div className="text-6xl">
+          <WasmMachine />
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"(live transactions per second running in your browser)"}
+        </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
     </div>
@@ -501,6 +460,179 @@ export function Code(props: ChildrenProps & { language: string }) {
   return <code ref={setCode}>
     {children}
   </code>
+}
+
+export function SparksMachine() {
+  const [worker, setWorker] = useState<Worker>()
+
+  useEffect(() => {
+    const worker = new Worker("/sparks.worker.js", { type: "module" })
+
+    setWorker(worker)
+
+    return () => worker.terminate()
+  }, [])
+
+  const [messages, setMessages] = useState<string[]>([])
+
+  const run = useCallback(async () => {
+    if (worker == null)
+      return
+
+    using stack = new DisposableStack()
+
+    const future = Promise.withResolvers<bigint>()
+
+    const aborter = new AbortController()
+    stack.defer(() => aborter.abort())
+
+    worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<bigint>>) => {
+      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+    }, { signal: aborter.signal })
+
+    worker.addEventListener("error", (event: ErrorEvent) => {
+      future.reject(event.error)
+    }, { signal: aborter.signal })
+
+    worker.addEventListener("messageerror", (event: MessageEvent) => {
+      future.reject(event.data)
+    }, { signal: aborter.signal })
+
+    worker.postMessage(new RpcRequest(crypto.randomUUID(), "generate", []))
+
+    const value = await future.promise
+
+    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages.slice(0, 100)])
+  }, [worker])
+
+  const [running, setRunning] = useState<boolean>(false)
+
+  const [observer, setObserver] = useState<IntersectionObserver>()
+
+  useEffect(() => {
+    setObserver(new IntersectionObserver((entries) => setRunning(entries[0].isIntersecting)))
+  }, [])
+
+  const [div, setDiv] = useState<HTMLDivElement>()
+
+  useEffect(() => {
+    if (observer == null)
+      return
+    if (div == null)
+      return
+
+    observer.observe(div)
+
+    return () => observer.unobserve(div)
+  }, [observer, div])
+
+  const loop = useCallback(async (signal: AbortSignal) => {
+    if (worker == null)
+      return
+    while (!signal.aborted) await run()
+  }, [run, worker])
+
+  useEffect(() => {
+    if (worker == null)
+      return
+    if (!running)
+      return
+    const aborter = new AbortController()
+
+    loop(aborter.signal).catch(console.error)
+
+    return () => aborter.abort()
+  }, [loop, worker, running])
+
+  return <div ref={setDiv}>
+    {messages.join("\n")}
+  </div>
+}
+
+export function WasmMachine() {
+  const [worker, setWorker] = useState<Worker>()
+
+  useEffect(() => {
+    const worker = new Worker("/counter.worker.js", { type: "module" })
+
+    setWorker(worker)
+
+    return () => worker.terminate()
+  }, [])
+
+  const [count, setCount] = useState<number>(0)
+
+  const run = useCallback(async () => {
+    if (worker == null)
+      return
+    using stack = new DisposableStack()
+
+    const future = Promise.withResolvers<number>()
+
+    const aborter = new AbortController()
+    stack.defer(() => aborter.abort())
+
+    worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<number>>) => {
+      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+    }, { signal: aborter.signal })
+
+    worker.addEventListener("error", (event: ErrorEvent) => {
+      future.reject(event.error)
+    }, { signal: aborter.signal })
+
+    worker.addEventListener("messageerror", (event: MessageEvent) => {
+      future.reject(event.data)
+    }, { signal: aborter.signal })
+
+    worker.postMessage(new RpcRequest(crypto.randomUUID(), "execute", []))
+
+    const value = await future.promise
+
+    setCount(value)
+  }, [worker])
+
+  const [running, setRunning] = useState<boolean>(false)
+
+  const [observer, setObserver] = useState<IntersectionObserver>()
+
+  useEffect(() => {
+    setObserver(new IntersectionObserver((entries) => setRunning(entries[0].isIntersecting)))
+  }, [])
+
+  const [div, setDiv] = useState<HTMLDivElement>()
+
+  useEffect(() => {
+    if (observer == null)
+      return
+    if (div == null)
+      return
+
+    observer.observe(div)
+
+    return () => observer.unobserve(div)
+  }, [observer, div])
+
+  const loop = useCallback(async (signal: AbortSignal) => {
+    if (worker == null)
+      return
+    while (!signal.aborted) await run()
+  }, [run, worker])
+
+  useEffect(() => {
+    if (worker == null)
+      return
+    if (!running)
+      return
+    const aborter = new AbortController()
+
+    loop(aborter.signal).catch(console.error)
+
+    return () => aborter.abort()
+  }, [loop, worker, running])
+
+  return <div ref={setDiv}>
+    ~{count} TPS
+  </div>
 }
 
 export function ClickableOppositeAnchor(props: ChildrenProps & JSX.IntrinsicElements["a"] & { "aria-disabled"?: boolean }) {

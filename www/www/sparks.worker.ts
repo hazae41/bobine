@@ -5,9 +5,12 @@ self.addEventListener("message", async (event) => {
     const request = event.data as RpcRequestInit
 
     if (request.method === "generate") {
+      const start = performance.now()
+      const until = start + 1000
+
       let value = 0n
 
-      for (let i = 0; i < 100_000; i++) {
+      while (performance.now() < until) {
         const seed = crypto.getRandomValues(new Uint8Array(32))
         const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", seed))
 
