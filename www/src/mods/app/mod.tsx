@@ -355,7 +355,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           {"No built-in concept of accounts, use any accounting module you want"}
         </div>
         <div className="h-16" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <div className="bg-default-contrast p-4 rounded-xl">
             <div className="text-xl font-medium">
               secp256k1.wasm
@@ -419,6 +419,24 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="text-center text-default-contrast text-2xl">
           {"No more approve-then-transfer, modules can get temporary access"}
         </div>
+        <div className="h-16" />
+        <div className="w-full max-w-[800px] flex flex-col">
+          <div className="text-2xl font-medium">
+            vault.ts
+          </div>
+          <div className="h-2" />
+          <div className="text-default-contrast">
+            {"AssemblyScript"}
+          </div>
+          <div className="h-4" />
+          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+            <Code language="typescript">
+              {`export function deposit(session: sessionref, amount: bigintref): void {
+  token.transfer(session, modules.self(), amount)
+}`}
+            </Code>
+          </div>
+        </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
           {"Gas paid via proof-of-work"}
@@ -450,6 +468,14 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
           {"No complex ZK proof, you can verify in your garage"}
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"High throughput"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"Expect hundreds to thousands of transactions per second"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
       </div>
