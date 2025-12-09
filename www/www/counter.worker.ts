@@ -1,3 +1,5 @@
+import "@hazae41/symbol-dispose-polyfill";
+
 import "@hazae41/disposable-stack-polyfill";
 
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";

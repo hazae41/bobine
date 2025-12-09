@@ -1,3 +1,5 @@
+import "@hazae41/symbol-dispose-polyfill";
+
 import "@hazae41/disposable-stack-polyfill";
 
 import { delocalize, Localized } from "@/libs/locale/mod.ts";
