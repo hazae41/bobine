@@ -1,11 +1,13 @@
 {
   "imports": {
     "@/": "./src/",
-    "@hazae41/glace": "jsr:@hazae41/glace@^1.0.22",
+    "@hazae41/disposable-stack-polyfill": "jsr:@hazae41/disposable-stack-polyfill@^2.0.5",
+    "@hazae41/glace": "jsr:@hazae41/glace@^1.0.24",
     "@hazae41/immutable": "jsr:@hazae41/immutable@^2.0.19",
     "@hazae41/jsonrpc": "jsr:@hazae41/jsonrpc@^1.1.11",
     "@hazae41/labase": "jsr:@hazae41/labase@^1.0.16",
-    "@hazae41/rewind": "jsr:@hazae41/rewind@^2.3.12"
+    "@hazae41/rewind": "jsr:@hazae41/rewind@^2.3.12",
+    "@hazae41/symbol-dispose-polyfill": "jsr:@hazae41/symbol-dispose-polyfill@^1.1.1"
   },
   "lint": {
     "exclude": [

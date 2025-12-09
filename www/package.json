@@ -14,7 +14,7 @@
     "./out"
   ],
   "dependencies": {
-    "@hazae41/disposable-stack-polyfill": "^2.0.4",
+    "@hazae41/disposable-stack-polyfill": "^2.0.5",
     "@hazae41/immutable": "^2.0.19",
     "@hazae41/jsonrpc": "^1.1.11",
     "@hazae41/labase": "^1.0.16",
