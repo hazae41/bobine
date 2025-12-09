@@ -635,8 +635,8 @@ export function WasmMachine() {
     return () => aborter.abort()
   }, [loop, worker, running])
 
-  const x = Math.round(98 * (50 - 50 * Math.cos((Math.log(Math.min(count, 100000)) / Math.log(100000)) * Math.PI))) / 100
-  const y = Math.floor(98 * (100 * Math.sin((Math.log(Math.min(count, 100000)) / Math.log(100000)) * Math.PI))) / 100
+  const x = Math.round(100 * (50 - 50 * Math.cos((Math.log(Math.min(count, 100000)) / Math.log(100000)) * Math.PI))) / 100
+  const y = Math.floor(100 * (100 * Math.sin((Math.log(Math.min(count, 100000)) / Math.log(100000)) * Math.PI))) / 100
 
   return <>
     <div className="relative w-full max-w-[400px] aspect-2/1 overflow-hidden">
@@ -647,8 +647,8 @@ export function WasmMachine() {
           </div>
         </div>
       </div>
-      <div className="absolute w-[98%] mx-[1%] aspect-square rounded-full border-2 border-default-contrast" />
-      <div className={`absolute bg-opposite left-[${x}%] bottom-[${y}%] translate-x-[50%] size-1 rounded-full`} />
+      <div className="absolute w-full aspect-square rounded-full border-2 border-default-contrast" />
+      <div className={`absolute bg-opposite left-[${x}%] bottom-[${y}%] -translate-x-[${x}%] size-1 rounded-full`} />
     </div>
     <div className="h-4" />
     <div className="w-full max-w-[400px] flex items-center justify-between">
