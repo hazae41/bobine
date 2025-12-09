@@ -170,7 +170,7 @@ export function App() {
   //   }
   // `).then(console.log).catch(console.error), [])
 
-  return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in">
+  return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in text-pretty">
     <div className="w-full flex justify-center">
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
     </div>
