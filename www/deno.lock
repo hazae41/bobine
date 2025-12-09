@@ -368,6 +368,7 @@
         "npm:@hazae41/jsonrpc@^1.1.11",
         "npm:@hazae41/labase@^1.0.16",
         "npm:@hazae41/rewind@^2.3.12",
+        "npm:@hazae41/symbol-dispose-polyfill@^1.1.1",
         "npm:@heroicons/react@^2.2.0",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.7",
