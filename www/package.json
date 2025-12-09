@@ -25,7 +25,7 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@hazae41/glace": "^1.0.22",
+    "@hazae41/glace": "^1.0.23",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3"
   }
