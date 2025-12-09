@@ -461,7 +461,7 @@ export function Code(props: ChildrenProps & { language: string }) {
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
   }, [code, language])
 
-  return <code ref={setCode}>
+  return <code className="wrap-break-word" ref={setCode}>
     {children}
   </code>
 }
