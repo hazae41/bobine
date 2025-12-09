@@ -416,13 +416,19 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="text-center text-default-contrast text-2xl">
           {"Finality is instant, no reorg, no 50% attack"}
         </div>
-        <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
-          {"Easily verifiable"}
-        </div>
-        <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
-          {"No complex ZK proof, you can verify in your garage"}
+        <div className="h-32" />
+        <div className="flex items-center gap-4">
+          <div className="bg-default-contrast size-16 rounded-xl flex items-center justify-center font-medium" >
+            #1
+          </div>
+          <Outline.LinkIcon className="size-4 text-default-contrast rotate-45" />
+          <div className="bg-default-contrast size-16 rounded-xl flex items-center justify-center font-medium" >
+            #2
+          </div>
+          <Outline.LinkIcon className="size-4 text-default-contrast rotate-45" />
+          <div className="bg-default-contrast size-16 rounded-xl flex items-center justify-center font-medium" >
+            #3
+          </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
