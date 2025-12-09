@@ -1,3 +1,5 @@
+import "@hazae41/disposable-stack-polyfill";
+
 import { delocalize, Localized } from "@/libs/locale/mod.ts";
 import { App } from "@/mods/app/mod.tsx";
 import { immutable } from "@hazae41/immutable";
@@ -78,7 +80,7 @@ if (process.env.PLATFORM === "browser") {
 } else {
   const params = new URLSearchParams(location.search)
 
-  document.documentElement.lang = params.get("locale")
+  document.documentElement.lang = params.get("locale")!
 
   const prerender = async (node: ReactNode) => {
     const ReactDOM = await import("react-dom/static")
