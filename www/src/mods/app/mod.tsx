@@ -230,7 +230,7 @@ export function App() {
                 {"AssemblyScript"}
               </div>
             </div>
-            <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+            <div className="h-full w-full bg-default-contrast rounded-xl p-4">
               <Code language="typescript">
                 {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
@@ -270,7 +270,7 @@ export function add(): bigintref {
                 {"Rust"}
               </div>
             </div>
-            <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+            <div className="h-full w-full bg-default-contrast rounded-xl p-4">
               <Code language="rust">
                 {`use stdbob::{bigints, blobs, storage};
 
@@ -384,7 +384,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
               {"AssemblyScript"}
             </div>
           </div>
-          <div className="h-full w-full bg-default-contrast rounded-xl p-4 whitespace-pre-wrap font-mono">
+          <div className="h-full w-full bg-default-contrast rounded-xl p-4">
             <Code language="typescript">
               {`export function deposit(session: sessionref, amount: bigintref): void {
   token.transfer(session, modules.self(), amount)
@@ -461,7 +461,8 @@ export function Code(props: ChildrenProps & { language: string }) {
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
   }, [code, language])
 
-  return <code className="wrap-break-word" ref={setCode}>
+  return <code className="whitespace-pre-wrap font-mono wrap-break-word"
+    ref={setCode}>
     {children}
   </code>
 }
