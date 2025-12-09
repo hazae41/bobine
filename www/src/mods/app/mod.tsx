@@ -648,7 +648,7 @@ export function WasmMachine() {
         </div>
       </div>
       <div className="absolute w-full aspect-square rounded-full border-2 border-default-contrast" />
-      <div className={`absolute bg-opposite left-[${x}%] bottom-[${y}%] -translate-x-[${x}%] size-1 rounded-full`} />
+      <div className={`absolute bg-opposite left-[${x}%] bottom-[${y}%] -translate-x-[${(x / 2) + 25}%] translate-y-[${(y / 2) + 25}%] size-1 rounded-full`} />
     </div>
     <div className="h-4" />
     <div className="w-full max-w-[400px] flex items-center justify-between">
