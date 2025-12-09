@@ -8,7 +8,7 @@
     "prepare": "deno -RW ./x.dsync.ts && deno install",
     "prepack": "glace ./www --out=./out",
     "produce": "glace ./www --out=./out --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts",
-    "develop": "NODE_OPTIONS=--max_old_space_size=4096 glace ./www --out=./out --dev --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts --dev"
+    "develop": "glace ./www --out=./out --dev --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts --dev"
   },
   "files": [
     "./out"
@@ -27,7 +27,7 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@hazae41/glace": "^1.0.25",
+    "@hazae41/glace": "^1.0.27",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3"
   }

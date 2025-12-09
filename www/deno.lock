@@ -391,7 +391,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@hazae41/disposable-stack-polyfill@^2.0.5",
-        "npm:@hazae41/glace@^1.0.25",
+        "npm:@hazae41/glace@^1.0.27",
         "npm:@hazae41/immutable@^2.0.19",
         "npm:@hazae41/jsonrpc@^1.1.11",
         "npm:@hazae41/labase@^1.0.16",
