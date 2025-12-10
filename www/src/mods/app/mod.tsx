@@ -1225,6 +1225,7 @@ export function Code(props: ChildrenProps & { language: string }) {
   }, [code, language])
 
   return <code className="whitespace-pre-wrap font-mono wrap-break-word text-xs sm:text-sm md:text-base"
+    dir="ltr"
     ref={setCode}>
     {children}
   </code>
