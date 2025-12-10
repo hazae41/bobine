@@ -2,7 +2,7 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import "@hazae41/disposable-stack-polyfill";
 
-import { delocalize, Localized } from "@/libs/locale/mod.ts";
+import { delocalize, dir, Localized } from "@/libs/locale/mod.ts";
 import { App } from "@/mods/app/mod.tsx";
 import { immutable } from "@hazae41/immutable";
 import { Rewind } from "@hazae41/rewind";
@@ -82,7 +82,10 @@ if (process.env.PLATFORM === "browser") {
 } else {
   const params = new URLSearchParams(location.search)
 
-  document.documentElement.lang = params.get("locale")!
+  const locale = params.get("locale")!
+
+  document.documentElement.lang = locale
+  document.documentElement.dir = delocalize(dir)
 
   const prerender = async (node: ReactNode) => {
     const ReactDOM = await import("react-dom/static")

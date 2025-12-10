@@ -50,3 +50,36 @@ export function delocalize(localized: Localized) {
 
   return localized["en"]
 }
+
+export const dir = {
+  en: "ltr",
+  zh: "ltr",
+  hi: "ltr",
+  es: "ltr",
+  ar: "rtl",
+  fr: "ltr",
+  de: "ltr",
+  ru: "ltr",
+  pt: "ltr",
+  ja: "ltr",
+  pa: "ltr",
+  bn: "ltr",
+  id: "ltr",
+  ur: "rtl",
+  ms: "ltr",
+  it: "ltr",
+  tr: "ltr",
+  ta: "ltr",
+  te: "ltr",
+  ko: "ltr",
+  vi: "ltr",
+  pl: "ltr",
+  ro: "ltr",
+  nl: "ltr",
+  el: "ltr",
+  th: "ltr",
+  cs: "ltr",
+  hu: "ltr",
+  sv: "ltr",
+  da: "ltr",
+} satisfies Record<Locale, "ltr" | "rtl">
