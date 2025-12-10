@@ -92,7 +92,7 @@ export function App() {
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
     </div>
     <div className="p-safe">
-      <div className="p-4 flex-none flex flex-col items-center">
+      <div className="p-8 flex-none flex flex-col items-center">
         <div className="text-center text-5xl md:text-6xl font-medium">
           {delocalize(Title)}
         </div>
