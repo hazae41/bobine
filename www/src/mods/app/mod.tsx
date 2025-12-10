@@ -1270,7 +1270,38 @@ export function SparksMachine() {
 
     const value = await future.promise
 
-    setMessages(messages => [`You just generated ${value.toString()} sparks`, ...messages.slice(0, 100)])
+    setMessages(messages => [delocalize({
+      en: `You just generated ${value.toString()} sparks`,
+      zh: `您刚刚生成了 ${value.toString()} 个火花`,
+      hi: `आपने अभी-अभी ${value.toString()} स्पार्क्स जनरेट किए हैं`,
+      es: `Acabas de generar ${value.toString()} chispas`,
+      ar: `لقد قمت للتو بإنشاء ${value.toString()} شرارات`,
+      fr: `Vous venez de générer ${value.toString()} étincelles`,
+      de: `Sie haben gerade ${value.toString()} Funken erzeugt`,
+      ru: `Вы только что сгенерировали ${value.toString()} искр`,
+      pt: `Você acabou de gerar ${value.toString()} faíscas`,
+      ja: `あなたはちょうど${value.toString()}スパークを生成しました`,
+      pa: `ਤੁਸੀਂ ਹੁਣੇ ਹੀ ${value.toString()} ਸਪਾਰਕਸ ਜਨਰੇਟ ਕੀਤੇ ਹਨ`,
+      bn: `আপনি মাত্র ${value.toString()} স্পার্কস তৈরি করেছেন`,
+      id: `Anda baru saja menghasilkan ${value.toString()} sparks`,
+      ur: `آپ نے ابھی ${value.toString()} چنگاریاں پیدا کی ہیں`,
+      ms: `Anda baru sahaja menjana ${value.toString()} sparks`,
+      it: `Hai appena generato ${value.toString()} scintille`,
+      tr: `Az önce ${value.toString()} kıvılcım ürettiniz`,
+      ta: `நீங்கள் இப்போது ${value.toString()} ஸ்பார்க்ஸை உருவாக்கியுள்ளீர்கள்`,
+      te: `మీరు ఇప్పుడే ${value.toString()} స్పార్క్స్‌ను ఉత్పత్తి చేశారు`,
+      ko: `방금 ${value.toString()} 스파크를 생성했습니다`,
+      vi: `Bạn vừa tạo ra ${value.toString()} tia lửa`,
+      pl: `Właśnie wygenerowałeś ${value.toString()} iskier`,
+      ro: `Tocmai ai generat ${value.toString()} scântei`,
+      nl: `Je hebt zojuist ${value.toString()} vonken gegenereerd`,
+      el: `Μόλις δημιουργήσατε ${value.toString()} σπινθήρες`,
+      th: `คุณเพิ่งสร้างประกายไฟ ${value.toString()}`,
+      cs: `Právě jste vygenerovali ${value.toString()} jisker`,
+      hu: `Éppen most generáltál ${value.toString()} szikrát`,
+      sv: `Du genererade precis ${value.toString()} gnistor`,
+      da: `Du har lige genereret ${value.toString()} gnister`,
+    }), ...messages.slice(0, 100)])
   }, [worker])
 
   const [running, setRunning] = useState<boolean>(false)
