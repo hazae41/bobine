@@ -10,7 +10,7 @@
     {
       "src": "/appicon.svg",
       "type": "image/svg+xml",
-      "sizes": "any maskable"
+      "purpose": "any maskable"
     }
   ],
   "background": {
