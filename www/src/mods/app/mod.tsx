@@ -180,7 +180,7 @@ export function App() {
             </div>
           </div>
           <div className="bg-default-contrast rounded-xl p-4 pe-2">
-            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
+            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap text-left font-mono" dir="ltr">
               {hexdump}
             </div>
           </div>
@@ -1224,11 +1224,10 @@ export function Code(props: ChildrenProps & { language: string }) {
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
   }, [code, language])
 
-  return <code className="whitespace-pre-wrap font-mono wrap-break-word text-xs sm:text-sm md:text-base"
-    dir="ltr"
+  return <div className="text-left whitespace-pre-wrap font-mono wrap-break-word text-xs sm:text-sm md:text-base" dir="ltr"
     ref={setCode}>
     {children}
-  </code>
+  </div>
 }
 
 export function SparksMachine() {
