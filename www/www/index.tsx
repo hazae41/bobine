@@ -82,10 +82,12 @@ if (process.env.PLATFORM === "browser") {
 } else {
   const params = new URLSearchParams(location.search)
 
-  const locale = params.get("locale")!
+  const locale = params.get("locale")
 
-  document.documentElement.lang = locale
-  document.documentElement.dir = delocalize(dir)
+  if (locale != null) {
+    document.documentElement.lang = locale
+    document.documentElement.dir = delocalize(dir)
+  }
 
   const prerender = async (node: ReactNode) => {
     const ReactDOM = await import("react-dom/static")

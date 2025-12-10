@@ -82,4 +82,4 @@ export const dir = {
   hu: "ltr",
   sv: "ltr",
   da: "ltr",
-} satisfies Record<Locale, "ltr" | "rtl">
+} as const
