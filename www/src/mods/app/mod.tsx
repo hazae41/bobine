@@ -104,7 +104,7 @@ export function App() {
         <Outline.ChevronDownIcon className="size-6 text-default-half-contrast" />
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
-          {"Made for WebAssembly"}
+          {"Contract with WebAssembly"}
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
@@ -325,6 +325,10 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
         </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast">
+          {"Live sparks generated in your browser"}
+        </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
           {"All sales final"}
@@ -358,8 +362,8 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="h-32" />
         <WasmMachine />
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-xl">
-          {"Live transactions per second running in your browser"}
+        <div className="text-center text-default-contrast">
+          {"Live transactions running in your browser"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
@@ -372,47 +376,77 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="h-32" />
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
               WebAssembly
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
               WebSocket
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
+              HTTP
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
               TypeScript
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
-              AssemblyScript
-            </div>
-          </div>
-          <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
-              JSON
-            </div>
-          </div>
-          <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
               Workers
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
+              AssemblyScript
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
               BigInt
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
-              OBFS
+            <div className="text-xl text-center">
+              OPFS
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl">
+            <div className="text-xl text-center">
+              SHA-256
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
+              Ed25519
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
+              IndexedDB
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
+              Base64
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
+              JSON
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
+              FormData
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl text-center">
               SQLite
             </div>
           </div>
