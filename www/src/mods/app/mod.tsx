@@ -451,7 +451,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
         </div>
-        <div className="h-[max(48rem,100dvh)]" />
+        <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
           {"Run it yourself"}
         </div>
@@ -459,9 +459,9 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <a className="text-center text-default-contrast text-2xl hover:underline"
           href="https://github.com/hazae41/bobine"
           target="_blank noreferrer">
-          {"Click me to open GitHub"}
+          {"Click here to open GitHub"}
         </a>
-        <div className="h-[max(48rem,100dvh)]" />
+        <div className="h-[max(24rem,50dvh)]" />
         <a className="text-center hover:underline"
           href="https://brume.tech"
           target="_blank noreferrer">
