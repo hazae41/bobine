@@ -87,89 +87,6 @@ const Subtitle = {
 } satisfies Localized
 
 export function App() {
-  // const f = useCallback(async (module: string) => {
-  //   const asc = await import("assemblyscript/asc")
-
-  //   const future = Promise.withResolvers<Uint8Array>()
-
-  //   const { error } = await asc.main([
-  //     "mod.ts",
-  //     "--outFile", "mod.wasm",
-  //     "--runtime", "stub",
-  //     "--optimizeLevel", "3",
-  //     "--enable", "reference-types"
-  //   ], {
-  //     stdout: {
-  //       write(message: string) {
-  //         console.log(message)
-  //       }
-  //     },
-  //     stderr: {
-  //       write(message: string) {
-  //         console.error(message)
-  //       }
-  //     },
-  //     listFiles() {
-  //       console.log("listFiles")
-
-  //       return ["mod.ts"]
-  //     },
-  //     async readFile(filename: string) {
-  //       console.log("readFile", filename)
-
-  //       if (filename === "mod.ts")
-  //         return module
-
-  //       let match: RegExpMatchArray | null = null
-
-  //       if (match = filename.match(/^node_modules\/@\/libs\/(.*)$/))
-  //         return await fetch(`/libs/${match[1]}`).then(res => res.text())
-
-  //       return null
-  //     },
-  //     writeFile(filename: string, content: Uint8Array) {
-  //       console.log("writeFile", filename)
-
-  //       if (filename !== "mod.wasm")
-  //         return
-  //       future.resolve(content)
-  //     }
-  //   })
-
-  //   if (error != null)
-  //     future.reject(new Error(error.message))
-
-  //   return await future.promise
-  // }, [])
-
-  // useEffect(() => void f(`
-  //   import { bigintref, bigints } from "@/libs/bigints/mod.ts"
-  //   import { blobs } from "@/libs/blobs/mod.ts"
-  //   import { storage } from "@/libs/storage/mod.ts"
-
-  //   export function add(): bigintref {
-  //     const key = blobs.save(String.UTF8.encode("counter"))
-
-  //     const val = storage.get(key)
-
-  //     if (!val) {
-  //       const fresh = bigints.one()
-
-  //       storage.set(key, bigints.encode(fresh))
-
-  //       return fresh
-  //     }
-
-  //     const stale = bigints.decode(val)
-
-  //     const fresh = bigints.inc(stale)
-
-  //     storage.set(key, bigints.encode(fresh))
-
-  //     return fresh
-  //   }
-  // `).then(console.log).catch(console.error), [])
-
   return <div className="h-full w-full flex flex-col overflow-y-scroll animate-opacity-in text-pretty">
     <div className="w-full flex justify-center">
       <img className="h-[40dvh] rotate-180" src="/engie.png" />
@@ -187,7 +104,7 @@ export function App() {
         <Outline.ChevronDownIcon className="size-6 text-default-half-contrast" />
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-6xl font-medium">
-          {"Embracing WebAssembly"}
+          {"Made for WebAssembly"}
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-2xl">
@@ -445,6 +362,62 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           {"Live transactions per second running in your browser"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
+        <div className="text-center text-6xl font-medium">
+          {"Made for the web"}
+        </div>
+        <div className="h-4" />
+        <div className="text-center text-default-contrast text-2xl">
+          {"Made with web technologies, everything can run in a browser"}
+        </div>
+        <div className="h-32" />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              WebAssembly
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              WebSocket
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              TypeScript
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              AssemblyScript
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              JSON
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              Workers
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              BigInt
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              OBFS
+            </div>
+          </div>
+          <div className="bg-default-contrast p-4 rounded-xl">
+            <div className="text-xl">
+              SQLite
+            </div>
+          </div>
+        </div>
+        <div className="h-[max(24rem,50dvh)]" />
       </div>
     </div>
   </div>
@@ -461,7 +434,7 @@ export function Code(props: ChildrenProps & { language: string }) {
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
   }, [code, language])
 
-  return <code className="whitespace-pre-wrap font-mono wrap-break-word"
+  return <code className="whitespace-pre-wrap font-mono wrap-break-word text-xs sm:text-sm md:text-base"
     ref={setCode}>
     {children}
   </code>
