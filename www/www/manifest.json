@@ -3,7 +3,7 @@
   "short_name": "Bobine",
   "description": "A blockchain in your garage",
   "start_url": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
