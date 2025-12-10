@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-namespace
+
 export type Locale =
   | "en"
   | "zh"
@@ -53,13 +54,7 @@ export namespace Locale {
 
 }
 
-export type Localized = Record<Locale, string>
-
-export function delocalize(localized: Localized) {
-  return localized[document.documentElement.lang]
-}
-
-export const lang = {
+export const lang: Record<Locale, Locale> = {
   en: "en",
   zh: "zh",
   hi: "hi",
@@ -92,7 +87,7 @@ export const lang = {
   da: "da",
 } as const
 
-export const dir = {
+export const dir: Record<Locale, "ltr" | "rtl"> = {
   en: "ltr",
   zh: "ltr",
   hi: "ltr",
@@ -124,3 +119,9 @@ export const dir = {
   sv: "ltr",
   da: "ltr",
 } as const
+
+export type Localized = Record<Locale, string>
+
+export function delocalize(localized: Localized) {
+  return localized[document.documentElement.lang]
+}

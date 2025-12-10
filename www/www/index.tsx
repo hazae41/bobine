@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import "@hazae41/symbol-dispose-polyfill";
 
 import "@hazae41/disposable-stack-polyfill";
