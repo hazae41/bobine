@@ -43,7 +43,7 @@ const mimes: Record<string, string> = {
 const port = 3000;
 const root = "./out";
 
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   console.log(req.url!)
 
   const url = new URL(req.url!, "http://localhost")
@@ -116,4 +116,23 @@ http.createServer((req, res) => {
   res.statusCode = 404;
   res.end("Not Found")
   return
-}).listen(port, () => console.log(`Serving at http://localhost:${port}`));
+})
+
+for (let offset = port; true; offset++) {
+  try {
+    const future = Promise.withResolvers<void>()
+
+    server.listen(offset, () => future.resolve())
+    server.on("error", (e) => future.reject(e))
+
+    await future.promise
+
+    console.log(`Serving at http://localhost:${offset}`)
+
+    break
+  } catch {
+    console.warn(`Could not bind to port ${offset}`)
+
+    continue
+  }
+}
