@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-namespace
 export type Locale =
   | "en"
   | "zh"
@@ -30,26 +31,66 @@ export type Locale =
   | "sv"
   | "da"
 
-export type Localized = string | Record<Locale, string>
+export namespace Locale {
 
-export function delocalize(localized: Localized) {
-  if (typeof localized === "string")
-    return localized
+  export function get(): Locale {
+    const served = lang[document.documentElement.lang]
 
-  if (localized[document.documentElement.lang] != null)
-    return localized[document.documentElement.lang]
+    if (served != null)
+      return served
 
-  for (const language of navigator.languages) {
-    const locale = language.split("-")[0]
+    for (const language of navigator.languages) {
+      const browsed = lang[language.split("-")[0]]
 
-    if (localized[locale] != null)
-      return localized[locale]
+      if (browsed != null)
+        return browsed
 
-    continue
+      continue
+    }
+
+    return "en"
   }
 
-  return localized["en"]
 }
+
+export type Localized = Record<Locale, string>
+
+export function delocalize(localized: Localized) {
+  return localized[document.documentElement.lang]
+}
+
+export const lang = {
+  en: "en",
+  zh: "zh",
+  hi: "hi",
+  es: "es",
+  ar: "ar",
+  fr: "fr",
+  de: "de",
+  ru: "ru",
+  pt: "pt",
+  ja: "ja",
+  pa: "pa",
+  bn: "bn",
+  id: "id",
+  ur: "ur",
+  ms: "ms",
+  it: "it",
+  tr: "tr",
+  ta: "ta",
+  te: "te",
+  ko: "ko",
+  vi: "vi",
+  pl: "pl",
+  ro: "ro",
+  nl: "nl",
+  el: "el",
+  th: "th",
+  cs: "cs",
+  hu: "hu",
+  sv: "sv",
+  da: "da",
+} as const
 
 export const dir = {
   en: "ltr",
