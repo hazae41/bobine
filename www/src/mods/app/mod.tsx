@@ -93,27 +93,27 @@ export function App() {
     </div>
     <div className="p-safe">
       <div className="p-4 flex-none flex flex-col items-center">
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {delocalize(Title)}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {delocalize(Subtitle)}
         </div>
         <div className="h-16" />
         <Outline.ChevronDownIcon className="size-6 text-default-half-contrast" />
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Contract with WebAssembly"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"You can write modules in any language that compiles to WebAssembly"}
         </div>
         <div className="h-16" />
         <div className="w-full max-w-[600px] flex flex-col">
           <div className="p-4">
-            <div className="text-2xl font-medium">
+            <div className="text-xl md:text-2xl font-medium">
               counter.wasm
             </div>
             <div className="h-2" />
@@ -128,18 +128,18 @@ export function App() {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"No extra tooling required"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"Just upload any .wasm file, and execute any exported function"}
         </div>
         <div className="h-16" />
         <div className="w-full flex flex-wrap justify-center gap-16">
           <div className="w-full max-w-[600px] flex flex-col">
             <div className="p-4">
-              <div className="text-2xl font-medium">
+              <div className="text-xl md:text-2xl font-medium">
                 counter.ts
               </div>
               <div className="h-2" />
@@ -179,7 +179,7 @@ export function add(): bigintref {
           </div>
           <div className="w-full max-w-[600px] flex flex-col">
             <div className="p-4">
-              <div className="text-2xl font-medium">
+              <div className="text-xl md:text-2xl font-medium">
                 counter.rs
               </div>
               <div className="h-2" />
@@ -218,17 +218,17 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Full account abstraction"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"No built-in concept of accounts, use any accounting module you want"}
         </div>
         <div className="h-16" />
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               secp256k1.wasm
             </div>
             <div className="h-2" />
@@ -237,7 +237,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               ed25519.wasm
             </div>
             <div className="h-2" />
@@ -246,7 +246,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               secp256r1.wasm
             </div>
             <div className="h-2" />
@@ -255,7 +255,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               mldsa44.wasm
             </div>
             <div className="h-2" />
@@ -264,7 +264,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               schnorr.wasm
             </div>
             <div className="h-2" />
@@ -273,7 +273,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl font-medium">
+            <div className="text-lg md:text-xl">
               custom.wasm
             </div>
             <div className="h-2" />
@@ -283,17 +283,17 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Capability-based security"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"No more approve-then-transfer, modules can get temporary access"}
         </div>
         <div className="h-16" />
         <div className="w-full max-w-[800px] flex flex-col">
           <div className="p-4">
-            <div className="text-2xl font-medium">
+            <div className="text-xl md:text-2xl font-medium">
               vault.ts
             </div>
             <div className="h-2" />
@@ -310,11 +310,11 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Gas paid via proof-of-work"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"Never run out of gas, just compute some hashes to pay for your transactions"}
         </div>
         <div className="h-16" />
@@ -330,11 +330,11 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           {"Live sparks generated in your browser"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"All sales final"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"Finality is instant, no reorg, no 50% attack"}
         </div>
         <div className="h-32" />
@@ -352,11 +352,11 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"High throughput"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"Expect thousands of transactions per second"}
         </div>
         <div className="h-32" />
@@ -366,97 +366,97 @@ pub extern "C" fn add() -> bigints::BigIntRef {
           {"Live transactions running in your browser"}
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Made for the web"}
         </div>
         <div className="h-4" />
-        <div className="text-center text-default-contrast text-2xl">
+        <div className="text-center text-default-contrast text-xl md:text-2xl">
           {"Made with web technologies, everything can run in a browser"}
         </div>
         <div className="h-32" />
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               WebAssembly
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               WebSocket
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               HTTP
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               TypeScript
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               Workers
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               AssemblyScript
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               BigInt
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               OPFS
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               SHA-256
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               Ed25519
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               IndexedDB
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               Base64
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               JSON
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               FormData
             </div>
           </div>
           <div className="bg-default-contrast p-4 rounded-xl">
-            <div className="text-xl text-center">
+            <div className="text-lg md:text-xl text-center">
               SQLite
             </div>
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
-        <div className="text-center text-6xl font-medium">
+        <div className="text-center text-5xl md:text-6xl font-medium">
           {"Run it yourself"}
         </div>
         <div className="h-4" />
-        <a className="text-center text-default-contrast text-2xl hover:underline"
+        <a className="text-center text-default-contrast text-xl md:text-2xl hover:underline"
           href="https://github.com/hazae41/bobine"
           target="_blank noreferrer">
           {"Click here to open GitHub"}
