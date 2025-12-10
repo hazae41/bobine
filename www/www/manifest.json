@@ -8,8 +8,9 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/appicon.svg",
-      "type": "image/svg+xml",
+      "src": "/appicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
