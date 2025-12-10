@@ -451,7 +451,13 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
           </div>
         </div>
-        <div className="h-[max(24rem,50dvh)]" />
+        <div className="h-[max(48rem,100dvh)]" />
+        <a className="text-center hover:underline"
+          href="https://brume.tech"
+          target="_blank noreferrer">
+          Made by cypherpunks
+        </a>
+        <div className="h-4" />
       </div>
     </div>
   </div>
