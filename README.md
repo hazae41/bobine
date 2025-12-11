@@ -82,9 +82,14 @@ Accepts a form data with the following fields
 
 ## WebAssembly API
 
-### <module>
+You can use the WebAssembly API by declaring an external function with the module name and method name
 
-You can use any module method by using the module address as hex
+```tsx
+@external("numbers", "add")
+declare function add(x: i32, y: i32): i32
+```
+
+You can use created modules by using the module address as hex
 
 ```tsx
 @external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "add")
