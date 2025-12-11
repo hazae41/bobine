@@ -17,6 +17,17 @@ A blockchain in your garage
 
 ### Binary
 
+Create an `.env.local` fields
+
+```env
+DATABASE_PATH=./local/database.db
+
+SCRIPTS_PATH=./local/scripts
+
+ED25519_PRIVATE_KEY_HEX=302e020100300506032b657004220420edff8b2503b91f58bc0f0435ca17de549f89d6a7cde4c277161e031669395005
+ED25519_PUBLIC_KEY_HEX=90dcd81a473a4e59a84df6cb8f77af3d34c7fd6171ed959ca04a75f07a57b4b9
+```
+
 Run the server with Deno
 
 ```bash
