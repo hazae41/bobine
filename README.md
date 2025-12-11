@@ -17,7 +17,7 @@ A blockchain in your garage
 
 ### Binary
 
-Create an `.env.local` fields
+Create an `.env.local` file
 
 ```env
 DATABASE_PATH=./local/database.db
