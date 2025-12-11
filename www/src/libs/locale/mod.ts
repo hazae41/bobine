@@ -123,5 +123,5 @@ export const dir: Record<Locale, "ltr" | "rtl"> = {
 export type Localized = Record<Locale, string>
 
 export function delocalize(localized: Localized) {
-  return localized[document.documentElement.lang]
+  return localized[document.documentElement.lang || "en"]
 }

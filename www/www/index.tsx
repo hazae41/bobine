@@ -1,3 +1,5 @@
+// deno-lint-ignore-file no-unused-vars
+
 /// <reference lib="dom" />
 
 import "@hazae41/symbol-dispose-polyfill";
@@ -75,9 +77,6 @@ function Body() {
   useEffect(() => {
     upgrade().then(console.log).catch(console.error)
   }, [])
-
-  if (!client && document.documentElement.lang in lang === false)
-    return null
 
   return <App />
 }
