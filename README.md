@@ -13,6 +13,20 @@ A blockchain in your garage
 
 \* There are no built-in accounting concepts, only pure generic APIs for cryptography and storage
 
+## Running
+
+### Binary
+
+Run the server with Deno
+
+```bash
+deno run --env-file=./.env.local -A npm:@hazae41/bobine
+```
+
+### Library
+
+Install `@hazae41/bobine` and use the `serve()` function
+
 ## HTTP API
 
 ### POST /api/create
