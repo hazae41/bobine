@@ -17,7 +17,21 @@ A blockchain in your garage
 
 ### Binary
 
-Create an `.env.local` file
+Generate an Ed25519 keypair by running the following code in your browser/Node/Deno console
+
+```typescript
+const keypair = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"])
+
+const privateKey = await crypto.subtle.exportKey("pkcs8", keypair.privateKey)
+
+const publicKey = await crypto.subtle.exportKey("raw", keypair.publicKey)
+
+console.log(`ED25519_PRIVATE_KEY_HEX=${new Uint8Array(privateKey).toHex()}`)
+
+console.log(`ED25519_PUBLIC_KEY_HEX=${new Uint8Array(publicKey).toHex()}`)
+```
+
+Create an `.env.local` file and replace your Ed25519 values
 
 ```env
 DATABASE_PATH=./local/database.db
