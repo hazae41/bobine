@@ -12,7 +12,7 @@ import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 import React, { JSX, useCallback, useEffect, useState } from "react";
 import { Outline } from "../../libs/heroicons/mod.ts";
 import { hexdump } from "../../libs/hexdump/mod.ts";
-import { delocalize } from "../../libs/locale/mod.ts";
+import { Lang } from "../../libs/lang/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
@@ -28,7 +28,7 @@ export function App() {
     <div className="p-safe">
       <div className="p-8 flex-none flex flex-col items-center">
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "A blockchain in your garage",
             zh: "你车库里的区块链",
             hi: "आपके गैराज में एक ब्लॉकचेन",
@@ -63,7 +63,7 @@ export function App() {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "An ultra-simple blockchain with instant finality",
             zh: "一个极其简单且具有即时终局性的区块链",
             hi: "एक अल्ट्रा-साधारण ब्लॉकचेन के साथ त्वरित अंतिमता",
@@ -100,7 +100,7 @@ export function App() {
         <Outline.ChevronDownIcon className="size-6 text-default-half-contrast" />
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Contracts in WebAssembly",
             zh: "WebAssembly 智能合约",
             hi: "WebAssembly में कॉन्ट्रैक्ट्स",
@@ -135,7 +135,7 @@ export function App() {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "You can write modules in any language that compiles to WebAssembly",
             zh: "您可以使用任何编译为 WebAssembly 的语言编写模块",
             hi: "आप किसी भी भाषा में मॉड्यूल लिख सकते हैं जो WebAssembly में संकलित होती है",
@@ -187,7 +187,7 @@ export function App() {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "No extra tooling required",
             zh: "无需额外工具",
             hi: "कोई अतिरिक्त टूलिंग आवश्यक नहीं",
@@ -222,7 +222,7 @@ export function App() {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "Just upload any .wasm file, and execute any exported function",
             zh: "只需上传任何 .wasm 文件，并执行任何导出的函数",
             hi: "बस किसी भी .wasm फ़ाइल को अपलोड करें, और किसी भी निर्यातित फ़ंक्शन को निष्पादित करें",
@@ -339,7 +339,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Full account abstraction",
             zh: "完整的账户抽象",
             hi: "पूर्ण खाता अमूर्तता",
@@ -374,7 +374,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "No built-in concept of accounts, use any account module you want",
             zh: "没有内置的账户概念，使用您想要的任何账户模块",
             hi: "खातों की कोई अंतर्निहित अवधारणा नहीं है, किसी भी खाता मॉड्यूल का उपयोग करें जो आप चाहते हैं",
@@ -442,7 +442,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
             <div className="h-2" />
             <div className="text-default-contrast">
-              {delocalize({
+              {Lang.match({
                 en: "Post-quantum",
                 zh: "后量子",
                 hi: "पोस्ट-क्वांटम",
@@ -482,7 +482,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
             <div className="h-2" />
             <div className="text-default-contrast">
-              {delocalize({
+              {Lang.match({
                 en: "Multi-signature",
                 zh: "多重签名",
                 hi: "मल्टी-सिग्नेचर",
@@ -522,7 +522,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
             </div>
             <div className="h-2" />
             <div className="text-default-contrast">
-              {delocalize({
+              {Lang.match({
                 en: "Your own module",
                 zh: "您自己的模块",
                 hi: "आपका अपना मॉड्यूल",
@@ -559,7 +559,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Capability-based security",
             zh: "基于能力的安全性",
             hi: "क्षमता-आधारित सुरक्षा",
@@ -594,7 +594,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "No more approve-then-transfer, modules can get temporary access",
             zh: "不再需要先批准然后转账，模块可以获得临时访问权限",
             hi: "और अधिक स्वीकृति-फिर-स्थानांतरण नहीं, मॉड्यूल अस्थायी पहुंच प्राप्त कर सकते हैं",
@@ -648,7 +648,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Gas paid via proof-of-work",
             zh: "通过工作量证明支付燃气费",
             hi: "प्रूफ-ऑफ-वर्क के माध्यम से गैस का भुगतान किया गया",
@@ -683,7 +683,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "Never run out of gas, just compute some hashes to pay for your transactions",
             zh: "永远不会耗尽燃气，只需计算一些哈希值来支付您的交易费用",
             hi: "गैस कभी खत्म न हो, बस अपने लेनदेन के लिए भुगतान करने के लिए कुछ हैश की गणना करें",
@@ -726,7 +726,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast">
-          {delocalize({
+          {Lang.match({
             en: "Live sparks generated in your browser",
             zh: "在您的浏览器中生成实时火花",
             hi: "आपके ब्राउज़र में लाइव स्पार्क्स उत्पन्न हुए",
@@ -761,7 +761,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "All sales final",
             zh: "所有销售均为最终销售",
             hi: "सभी बिक्री अंतिम हैं",
@@ -796,7 +796,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "Finality is instant, no reorg, no fifty-percent attack",
             zh: "最终性是即时的，没有重组，没有百分之五十的攻击",
             hi: "फाइनलिटी तात्कालिक है, कोई रीऑर्ग नहीं, कोई पचास प्रतिशत हमला नहीं",
@@ -845,7 +845,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "High throughput",
             zh: "高吞吐量",
             hi: "उच्च थ्रूपुट",
@@ -880,7 +880,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "Expect thousands of transactions per second",
             zh: "每秒预期数千笔交易",
             hi: "प्रति सेकंड हजारों लेनदेन की उम्मीद करें",
@@ -917,7 +917,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <WasmMachine />
         <div className="h-4" />
         <div className="text-center text-default-contrast">
-          {delocalize({
+          {Lang.match({
             en: "Live transactions running in your browser",
             zh: "在您的浏览器中运行的实时交易",
             hi: "आपके ब्राउज़र में चल रहे लाइव लेनदेन",
@@ -952,7 +952,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Made for the web",
             zh: "为网络而生",
             hi: "वेब के लिए बनाया गया",
@@ -987,7 +987,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-4" />
         <div className="text-center text-default-contrast text-xl md:text-2xl">
-          {delocalize({
+          {Lang.match({
             en: "Made with web technologies, everything can run in a browser",
             zh: "使用网络技术制作，一切都可以在浏览器中运行",
             hi: "वेब तकनीकों के साथ बनाया गया, सब कुछ ब्राउज़र में चल सकता है",
@@ -1100,7 +1100,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
-          {delocalize({
+          {Lang.match({
             en: "Run it yourself",
             zh: "自己运行它",
             hi: "इसे खुद चलाएं",
@@ -1137,7 +1137,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <a className="text-center text-default-contrast text-xl md:text-2xl hover:underline"
           href="https://github.com/hazae41/bobine"
           target="_blank noreferrer">
-          {delocalize({
+          {Lang.match({
             en: "Click here to open GitHub",
             zh: "点击此处打开GitHub",
             hi: "GitHub खोलने के लिए यहां क्लिक करें",
@@ -1174,7 +1174,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <a className="text-center hover:underline"
           href="https://brume.tech"
           target="_blank noreferrer">
-          {delocalize({
+          {Lang.match({
             en: "Made by cypherpunks",
             zh: "由赛博朋克制作",
             hi: "साइबरपंक द्वारा बनाया गया",
@@ -1270,7 +1270,7 @@ export function SparksMachine() {
 
     const value = await future.promise
 
-    setMessages(messages => [delocalize({
+    setMessages(messages => [Lang.match({
       en: `You just generated ${value.toString()} sparks`,
       zh: `您刚刚生成了 ${value.toString()} 个火花`,
       hi: `आपने अभी-अभी ${value.toString()} स्पार्क्स जनरेट किए हैं`,

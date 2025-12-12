@@ -6,7 +6,7 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import "@hazae41/disposable-stack-polyfill";
 
-import { delocalize, dir, lang, Locale, Localized } from "@/libs/locale/mod.ts";
+import { dirs, Lang } from "@/libs/lang/mod.ts";
 import { App } from "@/mods/app/mod.tsx";
 import { immutable } from "@hazae41/immutable";
 import { Rewind } from "@hazae41/rewind";
@@ -46,7 +46,7 @@ const AnUpdateIsAvailable = (origin: string) => ({
   hu: `Elérhető egy frissítés a ${origin} számára. Szeretne most frissíteni?`,
   sv: `En uppdatering av ${origin} är tillgänglig. Vill du uppdatera nu?`,
   da: `En opdatering af ${origin} er tilgængelig. Vil du opdatere nu?`,
-} satisfies Localized)
+})
 
 async function upgrade() {
   if (navigator.serviceWorker.controller != null)
@@ -56,7 +56,7 @@ async function upgrade() {
 
   if (update == null)
     return registration
-  if (!confirm(delocalize(AnUpdateIsAvailable(location.origin))))
+  if (!confirm(Lang.match(AnUpdateIsAvailable(location.origin))))
     return registration
 
   return await update()
@@ -66,10 +66,10 @@ function Body() {
   const [client, setClient] = useState(false)
 
   useEffect(() => {
-    const locale = Locale.get()
+    const lang = Lang.get()
 
-    document.documentElement.lang = lang[locale]
-    document.documentElement.dir = dir[locale]
+    document.documentElement.lang = lang
+    document.documentElement.dir = dirs[lang]
 
     setClient(true)
   }, [])
@@ -88,11 +88,11 @@ if (process.env.PLATFORM === "browser") {
 } else {
   const params = new URLSearchParams(location.search)
 
-  const locale = params.get("locale") as Locale | null
+  const lang = params.get("lang") as Lang | null
 
-  if (locale != null) {
-    document.documentElement.lang = lang[locale]
-    document.documentElement.dir = dir[locale]
+  if (lang != null) {
+    document.documentElement.lang = lang
+    document.documentElement.dir = dirs[lang]
   }
 
   const prerender = async (node: ReactNode) => {

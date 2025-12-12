@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-namespace
 
-export type Locale =
+export type Lang =
   | "en"
   | "zh"
   | "hi"
@@ -32,29 +32,7 @@ export type Locale =
   | "sv"
   | "da"
 
-export namespace Locale {
-
-  export function get(): Locale {
-    const served = lang[document.documentElement.lang]
-
-    if (served != null)
-      return served
-
-    for (const language of navigator.languages) {
-      const browsed = lang[language.split("-")[0]]
-
-      if (browsed != null)
-        return browsed
-
-      continue
-    }
-
-    return "en"
-  }
-
-}
-
-export const lang: Record<Locale, Locale> = {
+export const langs: Record<string, Lang> = {
   en: "en",
   zh: "zh",
   hi: "hi",
@@ -87,7 +65,7 @@ export const lang: Record<Locale, Locale> = {
   da: "da",
 } as const
 
-export const dir: Record<Locale, "ltr" | "rtl"> = {
+export const dirs: Record<Lang, "ltr" | "rtl"> = {
   en: "ltr",
   zh: "ltr",
   hi: "ltr",
@@ -120,8 +98,28 @@ export const dir: Record<Locale, "ltr" | "rtl"> = {
   da: "ltr",
 } as const
 
-export type Localized = Record<Locale, string>
+export namespace Lang {
 
-export function delocalize(localized: Localized) {
-  return localized[document.documentElement.lang || "en"]
+  export function get(): Lang {
+    const served = langs[document.documentElement.lang]
+
+    if (served != null)
+      return served
+
+    for (const language of navigator.languages) {
+      const browsed = langs[language.split("-")[0]]
+
+      if (browsed != null)
+        return browsed
+
+      continue
+    }
+
+    return "en"
+  }
+
+  export function match(record: Record<Lang, string>) {
+    return record[get()]
+  }
+
 }

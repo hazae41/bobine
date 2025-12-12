@@ -19,94 +19,94 @@
   },
   "paths": [
     {
-      "locale": "en"
+      "lang": "en"
     },
     {
-      "locale": "zh"
+      "lang": "zh"
     },
     {
-      "locale": "hi"
+      "lang": "hi"
     },
     {
-      "locale": "es"
+      "lang": "es"
     },
     {
-      "locale": "ar"
+      "lang": "ar"
     },
     {
-      "locale": "fr"
+      "lang": "fr"
     },
     {
-      "locale": "de"
+      "lang": "de"
     },
     {
-      "locale": "ru"
+      "lang": "ru"
     },
     {
-      "locale": "pt"
+      "lang": "pt"
     },
     {
-      "locale": "ja"
+      "lang": "ja"
     },
     {
-      "locale": "pa"
+      "lang": "pa"
     },
     {
-      "locale": "bn"
+      "lang": "bn"
     },
     {
-      "locale": "id"
+      "lang": "id"
     },
     {
-      "locale": "ur"
+      "lang": "ur"
     },
     {
-      "locale": "ms"
+      "lang": "ms"
     },
     {
-      "locale": "it"
+      "lang": "it"
     },
     {
-      "locale": "tr"
+      "lang": "tr"
     },
     {
-      "locale": "ta"
+      "lang": "ta"
     },
     {
-      "locale": "te"
+      "lang": "te"
     },
     {
-      "locale": "ko"
+      "lang": "ko"
     },
     {
-      "locale": "vi"
+      "lang": "vi"
     },
     {
-      "locale": "pl"
+      "lang": "pl"
     },
     {
-      "locale": "ro"
+      "lang": "ro"
     },
     {
-      "locale": "nl"
+      "lang": "nl"
     },
     {
-      "locale": "el"
+      "lang": "el"
     },
     {
-      "locale": "th"
+      "lang": "th"
     },
     {
-      "locale": "cs"
+      "lang": "cs"
     },
     {
-      "locale": "hu"
+      "lang": "hu"
     },
     {
-      "locale": "sv"
+      "lang": "sv"
     },
     {
-      "locale": "da"
+      "lang": "da"
     }
   ]
 }
