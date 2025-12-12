@@ -46,7 +46,7 @@ const AnUpdateIsAvailable = (origin: string) => ({
   hu: `Elérhető egy frissítés a ${origin} számára. Szeretne most frissíteni?`,
   sv: `En uppdatering av ${origin} är tillgänglig. Vill du uppdatera nu?`,
   da: `En opdatering af ${origin} er tilgængelig. Vil du opdatere nu?`,
-})
+} as const)
 
 async function upgrade() {
   if (navigator.serviceWorker.controller != null)
