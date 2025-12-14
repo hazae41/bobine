@@ -98,21 +98,29 @@ Accepts a form data with the following fields
 
 ## WebAssembly API
 
-You can use the WebAssembly API by declaring an external function with the module name and method name
+The WebAssembly VM extensively uses reference types for its API and for module-to-module communication
+
+### AssemblyScript
+
+You can use [stdbob](https://github.com/hazae41/stdbob) to easily import AssemblyScript declarations for all internal modules
+
+Or you can declare internal modules manually with the module name and method name
 
 ```tsx
-@external("numbers", "add")
-declare function add(x: i32, y: i32): i32
+@external("bigints", "add")
+declare function add(x: externref, y: externref): externref
 ```
 
-You can use created modules by using the module address as hex
+And you can declare external modules by using the module address as hex
 
 ```tsx
 @external("5feeee846376f6436990aa2757bc67fbc4498bcc9993b647788e273ad6fde474", "add")
-declare function add(x: i32, y: i32): i32
+declare function add(x: externref, y: externref): externref
 ```
 
-### blobs
+### All internal modules
+
+#### blobs
 
 You can pass bytes between modules by storing them in the blob storage and loading them via reference
 
@@ -126,7 +134,7 @@ You can pass bytes between modules by storing them in the blob storage and loadi
 
 - `blob.to_hex/from_hex/to_base64/from_base64(blob: blobref): blobref` = convert blobs to/from hex/base64 without loading them into memory
 
-### bigints
+#### bigints
 
 You can work with infinite-precision bigints
 
@@ -152,7 +160,7 @@ You can work with infinite-precision bigints
 
 - `bigints.from_base10(base16: blobref): bigintref` = convert base10 utf8 bytes to bigint
 
-### packs
+#### packs
 
 You can pack various arguments (numbers, refs) into a pack which can be passed between modules and/or encoded/decoded into bytes
 
@@ -207,7 +215,9 @@ function writePack(pack: packref) {
 
 - `packs.get<T>(pack: packref, index: i32): T` = get the value of a pack at `index` (throws if not found)
 
-### env
+- `packs.length(pack: packref): i32` = get the length of a pack
+
+#### env
 
 Get infos about the executing environment
 
@@ -215,7 +225,7 @@ Get infos about the executing environment
 
 - `env.uuid(): blobref` = get the unique uuid of this environment (similar to a chain id)
 
-### modules
+#### modules
 
 Modules are identified by their address as a blob of bytes (pure sha256-output 32-length bytes without any encoding)
 
@@ -227,7 +237,7 @@ Modules are identified by their address as a blob of bytes (pure sha256-output 3
 
 - `modules.self(): blobref` = get your module address as blob
 
-### storage
+#### storage
 
 You can use a private storage (it works like storage and events at the same time)
 
@@ -235,13 +245,13 @@ You can use a private storage (it works like storage and events at the same time
 
 - `storage.get(key: blobref): blobref` = get the latest value from storage at key
 
-### sha256
+#### sha256
 
 Use the SHA-256 hashing algorithm
 
 - `sha256.digest(payload: blobref): blobref` = hash the payload and returns the digest
 
-### ed25519
+#### ed25519
 
 Use the Ed25519 signing algorithm
 
@@ -249,11 +259,11 @@ Use the Ed25519 signing algorithm
 
 - `ed25519.sign(payload: blobref): blobref` = (experimental) sign payload using the miner's private key
 
-### symbols (experimental)
+#### symbols (experimental)
 
 - `symbols.create(): symbolref` = create a unique reference that can be passed around
 
-### refs (experimental)
+#### refs (experimental)
 
 - `refs.numerize(ref: symbolref/blobref/packref): i32` = translate any reference into a unique private pointer that can be stored into data structures
 
