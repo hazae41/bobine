@@ -45,7 +45,7 @@
   "devDependencies": {
     "@hazae41/phobos": "^2.0.16",
     "@hazae41/tscousin": "^1.0.28",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.2",
     "typescript": "^5.9.3"
   },
   "keywords": [
