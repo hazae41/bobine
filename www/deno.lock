@@ -9,14 +9,14 @@
     "jsr:@hazae41/result-and-option@^2.0.10": "2.0.10",
     "jsr:@hazae41/result-and-option@^2.0.8": "2.0.10",
     "jsr:@hazae41/rewind@^2.3.12": "2.3.12",
-    "jsr:@hazae41/symbol-dispose-polyfill@^1.1.1": "1.1.2",
+    "jsr:@hazae41/symbol-dispose-polyfill@^1.1.2": "1.1.2",
     "npm:@hazae41/disposable-stack-polyfill@^2.0.5": "2.0.5",
     "npm:@hazae41/glace@^1.0.30": "1.0.30",
     "npm:@hazae41/immutable@^2.0.24": "2.0.24",
     "npm:@hazae41/jsonrpc@^1.1.11": "1.1.11",
     "npm:@hazae41/labase@^1.0.16": "1.0.16",
     "npm:@hazae41/rewind@^2.3.12": "2.3.12",
-    "npm:@hazae41/symbol-dispose-polyfill@^1.1.1": "1.1.2",
+    "npm:@hazae41/symbol-dispose-polyfill@^1.1.2": "1.1.2",
     "npm:@heroicons/react@^2.2.0": "2.2.0_react@19.2.1",
     "npm:@types/node@*": "24.2.0",
     "npm:@types/react-dom@^19.2.3": "19.2.3_@types+react@19.2.7",
@@ -25,8 +25,8 @@
     "npm:esbuild@~0.27.1": "0.27.1",
     "npm:happy-dom@^20.0.11": "20.0.11",
     "npm:highlight.js@^11.11.1": "11.11.1",
-    "npm:react-dom@^19.2.1": "19.2.1_react@19.2.1",
-    "npm:react@^19.2.1": "19.2.1",
+    "npm:react-dom@^19.2.3": "19.2.3_react@19.2.3",
+    "npm:react@^19.2.3": "19.2.3",
     "npm:tailwindcss@^4.1.14": "4.1.17",
     "npm:tslib@^2.8.1": "2.8.1"
   },
@@ -255,7 +255,7 @@
     "@heroicons/react@2.2.0_react@19.2.1": {
       "integrity": "sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==",
       "dependencies": [
-        "react"
+        "react@19.2.1"
       ]
     },
     "@types/node@20.19.26": {
@@ -347,15 +347,18 @@
     "long@5.3.2": {
       "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="
     },
-    "react-dom@19.2.1_react@19.2.1": {
-      "integrity": "sha512-ibrK8llX2a4eOskq1mXKu/TGZj9qzomO+sNfO98M6d9zIPOEhlBkMkBUBLd1vgS0gQsLDBzA+8jJBVXDnfHmJg==",
+    "react-dom@19.2.3_react@19.2.3": {
+      "integrity": "sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==",
       "dependencies": [
-        "react",
+        "react@19.2.3",
         "scheduler"
       ]
     },
     "react@19.2.1": {
       "integrity": "sha512-DGrYcCWK7tvYMnWh79yrPHt+vdx9tY+1gPZa7nJQtO/p8bLTDaHp4dzwEhQB7pZ4Xe3ok4XKuEPrVuc+wlpkmw=="
+    },
+    "react@19.2.3": {
+      "integrity": "sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA=="
     },
     "scheduler@0.27.0": {
       "integrity": "sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q=="
@@ -387,7 +390,7 @@
       "jsr:@hazae41/jsonrpc@^1.1.11",
       "jsr:@hazae41/labase@^1.0.16",
       "jsr:@hazae41/rewind@^2.3.12",
-      "jsr:@hazae41/symbol-dispose-polyfill@^1.1.1"
+      "jsr:@hazae41/symbol-dispose-polyfill@^1.1.2"
     ],
     "packageJson": {
       "dependencies": [
@@ -397,14 +400,14 @@
         "npm:@hazae41/jsonrpc@^1.1.11",
         "npm:@hazae41/labase@^1.0.16",
         "npm:@hazae41/rewind@^2.3.12",
-        "npm:@hazae41/symbol-dispose-polyfill@^1.1.1",
+        "npm:@hazae41/symbol-dispose-polyfill@^1.1.2",
         "npm:@heroicons/react@^2.2.0",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.7",
         "npm:assemblyscript@~0.28.9",
         "npm:highlight.js@^11.11.1",
-        "npm:react-dom@^19.2.1",
-        "npm:react@^19.2.1"
+        "npm:react-dom@^19.2.3",
+        "npm:react@^19.2.3"
       ]
     }
   }
