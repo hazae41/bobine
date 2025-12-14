@@ -7,6 +7,6 @@
     "assemblyscript": "^0.28.9"
   },
   "dependencies": {
-    "@hazae41/stdbob": "^0.0.1"
+    "@hazae41/stdbob": "^0.0.2"
   }
 }
