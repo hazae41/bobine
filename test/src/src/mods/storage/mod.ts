@@ -1,5 +1,4 @@
-import { blobref, blobs } from "../../libs/blobs/mod"
-import { storage } from "../../libs/storage/mod"
+import { blobref, blobs, storage } from "@hazae41/stdbob"
 
 export function set(): void {
   storage.set(blobs.save(String.UTF8.encode("greeting")), blobs.save(String.UTF8.encode("Hello, World!!")))

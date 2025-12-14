@@ -1,8 +1,4 @@
-import { blobref, blobs } from "../../libs/blobs/mod";
-import { console } from "../../libs/console/mod";
-import { refs } from "../../libs/externs/mod";
-import { modules } from "../../libs/modules/mod";
-import { symbolref } from "../../libs/symbols/mod";
+import { blobref, blobs, console, modules, refs, symbolref } from "@hazae41/stdbob"
 
 // @ts-ignore
 @external("a6d74837aa9d121e7d518842ee6d5e2fb36fec7652fc9c500c1fcc593f014570", "login")

@@ -1,6 +1,4 @@
-import { bigintref, bigints } from "../../libs/bigints/mod";
-import { blobs } from "../../libs/blobs/mod";
-import { console } from "../../libs/console/mod";
+import { bigintref, bigints, blobs, console } from "@hazae41/stdbob"
 
 export function add(): bigintref {
   const a = bigints.fromBase10(blobs.save(String.UTF8.encode("123")))

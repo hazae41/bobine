@@ -1,9 +1,4 @@
-import { blobref, blobs } from "../../libs/blobs/mod";
-import { refs } from "../../libs/externs/mod";
-import { modules } from "../../libs/modules/mod";
-import { packs } from "../../libs/packs/mod";
-import { storage } from "../../libs/storage/mod";
-import { symbolref, symbols } from "../../libs/symbols/mod";
+import { blobref, blobs, modules, packs, refs, storage, symbolref, symbols } from "@hazae41/stdbob"
 
 const sessions = new Set<usize>()
 

@@ -1,9 +1,4 @@
-import { addresses } from "../../libs/address/mod"
-import { blobref, blobs } from "../../libs/blobs/mod"
-import { modules } from "../../libs/modules/mod"
-import { packref, packs } from "../../libs/packs/mod"
-import { sha256 } from "../../libs/sha256/mod"
-import { storage } from "../../libs/storage/mod"
+import { addresses, blobref, blobs, modules, packref, packs, sha256, storage } from "@hazae41/stdbob"
 
 namespace owner {
 

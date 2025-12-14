@@ -1,9 +1,10 @@
 {
   "extends": "assemblyscript/std/assembly.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true
+    "module": "preserve",
+    "moduleResolution": "bundler"
   },
   "include": [
-    "./**/*.ts"
+    "./src/**/*.ts"
   ]
 }

@@ -1,5 +1,4 @@
-import { refs } from "../../libs/externs/mod"
-import { symbols } from "../../libs/symbols/mod"
+import { refs, symbols } from "@hazae41/stdbob"
 
 export function main(): bool {
   const a = symbols.create(), ia = refs.numerize(a)

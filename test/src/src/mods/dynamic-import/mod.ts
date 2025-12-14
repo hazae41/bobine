@@ -1,7 +1,4 @@
-import { blobs } from "../../libs/blobs/mod"
-import { refs } from "../../libs/externs/mod"
-import { modules } from "../../libs/modules/mod"
-import { packs } from "../../libs/packs/mod"
+import { blobs, modules, packs, refs } from "@hazae41/stdbob"
 
 class Library {
 

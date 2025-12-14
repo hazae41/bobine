@@ -1,11 +1,4 @@
-import { addresses } from "../../libs/address/mod"
-import { blobref, blobs } from "../../libs/blobs/mod"
-import { ed25519 } from "../../libs/ed25519/mod"
-import { env } from "../../libs/env/mod"
-import { refs } from "../../libs/externs/mod"
-import { modules } from "../../libs/modules/mod"
-import { packref, packs } from "../../libs/packs/mod"
-import { storage } from "../../libs/storage/mod"
+import { addresses, blobref, blobs, ed25519, env, modules, packref, packs, refs, storage } from "@hazae41/stdbob"
 
 namespace nonces {
 

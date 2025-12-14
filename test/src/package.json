@@ -1,9 +1,12 @@
 {
   "type": "module",
+  "scripts": {
+    "examine": "zsh -c 'asc --noEmit ./src/**/*.ts --enable reference-types'"
+  },
   "devDependencies": {
     "assemblyscript": "^0.28.9"
   },
   "dependencies": {
-    "assemblyscript-json": "^1.1.0"
+    "@hazae41/stdbob": "^0.0.1"
   }
 }

@@ -1,6 +1,4 @@
-import { bigintref, bigints } from "../../libs/bigints/mod"
-import { blobs } from "../../libs/blobs/mod.ts"
-import { storage } from "../../libs/storage/mod"
+import { bigintref, bigints, blobs, storage } from "@hazae41/stdbob"
 
 export function add(): bigintref {
   const key = blobs.save(String.UTF8.encode("counter"))

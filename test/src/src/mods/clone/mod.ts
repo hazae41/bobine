@@ -1,7 +1,4 @@
-import { blobref, blobs } from "../../libs/blobs/mod"
-import { console } from "../../libs/console/mod"
-import { modules } from "../../libs/modules/mod"
-import { sha256 } from "../../libs/sha256/mod"
+import { blobref, blobs, console, modules, sha256 } from "@hazae41/stdbob"
 
 export function init(message: blobref): void {
   if (!blobs.equals(modules.self(), sha256.digest(blobs.concat(sha256.digest(modules.load(modules.self())), sha256.digest(message)))))
