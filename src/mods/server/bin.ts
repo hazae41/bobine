@@ -2,51 +2,99 @@ import { readFileSync } from "node:fs";
 import process from "node:process";
 import { serveWithEnv } from "./mod.ts";
 
-const {
-  PORT = process.env.PORT || "8080",
-  CERT = process.env.CERT,
-  KEY = process.env.KEY,
-} = process.env
+export async function main(args: string[]) {
+  const config: {
+    port?: number,
+    cert?: string,
+    key?: string,
+  } = {}
 
-const port = Number(PORT)
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
 
-const cert = CERT != null ? readFileSync(CERT, "utf8") : undefined
-const key = KEY != null ? readFileSync(KEY, "utf8") : undefined
+    if (arg.startsWith("--env=")) {
+      process.loadEnvFile(arg.slice("--env=".length))
+      continue
+    }
 
-const server = await serveWithEnv()
+    if (arg.startsWith("--port=")) {
+      config.port = Number(arg.slice("--port=".length))
+      continue
+    }
 
-const route = async (request: Request) => {
-  if (request.method === "OPTIONS")
-    return new Response(null, { status: 204 })
+    if (arg.startsWith("--cert=")) {
+      config.cert = readFileSync(arg.slice("--cert=".length), "utf8")
+      continue
+    }
 
-  if (request.headers.get("Upgrade") === "websocket") {
-    const { socket, response } = Deno.upgradeWebSocket(request)
+    if (arg.startsWith("--key=")) {
+      config.key = readFileSync(arg.slice("--key=".length), "utf8")
+      continue
+    }
 
-    await server.onWebSocketRequest(request, socket)
+    if (arg === "--dev=true") {
+      process.env.NODE_ENV = "development"
+      continue
+    }
 
-    return response
+    if (arg === "--dev=false") {
+      process.env.NODE_ENV = "production"
+      continue
+    }
+
+    if (arg === "--dev") {
+      process.env.NODE_ENV = "development"
+      continue
+    }
+
+    throw new Error(`Unknown argument: ${arg}`)
   }
 
-  return await server.onHttpRequest(request)
-}
+  const {
+    port = Number(process.env.PORT) || 8080,
+    cert = process.env.CERT != null ? readFileSync(process.env.CERT, "utf8") : undefined,
+    key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
+  } = config
 
-const onHttpRequest = async (request: Request) => {
-  try {
-    const response = await route(request)
+  const server = await serveWithEnv()
 
-    if (response.status === 101)
+  const route = async (request: Request) => {
+    if (request.method === "OPTIONS")
+      return new Response(null, { status: 204 })
+
+    if (request.headers.get("Upgrade") === "websocket") {
+      const { socket, response } = Deno.upgradeWebSocket(request)
+
+      await server.onWebSocketRequest(request, socket)
+
       return response
+    }
 
-    response.headers.set("Access-Control-Allow-Origin", "*")
-    response.headers.set("Access-Control-Allow-Methods", "*")
-    response.headers.set("Access-Control-Allow-Headers", "*")
-
-    return response
-  } catch (cause: unknown) {
-    console.error(cause)
-
-    return new Response("Error", { status: 500 })
+    return await server.onHttpRequest(request)
   }
+
+  const onHttpRequest = async (request: Request) => {
+    try {
+      const response = await route(request)
+
+      if (response.status === 101)
+        return response
+
+      response.headers.set("Access-Control-Allow-Origin", "*")
+      response.headers.set("Access-Control-Allow-Methods", "*")
+      response.headers.set("Access-Control-Allow-Headers", "*")
+
+      return response
+    } catch (cause: unknown) {
+      console.error(cause)
+
+      return new Response("Error", { status: 500 })
+    }
+  }
+
+  Deno.serve({ hostname: "0.0.0.0", port, cert, key }, onHttpRequest)
 }
 
-Deno.serve({ hostname: "0.0.0.0", port, cert, key }, onHttpRequest)
+if (import.meta.main) {
+  await main(process.argv.slice(2))
+}

@@ -17,7 +17,8 @@
     "./helper": "./src/mods/helper/bin.ts"
   },
   "exclude": [
-    "./test"
+    "./test",
+    "./www"
   ],
   "lint": {
     "rules": {
