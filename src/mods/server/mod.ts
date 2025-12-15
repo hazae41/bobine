@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import process from "node:process";
 import { Pack } from "../../libs/packs/mod.ts";
-import { Config } from "../config/mod.ts";
+import type { Config } from "../config/mod.ts";
 
 export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
   const {

@@ -47,7 +47,7 @@ ED25519_PUBLIC_KEY_HEX=90dcd81a473a4e59a84df6cb8f77af3d34c7fd6171ed959ca04a75f07
 Run the server with Deno
 
 ```bash
-deno run -A npm:@hazae41/bobine serve --env=./.env.local
+deno run -A jsr:@hazae41/bobine serve --env=./.env.local
 ```
 
 ### Library
