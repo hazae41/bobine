@@ -41,9 +41,9 @@ export async function main(args: string[]) {
   }
 
   console.log("- serve [--env=<env file as path>] [--port=<port>] [--dev]")
-  console.log("- create <wasm file as path> [salt as hex]")
-  console.log("- execute <module as hex> <function name> [args as pack as hex]")
-  console.log("- simulate <module as hex> <function name> [args as pack as hex]")
+  console.log("- create <wasm file as path> [salt as hex] <--server=<server url>>")
+  console.log("- execute <module as hex> <function name> [args as pack as hex] <--server=<server url>>")
+  console.log("- simulate <module as hex> <function name> [args as pack as hex] <--server=<server url>>")
   return
 }
 

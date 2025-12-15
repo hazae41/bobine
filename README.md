@@ -17,9 +17,11 @@ https://bobine.tech/
 
 \* There are no built-in accounting concepts, only pure generic APIs for cryptography and storage
 
-## Running
+## Usage
 
-### Binary
+### Running the server
+
+#### Running the server via binary
 
 Install the binary with Deno
 
@@ -58,13 +60,29 @@ Run the server
 bobine serve --env=./.env.local
 ```
 
-### Library
+#### Running the server via library
 
 Install `@hazae41/bobine` and use the `serve()` function
 
-## HTTP API
+### Creating a module
 
-### POST /api/create
+#### Creating a module via binary
+
+Install the binary with Deno
+
+```bash
+deno install -gf -A jsr:@hazae41/bobine
+```
+
+Deploy your .wasm file
+
+```bash
+bobine create ./module.wasm --server=http://localhost:8080
+```
+
+### Using the HTTP API
+
+#### POST /api/create
 
 Creates a new module using some WebAssembly code and some unique salt
 
@@ -76,7 +94,7 @@ Accepts a form data with the following fields
 
 - `effort` as bytes = some unique 32 bytes whose sha256 `hash` validates `((2n ** 256n) / BigInt("0x" + hash.toHex())) > (code.length + salt.length)`
 
-### POST /api/execute
+#### POST /api/execute
 
 Execute some function on a module
 
@@ -90,7 +108,7 @@ Accepts a form data with the following fields
 
 - `effort` as bytes =  some unique 32 bytes whose sha256 `hash` whose result in `((2n ** 256n) / BigInt("0x" + hash.toHex()))` will be the maximum number of sparks (gas) used
 
-### POST /api/simulate
+#### POST /api/simulate
 
 Simulate some function on a module (it won't write anything to storage and will execute in mode `2` so verifications such as signatures can be skipped)
 
@@ -104,11 +122,11 @@ Accepts a form data with the following fields
 
 - `effort` as bytes =  some unique 32 bytes whose sha256 `hash` whose result in `((2n ** 256n) / BigInt("0x" + hash.toHex()))` will be the maximum number of sparks (gas) used
 
-## WebAssembly API
+### Using the WebAssembly API
 
 The WebAssembly VM extensively uses reference types for its API and for module-to-module communication
 
-### AssemblyScript
+#### Using the WebAssembly API via AssemblyScript
 
 You can use [stdbob](https://github.com/hazae41/stdbob) to easily import AssemblyScript declarations for all internal modules
 
@@ -126,9 +144,7 @@ And you can declare external modules by using the module address as hex
 declare function add(x: externref, y: externref): externref
 ```
 
-### All internal modules
-
-#### blobs
+#### Blobs module
 
 You can pass bytes between modules by storing them in the blob storage and loading them via reference
 
@@ -142,7 +158,7 @@ You can pass bytes between modules by storing them in the blob storage and loadi
 
 - `blob.to_hex/from_hex/to_base64/from_base64(blob: blobref): blobref` = convert blobs to/from hex/base64 without loading them into memory
 
-#### bigints
+#### BigInts module
 
 You can work with infinite-precision bigints
 
@@ -168,7 +184,7 @@ You can work with infinite-precision bigints
 
 - `bigints.from_base10(base16: blobref): bigintref` = convert base10 utf8 bytes to bigint
 
-#### packs
+#### Packs module
 
 You can pack various arguments (numbers, refs) into a pack which can be passed between modules and/or encoded/decoded into bytes
 
@@ -225,7 +241,7 @@ function writePack(pack: packref) {
 
 - `packs.length(pack: packref): i32` = get the length of a pack
 
-#### env
+#### Environment module
 
 Get infos about the executing environment
 
@@ -233,7 +249,7 @@ Get infos about the executing environment
 
 - `env.uuid(): blobref` = get the unique uuid of this environment (similar to a chain id)
 
-#### modules
+#### Modules module
 
 Modules are identified by their address as a blob of bytes (pure sha256-output 32-length bytes without any encoding)
 
@@ -245,7 +261,7 @@ Modules are identified by their address as a blob of bytes (pure sha256-output 3
 
 - `modules.self(): blobref` = get your module address as blob
 
-#### storage
+#### Storage module
 
 You can use a private storage (it works like storage and events at the same time)
 
@@ -253,13 +269,13 @@ You can use a private storage (it works like storage and events at the same time
 
 - `storage.get(key: blobref): blobref` = get the latest value from storage at key
 
-#### sha256
+#### SHA-256 module
 
 Use the SHA-256 hashing algorithm
 
 - `sha256.digest(payload: blobref): blobref` = hash the payload and returns the digest
 
-#### ed25519
+#### Ed25519 module
 
 Use the Ed25519 signing algorithm
 
@@ -267,11 +283,11 @@ Use the Ed25519 signing algorithm
 
 - `ed25519.sign(payload: blobref): blobref` = (experimental) sign payload using the miner's private key
 
-#### symbols (experimental)
+#### Symbols module (experimental)
 
 - `symbols.create(): symbolref` = create a unique reference that can be passed around
 
-#### refs (experimental)
+#### References module (experimental)
 
 - `refs.numerize(ref: symbolref/blobref/packref): i32` = translate any reference into a unique private pointer that can be stored into data structures
 
