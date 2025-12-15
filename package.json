@@ -46,6 +46,6 @@
     "unit-tested"
   ],
   "bin": {
-    "bobine": "./out/bin.js"
+    "bobine": "./out/mod.js"
   }
 }

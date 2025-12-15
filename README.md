@@ -4,6 +4,8 @@ A blockchain in your garage
 
 https://bobine.tech/
 
+[**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine) • [**📦 JSR**](https://jsr.io/@hazae41/bobine)
+
 ## Features
 
 - Ultra simple
@@ -19,7 +21,13 @@ https://bobine.tech/
 
 ### Binary
 
-Generate an Ed25519 keypair by running the following code in your browser/Node/Deno console
+Install the binary with Deno
+
+```bash
+deno install -gf -A jsr:@hazae41/bobine
+```
+
+Generate an Ed25519 keypair by running the following code in your browser/deno/node/bun console
 
 ```typescript
 const keypair = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"])
@@ -44,10 +52,10 @@ ED25519_PRIVATE_KEY_HEX=302e020100300506032b657004220420edff8b2503b91f58bc0f0435
 ED25519_PUBLIC_KEY_HEX=90dcd81a473a4e59a84df6cb8f77af3d34c7fd6171ed959ca04a75f07a57b4b9
 ```
 
-Run the server with Deno
+Run the server
 
 ```bash
-deno run -A jsr:@hazae41/bobine serve --env=./.env.local
+bobine serve --env=./.env.local
 ```
 
 ### Library
