@@ -21,8 +21,6 @@ https://bobine.tech/
 
 ### Running the server
 
-#### Running the server via binary
-
 Install the binary with Deno
 
 ```bash
@@ -60,25 +58,11 @@ Run the server
 bobine serve --env=./.env.local
 ```
 
-#### Running the server via library
+Or you can install `@hazae41/bobine` and use the `serve()` function
 
-Install `@hazae41/bobine` and use the `serve()` function
+### Making your own module
 
-### Creating a module
-
-#### Creating a module via binary
-
-Install the binary with Deno
-
-```bash
-deno install -gf -A jsr:@hazae41/bobine
-```
-
-Deploy your .wasm file
-
-```bash
-bobine create ./module.wasm --server=http://localhost:8080
-```
+You can clone my [AssemblyScript starter](https://github.com/hazae41/create-bobine-assemblyscript-module) to get started with AssemblyScript
 
 ### Using the HTTP API
 
