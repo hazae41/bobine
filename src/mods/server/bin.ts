@@ -3,9 +3,11 @@ import process from "node:process";
 import { serveWithEnv } from "./mod.ts";
 
 export async function main(args: string[]) {
-  const config: {
+  const options: {
     port?: number,
+
     cert?: string,
+
     key?: string,
   } = {}
 
@@ -18,17 +20,17 @@ export async function main(args: string[]) {
     }
 
     if (arg.startsWith("--port=")) {
-      config.port = Number(arg.slice("--port=".length))
+      options.port = Number(arg.slice("--port=".length))
       continue
     }
 
     if (arg.startsWith("--cert=")) {
-      config.cert = readFileSync(arg.slice("--cert=".length), "utf8")
+      options.cert = readFileSync(arg.slice("--cert=".length), "utf8")
       continue
     }
 
     if (arg.startsWith("--key=")) {
-      config.key = readFileSync(arg.slice("--key=".length), "utf8")
+      options.key = readFileSync(arg.slice("--key=".length), "utf8")
       continue
     }
 
@@ -54,7 +56,7 @@ export async function main(args: string[]) {
     port = Number(process.env.PORT) || 8080,
     cert = process.env.CERT != null ? readFileSync(process.env.CERT, "utf8") : undefined,
     key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
-  } = config
+  } = options
 
   const server = await serveWithEnv()
 

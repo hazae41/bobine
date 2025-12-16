@@ -2,7 +2,9 @@
 
 export * from "./mods/mod.ts";
 
+import { readFileSync } from "node:fs";
 import process from "node:process";
+import { work } from "./libs/effort/mod.ts";
 import * as server from "./mods/server/bin.ts";
 
 export async function main(args: string[]) {
@@ -23,7 +25,63 @@ export async function main(args: string[]) {
     }
 
     if (arg === "create") {
-      console.log("Create command is not implemented yet.")
+      subargs.push(...args.slice(i + 1))
+
+      const options: {
+        file?: Uint8Array<ArrayBuffer>,
+
+        salt?: Uint8Array<ArrayBuffer>,
+
+        server?: URL
+      } = {}
+
+      for (let i = 0; i < subargs.length; i++) {
+        const subarg = args[i]
+
+        if (!subarg.startsWith("--")) {
+          options.file = readFileSync(subarg)
+          continue
+        }
+
+        if (subarg.startsWith("--salt=")) {
+          options.salt = Uint8Array.fromHex(subarg.slice("--salt=".length))
+          continue
+        }
+
+        if (subarg.startsWith("--server=")) {
+          options.server = new URL(subarg.slice("--server=".length))
+          continue
+        }
+
+        throw new Error(`Unknown argument: ${arg}`)
+      }
+
+      const {
+        file,
+        salt = new Uint8Array(),
+        server = new URL("http://localhost:8080"),
+      } = options
+
+      if (file == null)
+        throw new Error("File is required")
+
+      const body = new FormData()
+
+      body.append("code", new Blob([file]))
+      body.append("salt", new Blob([salt]))
+
+      const effort = await work(file.length + salt.length)
+
+      body.append("effort", new Blob([effort]))
+
+      const endpoint = new URL("/api/create", server)
+
+      const response = await fetch(endpoint, { method: "POST", body })
+
+      if (!response.ok)
+        throw new Error("Failed", { cause: response })
+
+      console.log(await response.json())
       return
     }
 
@@ -40,10 +98,7 @@ export async function main(args: string[]) {
     break
   }
 
-  console.log("- serve [--env=<env file as path>] [--port=<port>] [--dev]")
-  console.log("- create <wasm file as path> [salt as hex] <--server=<server url>>")
-  console.log("- execute <module as hex> <function name> [args as pack as hex] <--server=<server url>>")
-  console.log("- simulate <module as hex> <function name> [args as pack as hex] <--server=<server url>>")
+  console.log("serve [--env=<env file as path>] [--port=<port>] [--dev]")
   return
 }
 
