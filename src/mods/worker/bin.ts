@@ -158,10 +158,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       slice: (blob: Uint8Array, start: number, end: number): Uint8Array => {
         return blob.slice(start >>> 0, end >>> 0)
       },
-      from_base16: (text: string): Uint8Array => {
+      from_hex: (text: string): Uint8Array => {
         return Uint8Array.fromHex(text)
       },
-      to_base16: (bytes: Uint8Array): string => {
+      to_hex: (bytes: Uint8Array): string => {
         return bytes.toHex()
       },
       from_base64: (text: string): Uint8Array => {
@@ -298,10 +298,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       decode: (bytes: Uint8Array): bigint => {
         return BigInt("0x" + bytes.toHex())
       },
-      from_base16: (text: string): bigint => {
+      from_hex: (text: string): bigint => {
         return BigInt("0x" + text)
       },
-      to_base16: (bigint: bigint): string => {
+      to_hex: (bigint: bigint): string => {
         return bigint.toString(16)
       },
       from_base10: (text: string): bigint => {

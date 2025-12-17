@@ -132,150 +132,45 @@ declare function add(x: externref, y: externref): externref
 
 You can pass bytes between modules by storing them in the blob storage and loading them via reference
 
-- `blobs.save(offset: i32, length: i32): blobref` = save `length` bytes at `offset` of your memory to the blob storage
-
-- `blobs.load(blob: blobref, offset: i32): void` = load some blob into your memory at `offset`
-
-- `blobs.equals(left: blobref, right: blobref): bool` = check if two blobs are equals without loading them into memory
-
-- `blobs.concat(left: blobref, right: blobref): blobref` = concatenate two blobs without loading them into memory
-
-- `blob.to_hex/from_hex/to_base64/from_base64(blob: blobref): blobref` = convert blobs to/from hex/base64 without loading them into memory
-
 #### BigInts module
 
-You can work with infinite-precision bigints
+You can work with infinite-precision bigints and convert them with blobs and texts
 
-- `bigints.add(left: bigintref, right: bigintref): bigintref` = add two bigints
-
-- `bigints.sub(left: bigintref, right: bigintref): bigintref` = subtract two bigints
-
-- `bigints.mul(left: bigintref, right: bigintref): bigintref` = multiply two bigints
-
-- `bigints.div(left: bigintref, right: bigintref): bigintref` = divide two bigints
-
-- `bigints.pow(left: bigintref, right: bigintref): bigintref` = left ** right
-
-- `bigints.encode(bigint: bigintref): blobref` = convert bigint to bytes
-
-- `bigints.decode(base16: blobref): bigintref` = convert bytes to bigint
-
-- `bigints.to_base16(bigint: bigintref): blobref` = convert bigint to hex utf8 bytes
-
-- `bigints.from_base16(base16: blobref): bigintref` = convert hex utf8 bytes to bigint
-
-- `bigints.to_base10(bigint: bigintref): blobref` = convert bigint to base10 utf8 bytes
-
-- `bigints.from_base10(base16: blobref): bigintref` = convert base10 utf8 bytes to bigint
+And many others
 
 #### Packs module
 
 You can pack various arguments (numbers, refs) into a pack which can be passed between modules and/or encoded/decoded into bytes
 
-- `packs.create(...values: any[]): packref` = create a new pack from the provided values (number, blobref, packref, null)
-
-- `packs.encode(pack: packref): blobref` = encodes values into bytes using the following pseudocode
-
-```tsx
-function writePack(pack: packref) {
-  for (const value of values) {
-    if (isNull(value)) {
-      writeUint8(1)
-      continue
-    }
-
-    if (isNumber(value)) {
-      writeUint8(2)
-      writeFloat64(value, "little-endian")
-      continue
-    }
-    
-    if (isBigInt(value)) {
-      writeUint8(3)
-      writeUint32(value.toHex().length, "little-endian")
-      writeBytes(value.toHex())
-      continue
-    }
-
-    if (isBlobref(value)) {
-      writeUint8(4)
-      writeUint32(value.length, "little-endian")
-      writeBytes(value)
-      continue
-    }
-
-    if (isPackref(value)) {
-      writeUint8(5)
-      writePack(value)
-      continue
-    }
-
-    throw new Error()
-  }
-
-  writeUint8(0)
-}
-```
-
-- `packs.decode(blob: blobref): packref` = decodes bytes into a pack of values using the same pseudocode but for reading
-
-- `packs.concat(left: packref, right: packref)` = concatenate two packs into one (basically does `[...left, ...right]`)
-
-- `packs.get<T>(pack: packref, index: i32): T` = get the value of a pack at `index` (throws if not found)
-
-- `packs.length(pack: packref): i32` = get the length of a pack
-
 #### Environment module
 
 Get infos about the executing environment
-
-- `env.mode: i32` = `1` if execution, `2` is simulation
-
-- `env.uuid(): blobref` = get the unique uuid of this environment (similar to a chain id)
 
 #### Modules module
 
 Modules are identified by their address as a blob of bytes (pure sha256-output 32-length bytes without any encoding)
 
-- `modules.load(module: blobref): blobref` = get the code of module as a blob
-
-- `modules.call(module: blobref, method: blobref, params: packref): packref` = dynamically call a module method with the given params as pack and return value as a 1-length pack
-
-- `modules.create(code: blobref, salt: blobref): blobref` = dynamically create a new module with the given code and salt, returns the module address
-
-- `modules.self(): blobref` = get your module address as blob
+You can dynamically create modules, call modules, get their bytecode 
 
 #### Storage module
 
-You can use a private storage (it works like storage and events at the same time)
-
-- `storage.set(key: blobref, value: blobref): void` = set some value to storage at key
-
-- `storage.get(key: blobref): blobref` = get the latest value from storage at key
+You can use a private key-value storage (it works like storage and events at the same time)
 
 #### SHA-256 module
 
 Use the SHA-256 hashing algorithm
 
-- `sha256.digest(payload: blobref): blobref` = hash the payload and returns the digest
-
 #### Ed25519 module
 
-Use the Ed25519 signing algorithm
-
-- `ed25519.verify(pubkey: blobref, signature: blobref, payload: blobref): boolean` = verify a signature
-
-- `ed25519.sign(payload: blobref): blobref` = (experimental) sign payload using the miner's private key
+Use the Ed25519 signing algorithm to verify any signature and (experimentally) sign payload using the miner's private key
 
 #### Symbols module (experimental)
 
-- `symbols.create(): symbolref` = create a unique reference that can be passed around
+Create unique references that can be passed around
 
 #### References module (experimental)
 
-- `refs.numerize(ref: symbolref/blobref/packref): i32` = translate any reference into a unique private pointer that can be stored into data structures
-
-- `refs.denumerize(pointer: i32): symbolref/blobref/packref` = get the exact same reference back from your private pointer 
+Translate any reference into a unique private pointer that can be stored into data structures
 
 This can be useful if you want to check a reference for authenticity
 
