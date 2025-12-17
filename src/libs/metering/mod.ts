@@ -14,9 +14,9 @@ export function meter(module: Wasm.Module, from: string, name: string) {
   if (wimport == null) {
     wimport = new Wasm.ImportSection([])
 
-    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.ImportSection.kind)
+    const before = module.body.sections.findLastIndex(section => section.kind < Wasm.ImportSection.kind)
 
-    module.body.sections.splice(index + 1, 0, wimport)
+    module.body.sections.splice(before + 1, 0, wimport)
   }
 
   let wexport = module.body.sections.find(section => section.kind === Wasm.ExportSection.kind) as Wasm.ExportSection
@@ -24,9 +24,9 @@ export function meter(module: Wasm.Module, from: string, name: string) {
   if (wexport == null) {
     wexport = new Wasm.ExportSection([])
 
-    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.ExportSection.kind)
+    const before = module.body.sections.findLastIndex(section => section.kind < Wasm.ExportSection.kind)
 
-    module.body.sections.splice(index + 1, 0, wexport)
+    module.body.sections.splice(before + 1, 0, wexport)
   }
 
   let wcode = module.body.sections.find(section => section.kind === Wasm.CodeSection.kind) as Wasm.CodeSection
@@ -34,9 +34,9 @@ export function meter(module: Wasm.Module, from: string, name: string) {
   if (wcode == null) {
     wcode = new Wasm.CodeSection([])
 
-    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.CodeSection.kind)
+    const before = module.body.sections.findLastIndex(section => section.kind < Wasm.CodeSection.kind)
 
-    module.body.sections.splice(index + 1, 0, wcode)
+    module.body.sections.splice(before + 1, 0, wcode)
   }
 
   const wstart = module.body.sections.find(section => section.kind === Wasm.StartSection.kind) as Wasm.StartSection
