@@ -295,17 +295,17 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       decode: (bytes: Uint8Array): bigint => {
         return BigInt("0x" + bytes.toHex())
       },
-      from_base16: (text: Uint8Array): bigint => {
-        return BigInt("0x" + new TextDecoder().decode(text))
+      from_base16: (text: string): bigint => {
+        return BigInt("0x" + text)
       },
-      to_base16: (bigint: bigint): Uint8Array => {
-        return new TextEncoder().encode(bigint.toString(16))
+      to_base16: (bigint: bigint): string => {
+        return bigint.toString(16)
       },
-      from_base10: (text: Uint8Array): bigint => {
-        return BigInt(new TextDecoder().decode(text))
+      from_base10: (text: string): bigint => {
+        return BigInt(text)
       },
-      to_base10: (bigint: bigint): Uint8Array => {
-        return new TextEncoder().encode(bigint.toString())
+      to_base10: (bigint: bigint): string => {
+        return bigint.toString()
       }
     }
 
