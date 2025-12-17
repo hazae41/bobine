@@ -62,9 +62,14 @@ export namespace Pack {
       }
 
       if (type === 6) {
+        const negative = cursor.readUint8OrThrow()
+
         const size = cursor.readUint32OrThrow(true)
         const data = cursor.readOrThrow(size)
-        values.push(BigInt("0x" + data.toHex()))
+
+        const absolute = BigInt("0x" + data.toHex())
+
+        values.push(negative ? -absolute : absolute)
         continue
       }
 
@@ -106,10 +111,12 @@ export namespace Pack {
       }
 
       if (typeof value === "bigint") {
-        const text = value.toString(16)
+        const absolute = value < 0n ? -value : value
+
+        const text = absolute.toString(16)
         const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
 
-        size += 1 + 4 + data.length
+        size += 1 + 1 + 4 + data.length
         continue
       }
 
@@ -160,9 +167,12 @@ export namespace Pack {
       if (typeof value === "bigint") {
         cursor.writeUint8OrThrow(6)
 
-        const text = value.toString(16)
+        const [negative, absolute] = value < 0n ? [1, -value] : [0, value]
+
+        const text = absolute.toString(16)
         const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
 
+        cursor.writeUint8OrThrow(negative)
         cursor.writeUint32OrThrow(data.length, true)
         cursor.writeOrThrow(data)
         continue
