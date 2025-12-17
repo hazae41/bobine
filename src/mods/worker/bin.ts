@@ -5,7 +5,6 @@ import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } 
 import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { log } from "../../libs/debug/mod.ts";
 import { meter } from "../../libs/metering/mod.ts";
 import { Pack } from "../../libs/packs/mod.ts";
 import type { Config } from "../config/mod.ts";
@@ -22,13 +21,17 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   const exports: WebAssembly.Imports = {}
 
   const caches = new Map<string, Map<Uint8Array, Uint8Array>>()
-  const writes = new Array<[string, Uint8Array, Uint8Array]>()
 
-  const pack_encode = (pack: Pack): Uint8Array => {
-    return Writable.writeToBytesOrThrow(pack)
+  const logs = new Array<string>()
+
+  const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
+  const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
+
+  const pack_encode = (pack: Array<Pack.Value>): Uint8Array<ArrayBuffer> => {
+    return Writable.writeToBytesOrThrow(new Pack(pack))
   }
 
-  const pack_decode = (bytes: Uint8Array): Pack => {
+  const pack_decode = (bytes: Uint8Array): Array<Pack.Value> => {
     return Readable.readFromBytesOrThrow(Pack, bytes)
   }
 
@@ -74,7 +77,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   const ed25519_sign = (subpayload: Uint8Array): Uint8Array => {
     sparks_consume(BigInt(subpayload.length) * 256n)
 
-    const payload = pack_encode(new Pack([Uint8Array.fromHex(module), subpayload]))
+    const payload = pack_encode([Uint8Array.fromHex(module), subpayload])
 
     const result = new Int32Array(new SharedArrayBuffer(4 + 64))
 
@@ -115,8 +118,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["console"] = {
-      log: (blob: Uint8Array): void => {
-        log?.(new TextDecoder().decode(blob))
+      log: (text: string): void => {
+        logs.push(text)
       }
     }
 
@@ -203,27 +206,27 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["packs"] = {
-      create: (...values: Array<Pack.Value>): Pack => {
-        return new Pack(values)
+      create: (...values: Array<Pack.Value>): Array<Pack.Value> => {
+        return values
       },
-      concat: (left: Pack, right: Pack): Pack => {
-        return new Pack([...left.values, ...right.values])
+      concat: (left: Array<Pack.Value>, right: Array<Pack.Value>): Array<Pack.Value> => {
+        return [...left, ...right]
       },
-      length: (pack: Pack): number => {
-        return pack.values.length
+      length: (pack: Array<Pack.Value>): number => {
+        return pack.length
       },
-      get(pack: Pack, index: number): Pack.Value {
-        const value = pack.values[index >>> 0]
+      get(pack: Array<Pack.Value>, index: number): Pack.Value {
+        const value = pack[index >>> 0]
 
         if (value === undefined)
           throw new Error("Not found")
 
         return value
       },
-      encode: (pack: Pack): Uint8Array => {
+      encode: (pack: Array<Pack.Value>): Uint8Array => {
         return pack_encode(pack)
       },
-      decode: (blob: Uint8Array): Pack => {
+      decode: (blob: Uint8Array): Array<Pack.Value> => {
         return pack_decode(blob)
       }
     }
@@ -308,7 +311,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["modules"] = {
       create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): Uint8Array => {
-        const packAsBytes = pack_encode(new Pack([wasmAsBytes, saltAsBytes]))
+        const packAsBytes = pack_encode([wasmAsBytes, saltAsBytes])
 
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
         const digestOfPackAsBytes = sha256_digest(packAsBytes)
@@ -344,7 +347,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["storage"] = {
-      set: (key: Uint8Array, value: Uint8Array): void => {
+      set: (key: Uint8Array<ArrayBuffer>, value: Uint8Array<ArrayBuffer>): void => {
         const cache = caches.get(module)!
 
         cache.set(key, value)
@@ -353,7 +356,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: Uint8Array): Uint8Array | null => {
+      get: (key: Uint8Array<ArrayBuffer>): Uint8Array | null => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -375,6 +378,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         const fresh = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
         cache.set(key, fresh)
+
+        reads.push([module, key, fresh])
 
         return fresh
       }
@@ -478,9 +483,25 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const result = pack_encode(new Pack([instance.exports[method](...pack_decode(params).values)]))
+  const returned = pack_encode([instance.exports[method](...pack_decode(params))])
 
-  return { result, writes, sparks }
+  if (mode !== 2)
+    return pack_encode([logs, reads, writes, returned, sparks])
+
+  if (writes.length) {
+    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
+
+    helper.postMessage({ method: "storage_set", params: [module, method, params, writes], result })
+
+    if (Atomics.wait(result, 0, 0) !== "ok")
+      throw new Error("Failed to wait")
+    if (result[0] === 2)
+      throw new Error("Internal error")
+
+    // NOOP
+  }
+
+  return pack_encode([logs, reads, writes, returned, sparks])
 }
 
 self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
@@ -490,28 +511,9 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
     if (request.method === "execute") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const start = performance.now()
+      const proof = run(module, method, params, 1, maxsparks)
 
-      const { result, writes, sparks } = run(module, method, params, 1, maxsparks)
-
-      const until = performance.now()
-
-      log?.(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
-
-      if (writes.length) {
-        const result = new Int32Array(new SharedArrayBuffer(4 + 4))
-
-        helper.postMessage({ method: "storage_set", params: [module, method, params, writes], result })
-
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
-
-        log?.(`Wrote ${writes.length} events to storage`)
-      }
-
-      self.postMessage(new RpcOk(request.id, result))
+      self.postMessage(new RpcOk(request.id, proof))
 
       return
     }
@@ -519,15 +521,9 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
     if (request.method === "simulate") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const start = performance.now()
+      const proof = run(module, method, params, 2, maxsparks)
 
-      const { result, sparks } = run(module, method, params, 2, maxsparks)
-
-      const until = performance.now()
-
-      log?.(`Evaluated ${(until - start).toFixed(2)}ms with ${sparks} sparks`)
-
-      self.postMessage(new RpcOk(request.id, result))
+      self.postMessage(new RpcOk(request.id, proof))
 
       return
     }

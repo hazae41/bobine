@@ -11,113 +11,20 @@ export class Pack {
   ) { }
 
   sizeOrThrow() {
-    let size = 0
-
-    for (const value of this.values) {
-      if (value == null) {
-        size += 1
-        continue
-      }
-
-      if (value instanceof Pack) {
-        size += 1 + value.sizeOrThrow()
-        continue
-      }
-
-      if (typeof value === "number") {
-        size += 1 + 4
-        continue
-      }
-
-      if (value instanceof Uint8Array) {
-        size += 1 + 4 + value.length
-        continue
-      }
-
-      if (typeof value === "string") {
-        const data = new TextEncoder().encode(value)
-
-        size += 1 + 4 + data.length
-        continue
-      }
-
-      if (typeof value === "bigint") {
-        const text = value.toString(16)
-        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
-
-        size += 1 + 4 + data.length
-        continue
-      }
-
-      throw new Error("Unknown pack value")
-    }
-
-    size += 1
-
-    return size
+    return Pack.sizeOrThrow(this.values)
   }
 
   writeOrThrow(cursor: Cursor) {
-    for (const value of this.values) {
-      if (value == null) {
-        cursor.writeUint8OrThrow(1)
-        continue
-      }
-
-      if (value instanceof Pack) {
-        cursor.writeUint8OrThrow(2)
-        value.writeOrThrow(cursor)
-        continue
-      }
-
-      if (typeof value === "number") {
-        cursor.writeUint8OrThrow(3)
-        cursor.writeFloat64OrThrow(value, true)
-        continue
-      }
-
-      if (value instanceof Uint8Array) {
-        cursor.writeUint8OrThrow(4)
-        cursor.writeUint32OrThrow(value.length, true)
-        cursor.writeOrThrow(value)
-        continue
-      }
-
-      if (typeof value === "string") {
-        cursor.writeUint8OrThrow(5)
-
-        const data = new TextEncoder().encode(value)
-
-        cursor.writeUint32OrThrow(data.length, true)
-        cursor.writeOrThrow(data)
-        continue
-      }
-
-      if (typeof value === "bigint") {
-        cursor.writeUint8OrThrow(6)
-
-        const text = value.toString(16)
-        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
-
-        cursor.writeUint32OrThrow(data.length, true)
-        cursor.writeOrThrow(data)
-        continue
-      }
-
-      throw new Error("Unknown pack value")
-    }
-
-    cursor.writeUint8OrThrow(0)
-    return
+    Pack.writeOrThrow(this.values, cursor)
   }
 
 }
 
 export namespace Pack {
 
-  export type Value = null | Pack | number | Uint8Array | string | bigint
+  export type Value = null | number | Uint8Array | string | bigint | Array<Value>
 
-  export function readOrThrow(cursor: Cursor): Pack {
+  export function readOrThrow(cursor: Cursor): Array<Value> {
     const values = []
 
     while (true) {
@@ -164,7 +71,108 @@ export namespace Pack {
       throw new Error("Unknown pack type")
     }
 
-    return new Pack(values)
+    return values
+  }
+
+  export function sizeOrThrow(values: Array<Value>) {
+    let size = 0
+
+    for (const value of values) {
+      if (value == null) {
+        size += 1
+        continue
+      }
+
+      if (Array.isArray(value)) {
+        size += 1 + sizeOrThrow(value)
+        continue
+      }
+
+      if (typeof value === "number") {
+        size += 1 + 4
+        continue
+      }
+
+      if (value instanceof Uint8Array) {
+        size += 1 + 4 + value.length
+        continue
+      }
+
+      if (typeof value === "string") {
+        const data = new TextEncoder().encode(value)
+
+        size += 1 + 4 + data.length
+        continue
+      }
+
+      if (typeof value === "bigint") {
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        size += 1 + 4 + data.length
+        continue
+      }
+
+      throw new Error("Unknown pack value")
+    }
+
+    size += 1
+
+    return size
+  }
+
+  export function writeOrThrow(values: Array<Value>, cursor: Cursor) {
+    for (const value of values) {
+      if (value == null) {
+        cursor.writeUint8OrThrow(1)
+        continue
+      }
+
+      if (Array.isArray(value)) {
+        cursor.writeUint8OrThrow(2)
+        writeOrThrow(value, cursor)
+        continue
+      }
+
+      if (typeof value === "number") {
+        cursor.writeUint8OrThrow(3)
+        cursor.writeFloat64OrThrow(value, true)
+        continue
+      }
+
+      if (value instanceof Uint8Array) {
+        cursor.writeUint8OrThrow(4)
+        cursor.writeUint32OrThrow(value.length, true)
+        cursor.writeOrThrow(value)
+        continue
+      }
+
+      if (typeof value === "string") {
+        cursor.writeUint8OrThrow(5)
+
+        const data = new TextEncoder().encode(value)
+
+        cursor.writeUint32OrThrow(data.length, true)
+        cursor.writeOrThrow(data)
+        continue
+      }
+
+      if (typeof value === "bigint") {
+        cursor.writeUint8OrThrow(6)
+
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        cursor.writeUint32OrThrow(data.length, true)
+        cursor.writeOrThrow(data)
+        continue
+      }
+
+      throw new Error("Unknown pack value")
+    }
+
+    cursor.writeUint8OrThrow(0)
+    return
   }
 
 }
