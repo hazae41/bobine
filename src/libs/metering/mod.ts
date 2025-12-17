@@ -1,19 +1,43 @@
 import * as Wasm from "@hazae41/wasm";
 
 export function meter(module: Wasm.Module, from: string, name: string) {
-  const wtype = module.body.sections.find(section => section.kind === Wasm.TypeSection.kind) as Wasm.TypeSection
-  const wimport = module.body.sections.find(section => section.kind === Wasm.ImportSection.kind) as Wasm.ImportSection
-  const wexport = module.body.sections.find(section => section.kind === Wasm.ExportSection.kind) as Wasm.ExportSection
-  const wcode = module.body.sections.find(section => section.kind === Wasm.CodeSection.kind) as Wasm.CodeSection
+  let wtype = module.body.sections.find(section => section.kind === Wasm.TypeSection.kind) as Wasm.TypeSection
 
-  if (wtype == null)
-    throw new Error(`No type section`)
-  if (wimport == null)
-    throw new Error(`No import section`)
-  if (wexport == null)
-    throw new Error(`No export section`)
-  if (wcode == null)
-    throw new Error(`No code section`)
+  if (wtype == null) {
+    wtype = new Wasm.TypeSection([])
+
+    module.body.sections.unshift(wtype)
+  }
+
+  let wimport = module.body.sections.find(section => section.kind === Wasm.ImportSection.kind) as Wasm.ImportSection
+
+  if (wimport == null) {
+    wimport = new Wasm.ImportSection([])
+
+    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.ImportSection.kind)
+
+    module.body.sections.splice(index + 1, 0, wimport)
+  }
+
+  let wexport = module.body.sections.find(section => section.kind === Wasm.ExportSection.kind) as Wasm.ExportSection
+
+  if (wexport == null) {
+    wexport = new Wasm.ExportSection([])
+
+    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.ExportSection.kind)
+
+    module.body.sections.splice(index + 1, 0, wexport)
+  }
+
+  let wcode = module.body.sections.find(section => section.kind === Wasm.CodeSection.kind) as Wasm.CodeSection
+
+  if (wcode == null) {
+    wcode = new Wasm.CodeSection([])
+
+    const index = module.body.sections.findLastIndex(section => section.kind < Wasm.CodeSection.kind)
+
+    module.body.sections.splice(index + 1, 0, wcode)
+  }
 
   const wstart = module.body.sections.find(section => section.kind === Wasm.StartSection.kind) as Wasm.StartSection
 
