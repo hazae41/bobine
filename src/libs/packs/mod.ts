@@ -1,3 +1,5 @@
+// deno-lint-ignore-file no-namespace
+
 /// <reference types="../bytes/lib.d.ts"/>
 
 import type { Cursor } from "@hazae41/cursor";
@@ -17,16 +19,13 @@ export class Pack {
         continue
       }
 
-      if (typeof value === "number") {
-        size += 1 + 4
+      if (value instanceof Pack) {
+        size += 1 + value.sizeOrThrow()
         continue
       }
 
-      if (typeof value === "bigint") {
-        const text = value.toString(16)
-        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
-
-        size += 1 + 4 + data.length
+      if (typeof value === "number") {
+        size += 1 + 4
         continue
       }
 
@@ -35,8 +34,18 @@ export class Pack {
         continue
       }
 
-      if (value instanceof Pack) {
-        size += 1 + value.sizeOrThrow()
+      if (typeof value === "string") {
+        const data = new TextEncoder().encode(value)
+
+        size += 1 + 4 + data.length
+        continue
+      }
+
+      if (typeof value === "bigint") {
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        size += 1 + 4 + data.length
         continue
       }
 
@@ -55,20 +64,15 @@ export class Pack {
         continue
       }
 
-      if (typeof value === "number") {
+      if (value instanceof Pack) {
         cursor.writeUint8OrThrow(2)
-        cursor.writeFloat64OrThrow(value, true)
+        value.writeOrThrow(cursor)
         continue
       }
 
-      if (typeof value === "bigint") {
+      if (typeof value === "number") {
         cursor.writeUint8OrThrow(3)
-
-        const text = value.toString(16)
-        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
-
-        cursor.writeUint32OrThrow(data.length, true)
-        cursor.writeOrThrow(data)
+        cursor.writeFloat64OrThrow(value, true)
         continue
       }
 
@@ -79,9 +83,24 @@ export class Pack {
         continue
       }
 
-      if (value instanceof Pack) {
+      if (typeof value === "string") {
         cursor.writeUint8OrThrow(5)
-        value.writeOrThrow(cursor)
+
+        const data = new TextEncoder().encode(value)
+
+        cursor.writeUint32OrThrow(data.length, true)
+        cursor.writeOrThrow(data)
+        continue
+      }
+
+      if (typeof value === "bigint") {
+        cursor.writeUint8OrThrow(6)
+
+        const text = value.toString(16)
+        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
+
+        cursor.writeUint32OrThrow(data.length, true)
+        cursor.writeOrThrow(data)
         continue
       }
 
@@ -96,7 +115,7 @@ export class Pack {
 
 export namespace Pack {
 
-  export type Value = null | number | bigint | Uint8Array | Pack
+  export type Value = null | Pack | number | Uint8Array | string | bigint
 
   export function readOrThrow(cursor: Cursor): Pack {
     const values = []
@@ -113,14 +132,12 @@ export namespace Pack {
       }
 
       if (type === 2) {
-        values.push(cursor.readFloat64OrThrow(true))
+        values.push(Pack.readOrThrow(cursor))
         continue
       }
 
       if (type === 3) {
-        const size = cursor.readUint32OrThrow(true)
-        const data = cursor.readOrThrow(size)
-        values.push(BigInt("0x" + data.toHex()))
+        values.push(cursor.readFloat64OrThrow(true))
         continue
       }
 
@@ -131,7 +148,16 @@ export namespace Pack {
       }
 
       if (type === 5) {
-        values.push(Pack.readOrThrow(cursor))
+        const size = cursor.readUint32OrThrow(true)
+        const data = cursor.readOrThrow(size)
+        values.push(new TextDecoder().decode(data))
+        continue
+      }
+
+      if (type === 6) {
+        const size = cursor.readUint32OrThrow(true)
+        const data = cursor.readOrThrow(size)
+        values.push(BigInt("0x" + data.toHex()))
         continue
       }
 

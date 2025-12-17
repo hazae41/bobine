@@ -128,15 +128,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return view.slice()
       },
-      size: (blob: Uint8Array): number => {
-        return blob.length
-      },
       load: (blob: Uint8Array, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const view = new Uint8Array(memory.buffer, offset >>> 0, blob.length)
 
         view.set(blob)
+      },
+      length: (blob: Uint8Array): number => {
+        return blob.length
       },
       concat: (left: Uint8Array, right: Uint8Array): Uint8Array => {
         const concat = new Uint8Array(left.length + right.length)
@@ -149,17 +149,56 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       equals: (left: Uint8Array, right: Uint8Array): boolean => {
         return !Buffer.compare(left, right)
       },
-      from_base16: (text: Uint8Array): Uint8Array => {
-        return Uint8Array.fromHex(new TextDecoder().decode(text))
+      includes: (haystack: Uint8Array, needle: Uint8Array): boolean => {
+        return haystack.toHex().includes(needle.toHex())
       },
-      from_base64: (text: Uint8Array): Uint8Array => {
-        return Uint8Array.fromBase64(new TextDecoder().decode(text))
+      slice: (blob: Uint8Array, start: number, end: number): Uint8Array => {
+        return blob.slice(start >>> 0, end >>> 0)
       },
-      to_base16: (bytes: Uint8Array): Uint8Array => {
-        return new TextEncoder().encode(bytes.toHex())
+      from_base16: (text: string): Uint8Array => {
+        return Uint8Array.fromHex(text)
       },
-      to_base64: (bytes: Uint8Array): Uint8Array => {
-        return new TextEncoder().encode(bytes.toBase64())
+      to_base16: (bytes: Uint8Array): string => {
+        return bytes.toHex()
+      },
+      from_base64: (text: string): Uint8Array => {
+        return Uint8Array.fromBase64(text)
+      },
+      to_base64: (bytes: Uint8Array): string => {
+        return bytes.toBase64()
+      },
+    }
+
+    imports["texts"] = {
+      length: (text: string): number => {
+        return new TextEncoder().encode(text).length
+      },
+      concat: (left: string, right: string): string => {
+        return left + right
+      },
+      equals: (left: string, right: string): boolean => {
+        return left === right
+      },
+      includes: (haystack: string, needle: string): boolean => {
+        return haystack.includes(needle)
+      },
+      slice: (text: string, start: number, end: number): string => {
+        return text.slice(start >>> 0, end >>> 0)
+      },
+      from_utf8: (bytes: Uint8Array): string => {
+        return new TextDecoder().decode(bytes)
+      },
+      to_utf8: (text: string): Uint8Array => {
+        return new TextEncoder().encode(text)
+      },
+      to_uppercase: (text: string): string => {
+        return text.toUpperCase()
+      },
+      to_lowercase: (text: string): string => {
+        return text.toLowerCase()
+      },
+      trim: (text: string): string => {
+        return text.trim()
       }
     }
 
