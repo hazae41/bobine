@@ -53,7 +53,7 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
 
     module TEXT NOT NULL,
     
-    key BLOB NOT NULL,
+    key TEXT NOT NULL,
     value BLOB NOT NULL
   );`)
 

@@ -18,7 +18,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
 
     if (request.method === "storage_set") {
       return await runAsImmediateOrThrow(database, async (database) => {
-        const [module, method, args, events] = event.data.params as [string, string, Uint8Array<ArrayBuffer>, [string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
+        const [module, method, args, events] = event.data.params as [string, string, Uint8Array<ArrayBuffer>, [string, string, Uint8Array<ArrayBuffer>][]]
 
         const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(module, method, args)
 
@@ -38,7 +38,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     }
 
     if (request.method === "storage_get") {
-      const [module, key] = request.params as [string, Uint8Array<ArrayBuffer>]
+      const [module, key] = request.params as [string, string]
 
       const row = await database.prepare(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`).get(module, key)
 

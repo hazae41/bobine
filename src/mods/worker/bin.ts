@@ -20,12 +20,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const exports: WebAssembly.Imports = {}
 
-  const caches = new Map<string, Map<Uint8Array, Uint8Array>>()
-
   const logs = new Array<string>()
 
-  const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
-  const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
+  const caches = new Map<string, Map<string, Array<Pack.Value>>>()
+
+  const reads = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
+  const writes = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
 
   const pack_encode = (pack: Array<Pack.Value>): Uint8Array<ArrayBuffer> => {
     return Writable.writeToBytesOrThrow(new Pack(pack))
@@ -289,15 +289,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       pow: (left: bigint, right: bigint): bigint => {
         return left ** right
       },
-      encode: (bigint: bigint): Uint8Array => {
-        const text = bigint.toString(16)
-        const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
-
-        return data
-      },
-      decode: (bytes: Uint8Array): bigint => {
-        return BigInt("0x" + bytes.toHex())
-      },
       from_base16: (text: string): bigint => {
         return BigInt("0x" + text)
       },
@@ -350,16 +341,18 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["storage"] = {
-      set: (key: Uint8Array<ArrayBuffer>, value: Uint8Array<ArrayBuffer>): void => {
+      set: (key: string, fresh: Array<Pack.Value>): void => {
         const cache = caches.get(module)!
 
-        cache.set(key, value)
+        cache.set(key, fresh)
+
+        const value = pack_encode(fresh)
 
         writes.push([module, key, value])
 
         return
       },
-      get: (key: Uint8Array<ArrayBuffer>): Uint8Array | null => {
+      get: (key: string): Array<Pack.Value> => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -376,13 +369,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[0] === 2)
           throw new Error("Internal error")
         if (result[1] === 2)
-          return null
+          return [null]
 
-        const fresh = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
+        const value = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
+
+        const fresh = pack_decode(value)
 
         cache.set(key, fresh)
 
-        reads.push([module, key, fresh])
+        reads.push([module, key, value])
 
         return fresh
       }
