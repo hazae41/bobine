@@ -352,7 +352,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: string): Array<Pack.Value> => {
+      get: (key: string): Array<Pack.Value> | null => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -369,7 +369,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[0] === 2)
           throw new Error("Internal error")
         if (result[1] === 2)
-          return [null]
+          return null
 
         const value = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
