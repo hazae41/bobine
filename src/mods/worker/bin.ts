@@ -232,6 +232,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["bigints"] = {
+      identity: (value: bigint): bigint => {
+        return value
+      },
       zero: (): bigint => {
         return 0n
       },
@@ -483,7 +486,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const returned = pack_encode([instance.exports[method](...pack_decode(params))])
+  const returned = [instance.exports[method](...pack_decode(params))]
 
   if (mode !== 2)
     return pack_encode([logs, reads, writes, returned, sparks])
