@@ -6,7 +6,7 @@ import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { meter } from "../../libs/metering/mod.ts";
-import { Pack } from "../../libs/packs/mod.ts";
+import { type Packable, Packed } from "../../libs/packed/mod.ts";
 import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -22,17 +22,17 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const logs = new Array<string>()
 
-  const caches = new Map<string, Map<string, Array<Pack.Value>>>()
+  const caches = new Map<string, Map<string, Packable>>()
 
   const reads = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
   const writes = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
 
-  const pack_encode = (pack: Array<Pack.Value>): Uint8Array<ArrayBuffer> => {
-    return Writable.writeToBytesOrThrow(new Pack(pack))
+  const pack_encode = (value: Packable): Uint8Array<ArrayBuffer> => {
+    return Writable.writeToBytesOrThrow(new Packed(value))
   }
 
-  const pack_decode = (bytes: Uint8Array): Array<Pack.Value> => {
-    return Readable.readFromBytesOrThrow(Pack, bytes)
+  const pack_decode = (bytes: Uint8Array): Packable => {
+    return Readable.readFromBytesOrThrow(Packed, bytes)
   }
 
   const sparks_consume = (amount: bigint) => {
@@ -206,28 +206,22 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["packs"] = {
-      create: (...values: Array<Pack.Value>): Array<Pack.Value> => {
+      create: (...values: Array<Packable>): Array<Packable> => {
         return values
       },
-      concat: (left: Array<Pack.Value>, right: Array<Pack.Value>): Array<Pack.Value> => {
+      concat: (left: Array<Packable>, right: Array<Packable>): Array<Packable> => {
         return [...left, ...right]
       },
-      length: (pack: Array<Pack.Value>): number => {
+      length: (pack: Array<Packable>): number => {
         return pack.length
       },
-      get(pack: Array<Pack.Value>, index: number): Pack.Value {
+      get(pack: Array<Packable>, index: number): Packable {
         const value = pack[index >>> 0]
 
         if (value === undefined)
           throw new Error("Not found")
 
         return value
-      },
-      encode: (pack: Array<Pack.Value>): Uint8Array => {
-        return pack_encode(pack)
-      },
-      decode: (blob: Uint8Array): Array<Pack.Value> => {
-        return pack_decode(blob)
       }
     }
 
@@ -320,7 +314,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
         return digestOfPackAsBytes
       },
-      call: (moduleAsBytes: Uint8Array, methodAsBytes: Uint8Array, paramsAsPack: Pack): Pack => {
+      call: (moduleAsBytes: Uint8Array, methodAsBytes: Uint8Array, paramsAsPack: Array<Packable>): Packable => {
         const moduleAsString = moduleAsBytes.toHex()
         const methodAsString = new TextDecoder().decode(methodAsBytes)
 
@@ -330,7 +324,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (typeof exports[moduleAsString][methodAsString] !== "function")
           throw new Error("Not found")
 
-        return new Pack([exports[moduleAsString][methodAsString](...paramsAsPack.values)])
+        return exports[moduleAsString][methodAsString](...paramsAsPack)
       },
       load: (moduleAsBytes: Uint8Array): Uint8Array => {
         return readFileSync(`${config.scripts.path}/${moduleAsBytes.toHex()}.wasm`)
@@ -341,7 +335,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["storage"] = {
-      set: (key: string, fresh: Array<Pack.Value>): void => {
+      set: (key: string, fresh: Packable): void => {
         const cache = caches.get(module)!
 
         cache.set(key, fresh)
@@ -352,7 +346,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: string): Array<Pack.Value> | null => {
+      get: (key: string): Packable => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -481,7 +475,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (typeof instance.exports[method] !== "function")
     throw new Error("Not found")
 
-  const returned = [instance.exports[method](...pack_decode(params))]
+  const args = pack_decode(params)
+
+  if (!Array.isArray(args))
+    throw new Error("Params is not an array")
+
+  const returned = instance.exports[method](...args)
 
   if (mode !== 1)
     return pack_encode([logs, reads, writes, returned, sparks])

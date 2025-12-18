@@ -7,7 +7,7 @@ import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import process from "node:process";
-import { Pack } from "../../libs/packs/mod.ts";
+import { Packed } from "../../libs/packed/mod.ts";
 import type { Config } from "../config/mod.ts";
 
 export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
@@ -129,7 +129,7 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
         if (sparksAsBigInt < (wasmAsBytes.length + saltAsBytes.length))
           return Response.json(null, { status: 402 })
 
-        const packAsBytes = Writable.writeToBytesOrThrow(new Pack([wasmAsBytes, saltAsBytes]))
+        const packAsBytes = Writable.writeToBytesOrThrow(new Packed([wasmAsBytes, saltAsBytes]))
 
         const digestOfWasmAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", wasmAsBytes))
         const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
