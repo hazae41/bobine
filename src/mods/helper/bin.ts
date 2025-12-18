@@ -18,13 +18,13 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
 
     if (request.method === "storage_set") {
       return await runAsImmediateOrThrow(database, async (database) => {
-        const [module, method, args, events] = event.data.params as [string, string, Uint8Array<ArrayBuffer>, [string, string, Uint8Array<ArrayBuffer>][]]
+        const [module, method, args, writes] = event.data.params as [string, string, Uint8Array<ArrayBuffer>, [string, string, Uint8Array<ArrayBuffer>][]]
 
         const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(module, method, args)
 
         const writer = database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
 
-        for (const [module, key, value] of events)
+        for (const [module, key, value] of writes)
           await writer.run(moment.lastInsertRowid, module, key, value)
 
         request.result[0] = 1

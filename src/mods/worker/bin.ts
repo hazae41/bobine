@@ -483,7 +483,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const returned = [instance.exports[method](...pack_decode(params))]
 
-  if (mode !== 2)
+  if (mode !== 1)
     return pack_encode([logs, reads, writes, returned, sparks])
 
   if (writes.length) {

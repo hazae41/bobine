@@ -54,6 +54,7 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
     module TEXT NOT NULL,
     
     key TEXT NOT NULL,
+
     value BLOB NOT NULL
   );`)
 
@@ -63,7 +64,9 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
     epoch INTEGER NOT NULL,
 
     module TEXT NOT NULL,
+
     method TEXT NOT NULL,
+    
     params BLOB NOT NULL
   );`)
 
