@@ -27,23 +27,23 @@ export namespace Packed {
   export function readOrThrow(cursor: Cursor): Packable {
     const type = cursor.readUint8OrThrow()
 
-    if (type === 1)
+    if (type === 0)
       return null
 
-    if (type === 3)
+    if (type === 1)
       return cursor.readFloat64OrThrow(true)
 
-    if (type === 4)
+    if (type === 2)
       return cursor.readOrThrow(cursor.readUint32OrThrow(true))
 
-    if (type === 5) {
+    if (type === 3) {
       const size = cursor.readUint32OrThrow(true)
       const data = cursor.readOrThrow(size)
 
       return new TextDecoder().decode(data)
     }
 
-    if (type === 6) {
+    if (type === 4) {
       const negative = cursor.readUint8OrThrow()
 
       const size = cursor.readUint32OrThrow(true)
@@ -54,7 +54,7 @@ export namespace Packed {
       return negative ? -absolute : absolute
     }
 
-    if (type === 2) {
+    if (type === 5) {
       const length = cursor.readUint32OrThrow(true)
       const values = new Array<Packable>(length)
 
@@ -107,13 +107,13 @@ export namespace Packed {
 
   export function writeOrThrow(value: Packable, cursor: Cursor) {
     if (value == null) {
-      cursor.writeUint8OrThrow(1)
+      cursor.writeUint8OrThrow(0)
 
       return
     }
 
     if (typeof value === "number") {
-      cursor.writeUint8OrThrow(3)
+      cursor.writeUint8OrThrow(1)
 
       cursor.writeFloat64OrThrow(value, true)
 
@@ -121,7 +121,7 @@ export namespace Packed {
     }
 
     if (value instanceof Uint8Array) {
-      cursor.writeUint8OrThrow(4)
+      cursor.writeUint8OrThrow(2)
 
       cursor.writeUint32OrThrow(value.length, true)
       cursor.writeOrThrow(value)
@@ -130,7 +130,7 @@ export namespace Packed {
     }
 
     if (typeof value === "string") {
-      cursor.writeUint8OrThrow(5)
+      cursor.writeUint8OrThrow(3)
 
       const data = new TextEncoder().encode(value)
 
@@ -141,7 +141,7 @@ export namespace Packed {
     }
 
     if (typeof value === "bigint") {
-      cursor.writeUint8OrThrow(6)
+      cursor.writeUint8OrThrow(4)
 
       const [negative, absolute] = value < 0n ? [1, -value] : [0, value]
 
@@ -157,7 +157,7 @@ export namespace Packed {
     }
 
     if (Array.isArray(value)) {
-      cursor.writeUint8OrThrow(2)
+      cursor.writeUint8OrThrow(5)
 
       cursor.writeUint32OrThrow(value.length, true)
 
