@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/bobine",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "A blockchain in your garage",
   "repository": "github:hazae41/bobine",
   "author": "hazae41",
