@@ -105,8 +105,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       abort: (): never => {
         throw new Error("Aborted")
       },
-      uuid: (): Uint8Array => {
-        return Uint8Array.fromHex("8a8f19d1de0e4fcd9ab15cd7ed5de6dd")
+      uuid: (): string => {
+        return "17fa1cb5-c5af-4cfd-9bea-1a36590b890d"
       }
     }
 
@@ -306,7 +306,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["modules"] = {
-      create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): Uint8Array => {
+      create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): string => {
         const packAsBytes = pack_encode([wasmAsBytes, saltAsBytes])
 
         const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
@@ -320,25 +320,23 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
-        return digestOfPackAsBytes
+
+        return digestOfPackAsHex
       },
-      call: (moduleAsBytes: Uint8Array, methodAsBytes: Uint8Array, paramsAsPack: Array<Packable>): Packable => {
-        const moduleAsString = moduleAsBytes.toHex()
-        const methodAsString = new TextDecoder().decode(methodAsBytes)
+      call: (module: string, method: string, params: Array<Packable>): Packable => {
+        if (exports[module] == null)
+          load(module)
 
-        if (exports[moduleAsString] == null)
-          load(moduleAsString)
-
-        if (typeof exports[moduleAsString][methodAsString] !== "function")
+        if (typeof exports[module][method] !== "function")
           throw new Error("Not found")
 
-        return exports[moduleAsString][methodAsString](...paramsAsPack)
+        return exports[module][method](...params)
       },
-      load: (moduleAsBytes: Uint8Array): Uint8Array => {
-        return readFileSync(`${config.scripts.path}/${moduleAsBytes.toHex()}.wasm`)
+      load: (module: string): Uint8Array => {
+        return readFileSync(`${config.scripts.path}/${module}.wasm`)
       },
-      self: (): Uint8Array => {
-        return Uint8Array.fromHex(module)
+      self: (): string => {
+        return module
       }
     }
 
