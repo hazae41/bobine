@@ -306,6 +306,21 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["modules"] = {
+      self: (): string => {
+        return module
+      },
+      load: (module: string): Uint8Array => {
+        return readFileSync(`${config.scripts.path}/${module}.wasm`)
+      },
+      call: (module: string, method: string, params: Array<Packable>): Packable => {
+        if (exports[module] == null)
+          load(module)
+
+        if (typeof exports[module][method] !== "function")
+          throw new Error("Not found")
+
+        return exports[module][method](...params)
+      },
       create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): string => {
         const packAsBytes = pack_encode([wasmAsBytes, saltAsBytes])
 
@@ -322,21 +337,6 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
           symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
 
         return digestOfPackAsHex
-      },
-      call: (module: string, method: string, params: Array<Packable>): Packable => {
-        if (exports[module] == null)
-          load(module)
-
-        if (typeof exports[module][method] !== "function")
-          throw new Error("Not found")
-
-        return exports[module][method](...params)
-      },
-      load: (module: string): Uint8Array => {
-        return readFileSync(`${config.scripts.path}/${module}.wasm`)
-      },
-      self: (): string => {
-        return module
       }
     }
 

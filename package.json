@@ -9,8 +9,8 @@
   "scripts": {
     "examine": "deno lint ./src && deno check ./src && deno test -R ./src",
     "prepack": "rm -rf ./out && tsc && tscousin",
-    "produce": "deno run -A ./src/mod.ts serve --env=./.env.local",
-    "develop": "deno run -A ./src/mod.ts serve --env=./.env.local --dev"
+    "produce": "deno run -A --sloppy-imports ./src/mod.ts serve --env=./.env.local",
+    "develop": "deno run -A --sloppy-imports ./src/mod.ts serve --env=./.env.local --dev"
   },
   "files": [
     "./out"
