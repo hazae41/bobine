@@ -26,8 +26,8 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const caches = new Map<string, Map<string, Packable>>()
 
-  const reads = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
-  const writes = new Array<[string, string, Uint8Array<ArrayBuffer>]>()
+  const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
+  const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
 
   const pack_encode = (value: Packable): Uint8Array<ArrayBuffer> => {
     return Writable.writeToBytesOrThrow(new Packed(value))
@@ -341,18 +341,20 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["storage"] = {
-      set: (key: string, fresh: Packable): void => {
+      set: (key: Packable, fresh: Packable): void => {
         const cache = caches.get(module)!
 
         cache.set(key, fresh)
 
-        const value = pack_encode(fresh)
+        const keyAsBytes = pack_encode(key)
 
-        writes.push([module, key, value])
+        const valueAsBytes = pack_encode(fresh)
+
+        writes.push([module, keyAsBytes, valueAsBytes])
 
         return
       },
-      get: (key: string): Packable => {
+      get: (key: Packable): Packable => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -360,9 +362,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (stale != null)
           return stale
 
+        const keyAsBytes = pack_encode(key)
+
         const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
 
-        helper.postMessage({ method: "storage_get", params: [module, key], result })
+        helper.postMessage({ method: "storage_get", params: [module, keyAsBytes], result })
 
         if (Atomics.wait(result, 0, 0) !== "ok")
           throw new Error("Failed to wait")
@@ -371,13 +375,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[1] === 2)
           return null
 
-        const value = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
+        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
-        const fresh = pack_decode(value)
+        reads.push([module, keyAsBytes, valueAsBytes])
+
+        const fresh = pack_decode(valueAsBytes)
 
         cache.set(key, fresh)
-
-        reads.push([module, key, value])
 
         return fresh
       }
