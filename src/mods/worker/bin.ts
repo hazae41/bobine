@@ -161,15 +161,21 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       from_base16: (text: string): Uint8Array => {
         return Uint8Array.fromHex(text)
       },
-      to_base16: (bytes: Uint8Array): string => {
-        return bytes.toHex()
+      to_base16: (blob: Uint8Array): string => {
+        return blob.toHex()
       },
       from_base64: (text: string): Uint8Array => {
         return Uint8Array.fromBase64(text)
       },
-      to_base64: (bytes: Uint8Array): string => {
-        return bytes.toBase64()
+      to_base64: (blob: Uint8Array): string => {
+        return blob.toBase64()
       },
+      encode: (value: Packable): Uint8Array => {
+        return pack_encode(value)
+      },
+      decode: (blob: Uint8Array): Packable => {
+        return pack_decode(blob)
+      }
     }
 
     imports["texts"] = {
