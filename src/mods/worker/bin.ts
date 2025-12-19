@@ -378,13 +378,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: Packable): Packable => {
+      get: (key: Packable): [Packable] | null => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
 
         if (stale != null)
-          return stale
+          return [stale]
 
         const keyAsBytes = pack_encode(key)
 
@@ -407,7 +407,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         cache.set(key, fresh)
 
-        return fresh
+        return [fresh]
       }
     }
 
