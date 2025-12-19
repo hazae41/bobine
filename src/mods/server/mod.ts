@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-cond-assign no-unused-vars require-await
 
-import { Writable } from "@hazae41/binary";
+import { Readable, Writable } from "@hazae41/binary";
 import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
@@ -87,14 +87,14 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
       if (request.method === "POST") {
         const form = await request.formData()
 
-        const wasmAsEntry = form.get("code")
+        const codeAsEntry = form.get("code")
 
-        if (wasmAsEntry == null)
+        if (codeAsEntry == null)
           return Response.json(null, { status: 400 })
-        if (typeof wasmAsEntry === "string")
+        if (typeof codeAsEntry === "string")
           return Response.json(null, { status: 400 })
 
-        const wasmAsBytes = await wasmAsEntry.bytes()
+        const codeAsBytes = await codeAsEntry.bytes()
 
         const saltAsEntry = form.get("salt")
 
@@ -126,22 +126,24 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
 
         const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
 
-        if (sparksAsBigInt < (wasmAsBytes.length + saltAsBytes.length))
+        if (sparksAsBigInt < (codeAsBytes.length + saltAsBytes.length))
           return Response.json(null, { status: 402 })
 
-        const packAsBytes = Writable.writeToBytesOrThrow(new Packed([wasmAsBytes, saltAsBytes]))
+        const saltAsValue = Readable.readFromBytesOrThrow(Packed, saltAsBytes)
 
-        const digestOfWasmAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", wasmAsBytes))
+        const packAsBytes = Writable.writeToBytesOrThrow(new Packed([codeAsBytes, saltAsValue]))
+
+        const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
         const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
 
-        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`))
-          writeFileSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+        if (!existsSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`))
+          writeFileSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`, codeAsBytes)
 
         if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`)
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`)
         return Response.json(digestOfPackAsHex)
       }
 

@@ -345,20 +345,20 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return [exports[module][method](...params)]
       },
-      create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): string => {
-        const packAsBytes = pack_encode([wasmAsBytes, saltAsBytes])
+      create: (code: Uint8Array, salt: Packable): string => {
+        const pack = pack_encode([code, salt])
 
-        const digestOfWasmAsBytes = sha256_digest(wasmAsBytes)
-        const digestOfPackAsBytes = sha256_digest(packAsBytes)
+        const digestOfCodeAsBytes = sha256_digest(code)
+        const digestOfPackAsBytes = sha256_digest(pack)
 
-        const digestOfWasmAsHex = digestOfWasmAsBytes.toHex()
+        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`))
-          writeFileSync(`${config.scripts.path}/${digestOfWasmAsHex}.wasm`, wasmAsBytes)
+        if (!existsSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`))
+          writeFileSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`, code)
 
         if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfWasmAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
 
         return digestOfPackAsHex
       }
@@ -458,25 +458,25 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       }
     }
 
-    let meteredWasmAsBytes: Uint8Array<ArrayBuffer>
+    let meteredCodeAsBytes: Uint8Array<ArrayBuffer>
 
     if (!existsSync(`${config.scripts.path}/${module}.metered.wasm`)) {
-      const wasmAsBytes = readFileSync(`${config.scripts.path}/${module}.wasm`)
+      const codeAsBytes = readFileSync(`${config.scripts.path}/${module}.wasm`)
 
-      const wasmAsParsed = Readable.readFromBytesOrThrow(Wasm.Module, wasmAsBytes)
+      const codeAsWasm = Readable.readFromBytesOrThrow(Wasm.Module, codeAsBytes)
 
-      meter(wasmAsParsed, "sparks", "consume")
+      meter(codeAsWasm, "sparks", "consume")
 
-      meteredWasmAsBytes = Writable.writeToBytesOrThrow(wasmAsParsed)
+      meteredCodeAsBytes = Writable.writeToBytesOrThrow(codeAsWasm)
 
-      writeFileSync(`${config.scripts.path}/${module}.metered.wasm`, meteredWasmAsBytes)
+      writeFileSync(`${config.scripts.path}/${module}.metered.wasm`, meteredCodeAsBytes)
     } else {
-      meteredWasmAsBytes = readFileSync(`${config.scripts.path}/${module}.metered.wasm`)
+      meteredCodeAsBytes = readFileSync(`${config.scripts.path}/${module}.metered.wasm`)
     }
 
-    const meteredWasmAsModule = new WebAssembly.Module(meteredWasmAsBytes)
+    const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsBytes)
 
-    for (const descriptor of WebAssembly.Module.imports(meteredWasmAsModule)) {
+    for (const descriptor of WebAssembly.Module.imports(meteredCodeAsModule)) {
       if (imports[descriptor.module] != null) {
         // NOOP
         continue
@@ -494,12 +494,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       continue
     }
 
-    const meteredWasmAsInstance = new WebAssembly.Instance(meteredWasmAsModule, imports)
+    const meteredCodeAsInstance = new WebAssembly.Instance(meteredCodeAsModule, imports)
 
-    current.instance = meteredWasmAsInstance
-    current.module = meteredWasmAsModule
+    current.instance = meteredCodeAsInstance
+    current.module = meteredCodeAsModule
 
-    exports[module] = meteredWasmAsInstance.exports
+    exports[module] = meteredCodeAsInstance.exports
 
     return current
   }
