@@ -2,6 +2,10 @@
 
 A blockchain in your garage
 
+```bash
+npm install -g @hazae41/bobine
+```
+
 [**🌐 Website**](https://bobine.tech/) • [**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine)
 
 ## Features
