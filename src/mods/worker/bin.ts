@@ -291,6 +291,27 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       pow: (left: bigint, right: bigint): bigint => {
         return left ** right
       },
+      mod: (left: bigint, right: bigint): bigint => {
+        return left % right
+      },
+      lt: (left: bigint, right: bigint): boolean => {
+        return left < right
+      },
+      lte: (left: bigint, right: bigint): boolean => {
+        return left <= right
+      },
+      gt: (left: bigint, right: bigint): boolean => {
+        return left > right
+      },
+      gte: (left: bigint, right: bigint): boolean => {
+        return left >= right
+      },
+      eq: (left: bigint, right: bigint): boolean => {
+        return left === right
+      },
+      neq: (left: bigint, right: bigint): boolean => {
+        return left !== right
+      },
       from_base16: (text: string): bigint => {
         return BigInt("0x" + text)
       },
