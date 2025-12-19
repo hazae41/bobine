@@ -378,13 +378,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: Packable): [Packable] => {
+      get: (key: Packable): Packable => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
 
         if (stale != null)
-          return [stale]
+          return stale
 
         const keyAsBytes = pack_encode(key)
 
@@ -397,7 +397,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[0] === 2)
           throw new Error("Internal error")
         if (result[1] === 2)
-          return [null]
+          return null
 
         const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
@@ -407,7 +407,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         cache.set(key, fresh)
 
-        return [fresh]
+        return fresh
       }
     }
 
