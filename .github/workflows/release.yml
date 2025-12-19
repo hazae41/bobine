@@ -21,5 +21,5 @@ jobs:
       - run: "deno bundle --minify --output local ./src/mod.ts"
       - run: "deno bundle --minify --output remote https://jsr.io/$(jq -r '.name' deno.json)/$(jq -r '.version' deno.json)/src/mod.ts"
       - run: "diff local remote"
-      # JSR comparison disabled due to instability
+      # JSR comparison disabled due to instabilities
       # - run: "[[ -z $(diff local remote) ]]"
