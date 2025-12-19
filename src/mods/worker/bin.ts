@@ -276,6 +276,9 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       dec: (value: bigint): bigint => {
         return value - 1n
       },
+      neg: (value: bigint): bigint => {
+        return -value
+      },
       add: (left: bigint, right: bigint): bigint => {
         return left + right
       },
@@ -333,14 +336,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       load: (module: string): Uint8Array => {
         return readFileSync(`${config.scripts.path}/${module}.wasm`)
       },
-      call: (module: string, method: string, params: Array<Packable>): Packable => {
+      call: (module: string, method: string, params: Array<Packable>): [Packable] => {
         if (exports[module] == null)
           load(module)
 
         if (typeof exports[module][method] !== "function")
           throw new Error("Not found")
 
-        return exports[module][method](...params)
+        return [exports[module][method](...params)]
       },
       create: (wasmAsBytes: Uint8Array, saltAsBytes: Uint8Array): string => {
         const packAsBytes = pack_encode([wasmAsBytes, saltAsBytes])
@@ -375,13 +378,13 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: Packable): Packable => {
+      get: (key: Packable): [Packable] => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
 
         if (stale != null)
-          return stale
+          return [stale]
 
         const keyAsBytes = pack_encode(key)
 
@@ -394,7 +397,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
         if (result[0] === 2)
           throw new Error("Internal error")
         if (result[1] === 2)
-          return null
+          return [null]
 
         const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
 
@@ -404,7 +407,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         cache.set(key, fresh)
 
-        return fresh
+        return [fresh]
       }
     }
 
