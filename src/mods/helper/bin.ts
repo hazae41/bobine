@@ -88,7 +88,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (request.method === "ed25519_verify") {
       const [pubkeyAsBytes, signatureAsBytes, payloadAsBytes] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 
-      const pubkeyAsKey = await crypto.subtle.importKey("raw", pubkeyAsBytes, "Ed25519", true, ["verify"])
+      const pubkeyAsKey = await crypto.subtle.importKey("spki", pubkeyAsBytes, "Ed25519", true, ["verify"])
 
       const verified = await crypto.subtle.verify("Ed25519", pubkeyAsKey, signatureAsBytes, payloadAsBytes)
 
