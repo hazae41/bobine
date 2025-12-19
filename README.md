@@ -2,9 +2,7 @@
 
 A blockchain in your garage
 
-https://bobine.tech/
-
-[**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine) • [**📦 JSR**](https://jsr.io/@hazae41/bobine)
+[**🌐 Website**](https://bobine.tech/) • [**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine)
 
 ## Features
 
@@ -24,7 +22,7 @@ https://bobine.tech/
 Install the binary with Deno
 
 ```bash
-deno install -gf -A jsr:@hazae41/bobine
+deno install -gf -A npm:@hazae41/bobine
 ```
 
 Generate an Ed25519 keypair by running the following code in your browser/deno/node/bun console
