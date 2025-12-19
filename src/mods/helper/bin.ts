@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
 import { runAsImmediateOrThrow } from "../../libs/sql/mod.ts";

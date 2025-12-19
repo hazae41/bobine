@@ -1,5 +1,7 @@
 // deno-lint-ignore-file no-explicit-any no-unused-vars ban-unused-ignore
 
+/// <reference lib="webworker" />
+
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import * as Wasm from "@hazae41/wasm";

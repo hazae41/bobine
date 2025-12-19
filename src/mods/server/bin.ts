@@ -1,3 +1,5 @@
+/// <reference lib="deno.ns" />
+
 import { readFileSync } from "node:fs";
 import process from "node:process";
 import { serveWithEnv } from "./mod.ts";
