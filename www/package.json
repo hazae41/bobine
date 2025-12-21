@@ -4,11 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "examine": "deno lint ./src && deno check ./src && deno test ./src",
-    "version": "deno -RW ./x.vsync.ts && git add deno.json",
-    "prepare": "deno -RW ./x.dsync.ts && deno install",
-    "prepack": "glace ./www --out=./out",
-    "produce": "glace ./www --out=./out --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts",
-    "develop": "glace ./www --out=./out --dev --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts --dev"
+    "prepack": "deno x glace ./www --out=./out",
+    "produce": "deno x glace ./www --out=./out --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts",
+    "develop": "deno x glace ./www --out=./out --dev --watch=./src,./www & deno -RNE ./src/mods/srv/bin.ts --dev"
   },
   "files": [
     "./out"
@@ -29,6 +27,7 @@
   "devDependencies": {
     "@hazae41/glace": "^1.0.30",
     "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "deno": "^2.6.3"
   }
 }
