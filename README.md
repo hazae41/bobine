@@ -3,7 +3,7 @@
 A blockchain in your garage
 
 ```bash
-npm install -g @hazae41/bobine
+deno install -gf -A npm:@hazae41/bobine
 ```
 
 [**🌐 Website**](https://bobine.tech/) • [**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine)
@@ -22,6 +22,12 @@ npm install -g @hazae41/bobine
 ## Usage
 
 ### Running the server
+
+Install Deno
+
+```bash
+npm install -g deno
+```
 
 Install the binary with Deno
 
