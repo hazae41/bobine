@@ -1,4 +1,4 @@
-#!/usr/bin/env deno -A
+#!/usr/bin/env node
 
 export * from "./mods/mod.ts";
 
