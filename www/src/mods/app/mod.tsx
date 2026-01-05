@@ -180,7 +180,7 @@ export function App() {
             </div>
           </div>
           <div className="bg-default-contrast rounded-xl p-4 pe-2">
-            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap text-left font-mono" dir="ltr">
+            <div className="pe-2 h-[400px] overflow-y-scroll whitespace-pre-line text-left font-mono" dir="ltr">
               {hexdump}
             </div>
           </div>
@@ -267,9 +267,8 @@ export function App() {
                 {"AssemblyScript"}
               </div>
             </div>
-            <div className="h-full w-full bg-default-contrast rounded-xl p-4">
-              <Code language="typescript">
-                {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
+            <Code language="typescript">
+              {`import { bigintref, bigints } from "@/libs/bigints/mod.ts"
 import { blobs } from "@/libs/blobs/mod.ts"
 import { storage } from "@/libs/storage/mod.ts"
 
@@ -294,8 +293,7 @@ export function add(): bigintref {
 
   return fresh
 }`}
-              </Code>
-            </div>
+            </Code>
           </div>
           <div className="w-full max-w-[600px] flex flex-col">
             <div className="p-4">
@@ -307,9 +305,8 @@ export function add(): bigintref {
                 {"Rust"}
               </div>
             </div>
-            <div className="h-full w-full bg-default-contrast rounded-xl p-4">
-              <Code language="rust">
-                {`use stdbob::{bigints, blobs, storage};
+            <Code language="rust">
+              {`use stdbob::{bigints, blobs, storage};
 
 #[no_mangle]
 pub extern "C" fn add() -> bigints::BigIntRef {
@@ -333,8 +330,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
     
     fresh
 }`}
-              </Code>
-            </div>
+            </Code>
           </div>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
@@ -638,13 +634,11 @@ pub extern "C" fn add() -> bigints::BigIntRef {
               {"AssemblyScript"}
             </div>
           </div>
-          <div className="h-full w-full bg-default-contrast rounded-xl p-4">
-            <Code language="typescript">
-              {`export function deposit(session: sessionref, amount: bigintref): void {
+          <Code language="typescript">
+            {`export function deposit(session: sessionref, amount: bigintref): void {
   token.transfer(session, modules.self(), amount)
 }`}
-            </Code>
-          </div>
+          </Code>
         </div>
         <div className="h-[max(24rem,50dvh)]" />
         <div className="text-center text-5xl md:text-6xl font-medium">
@@ -719,7 +713,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
         <div className="h-16" />
         <div className="w-full max-w-[600px] flex flex-col">
           <div className="bg-default-contrast rounded-xl p-4 pe-2">
-            <div className="h-[400px] overflow-y-scroll whitespace-pre-wrap font-mono">
+            <div className="pe-2 h-[400px] overflow-y-scroll whitespace-pre-line font-mono">
               <SparksMachine />
             </div>
           </div>
@@ -1224,9 +1218,11 @@ export function Code(props: ChildrenProps & { language: string }) {
     code.innerHTML = hljs.highlight(code.textContent, { language }).value
   }, [code, language])
 
-  return <div className="text-left whitespace-pre-wrap font-mono wrap-break-word text-xs sm:text-sm md:text-base" dir="ltr"
-    ref={setCode}>
-    {children}
+  return <div className="h-full w-full bg-default-contrast rounded-xl p-4 pb-2">
+    <div className="pb-2 text-left whitespace-pre font-mono overflow-x-scroll" dir="ltr"
+      ref={setCode}>
+      {children}
+    </div>
   </div>
 }
 
