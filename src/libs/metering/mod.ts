@@ -39,6 +39,30 @@ export function meter(module: Wasm.Module, from: string, name: string) {
     module.body.sections.splice(before + 1, 0, wcode)
   }
 
+  const welem = module.body.sections.find(section => section.kind === Wasm.ElementSection.kind) as Wasm.ElementSection
+
+  if (welem != null) {
+    for (const segment of welem.segments) {
+      switch (segment.flag) {
+        case 0: {
+          for (let i = 0; i < segment.funcidxs.length; i++)
+            segment.funcidxs[i]++
+          break
+        }
+        case 1:
+        case 2: {
+          for (const element of segment.elements) {
+            for (const instruction of element) {
+              if (instruction.opcode === 0xd2)
+                (instruction.params[0] as Wasm.LEB128.U32).value++
+            }
+          }
+          break
+        }
+      }
+    }
+  }
+
   const wstart = module.body.sections.find(section => section.kind === Wasm.StartSection.kind) as Wasm.StartSection
 
   wtype.descriptors.push({ prefix: Wasm.TypeSection.FuncType.kind, subtypes: [], body: new Wasm.TypeSection.FuncType([0x7f], []) })
