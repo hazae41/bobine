@@ -1,7 +1,7 @@
 // deno-lint-ignore-file prefer-const
 
-import { Nullable } from "@/libs/nullable/mod.ts";
 import * as Wasm from "@hazae41/wasm";
+import { Nullable } from "../nullable/mod.ts";
 
 export function meter(module: Wasm.Module, from: string, name: string) {
   let wtype = module.body.sections.find(section => section.kind === Wasm.TypeSection.kind) as Nullable<Wasm.TypeSection>
