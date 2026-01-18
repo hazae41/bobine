@@ -24,7 +24,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
   const logs = new Array<string>()
 
-  const caches = new Map<string, Map<string, Packable>>()
+  const caches = new Map<string, Map<Packable, Packable>>()
 
   const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
   const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
