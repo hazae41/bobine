@@ -13,6 +13,7 @@ import React, { JSX, useCallback, useEffect, useState } from "react";
 import { Outline } from "../../libs/heroicons/mod.ts";
 import { hexdump } from "../../libs/hexdump/mod.ts";
 import { Lang } from "../../libs/lang/mod.ts";
+import { Nullable } from "../../libs/nullable/mod.ts";
 import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
@@ -1210,7 +1211,7 @@ pub extern "C" fn add() -> bigints::BigIntRef {
 export function Code(props: ChildrenProps & { language: string }) {
   const { children, language } = props
 
-  const [code, setCode] = useState<HTMLElement>()
+  const [code, setCode] = useState<Nullable<HTMLElement>>()
 
   useEffect(() => {
     if (!code)
@@ -1308,7 +1309,7 @@ export function SparksMachine() {
     setObserver(new IntersectionObserver((entries) => setRunning(entries[0].isIntersecting)))
   }, [])
 
-  const [div, setDiv] = useState<HTMLDivElement>()
+  const [div, setDiv] = useState<Nullable<HTMLDivElement>>()
 
   useEffect(() => {
     if (observer == null)
@@ -1394,7 +1395,7 @@ export function WasmMachine() {
     setObserver(new IntersectionObserver((entries) => setRunning(entries[0].isIntersecting)))
   }, [])
 
-  const [div, setDiv] = useState<HTMLDivElement>()
+  const [div, setDiv] = useState<Nullable<HTMLDivElement>>()
 
   useEffect(() => {
     if (observer == null)
