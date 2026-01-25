@@ -21,7 +21,7 @@ deno install -gf -A npm:@hazae41/bobine
 
 ## Ecosystem
 
-- [Awesome Bobine](https://github.com/hazae41/awesome-bobine) / Curated list on Bobine ecosystem
+- [Awesome Bobine](https://github.com/hazae41/awesome-bobine) / A curated list on Bobine ecosystem
 
 ## Usage
 
