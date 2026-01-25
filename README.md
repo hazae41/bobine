@@ -19,6 +19,10 @@ deno install -gf -A npm:@hazae41/bobine
 
 \* There are no built-in accounting concepts, only pure generic APIs for cryptography and storage
 
+## Ecosystem
+
+- [Awesome Bobine](https://github.com/hazae41/awesome-bobine) / Curated list on Bobine ecosystem
+
 ## Usage
 
 ### Running the server
