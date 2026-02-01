@@ -1,4 +1,4 @@
-# Bobine
+# Bobine 🧵
 
 A blockchain in your garage
 
