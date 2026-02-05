@@ -130,6 +130,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     imports["console"] = {
       log: (text: string): void => {
         logs.push(text)
+
+        if (process.env.NODE_ENV !== "production")
+          console.log(text)
+
+        return
       }
     }
 
