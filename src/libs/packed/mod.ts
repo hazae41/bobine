@@ -72,7 +72,7 @@ export namespace Packed {
       return 1
 
     if (typeof value === "number")
-      return 1 + 4
+      return 1 + 8
 
     if (value instanceof Uint8Array)
       return 1 + 4 + value.length

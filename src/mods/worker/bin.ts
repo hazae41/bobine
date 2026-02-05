@@ -40,10 +40,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   const sparks_consume = (amount: bigint) => {
     sparks += amount
 
-    if (maxsparks != null && sparks > maxsparks)
+    if (maxsparks == null)
+      return
+    if (sparks < maxsparks)
+      return
+
+    if (process.env.NODE_ENV === "production")
       throw new Error("Out of sparks")
 
-    return
+    console.warn("Out of sparks")
   }
 
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
