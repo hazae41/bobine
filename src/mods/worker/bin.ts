@@ -40,15 +40,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   const sparks_consume = (amount: bigint) => {
     sparks += amount
 
+    if (process.env.NODE_ENV !== "production")
+      return
+
     if (maxsparks == null)
       return
     if (sparks < maxsparks)
       return
 
-    if (process.env.NODE_ENV === "production")
-      throw new Error("Out of sparks")
-
-    console.warn("Out of sparks")
+    throw new Error("Out of sparks")
   }
 
   const sha256_digest = (payload: Uint8Array): Uint8Array => {
@@ -107,11 +107,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["env"] = {
       mode: mode,
-      abort: (): never => {
-        throw new Error("Aborted")
+      error: (message: string): never => {
+        throw new Error(message)
       },
       uuid: (): string => {
         return "17fa1cb5-c5af-4cfd-9bea-1a36590b890d"
+      },
+      abort: (...args: unknown[]): void => {
+        return
       }
     }
 
