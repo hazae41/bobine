@@ -107,15 +107,15 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
     imports["env"] = {
       mode: mode,
-      error: (message: string): never => {
-        throw new Error(message)
+      abort: (...args: unknown[]): void => {
+        return
       },
       uuid: (): string => {
         return "17fa1cb5-c5af-4cfd-9bea-1a36590b890d"
       },
-      abort: (...args: unknown[]): void => {
-        return
-      }
+      panic: (message: string): never => {
+        throw new Error(message)
+      },
     }
 
     imports["sparks"] = {
