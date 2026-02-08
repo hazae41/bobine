@@ -9,6 +9,7 @@ import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } 
 import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import process from "node:process";
 import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;

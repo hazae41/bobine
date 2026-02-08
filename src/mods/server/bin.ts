@@ -92,7 +92,7 @@ export async function main(args: string[]) {
     } catch (cause: unknown) {
       console.error(cause)
 
-      return new Response("Error", { status: 500 })
+      return new Response(null, { status: 500 })
     }
   }
 
