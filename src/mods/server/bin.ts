@@ -89,8 +89,11 @@ export async function main(args: string[]) {
       response.headers.set("Access-Control-Allow-Headers", "*")
 
       return response
-    } catch (cause: unknown) {
-      console.error(cause)
+    } catch (error: unknown) {
+      console.error(error)
+
+      if (error instanceof Error)
+        return new Response(error.message, { status: 500 })
 
       return new Response(null, { status: 500 })
     }
