@@ -1,5 +1,3 @@
-// deno-lint-ignore-file no-cond-assign no-unused-vars require-await
-
 import { Packed } from "@/libs/packed/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";

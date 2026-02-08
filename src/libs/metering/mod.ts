@@ -1,15 +1,18 @@
-// deno-lint-ignore-file prefer-const
-
 import * as Wasm from "@hazae41/wasm";
 import { Nullable } from "../nullable/mod.ts";
 
 export function meter(module: Wasm.Module, from: string, name: string) {
   let wtype = module.body.sections.find(section => section.kind === Wasm.TypeSection.kind) as Nullable<Wasm.TypeSection>
+
   let wimport = module.body.sections.find(section => section.kind === Wasm.ImportSection.kind) as Nullable<Wasm.ImportSection>
-  let wexport = module.body.sections.find(section => section.kind === Wasm.ExportSection.kind) as Nullable<Wasm.ExportSection>
-  let wcode = module.body.sections.find(section => section.kind === Wasm.CodeSection.kind) as Nullable<Wasm.CodeSection>
-  let welem = module.body.sections.find(section => section.kind === Wasm.ElementSection.kind) as Nullable<Wasm.ElementSection>
-  let wstart = module.body.sections.find(section => section.kind === Wasm.StartSection.kind) as Nullable<Wasm.StartSection>
+
+  const wexport = module.body.sections.find(section => section.kind === Wasm.ExportSection.kind) as Nullable<Wasm.ExportSection>
+
+  const wcode = module.body.sections.find(section => section.kind === Wasm.CodeSection.kind) as Nullable<Wasm.CodeSection>
+
+  const welem = module.body.sections.find(section => section.kind === Wasm.ElementSection.kind) as Nullable<Wasm.ElementSection>
+
+  const wstart = module.body.sections.find(section => section.kind === Wasm.StartSection.kind) as Nullable<Wasm.StartSection>
 
   if (wtype == null) {
     wtype = new Wasm.TypeSection([])

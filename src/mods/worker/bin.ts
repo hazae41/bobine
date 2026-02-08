@@ -1,5 +1,3 @@
-// deno-lint-ignore-file no-explicit-any no-unused-vars ban-unused-ignore
-
 /// <reference lib="webworker" />
 
 import { meter } from "@/libs/metering/mod.ts";
