@@ -8,13 +8,13 @@ import typescript from "highlight.js/lib/languages/typescript";
 // @deno-types="npm:highlight.js"
 import rust from "highlight.js/lib/languages/rust";
 
+import { Outline } from "@/libs/heroicons/mod.ts";
+import { hexdump } from "@/libs/hexdump/mod.ts";
+import { Lang } from "@/libs/lang/mod.ts";
+import { Nullable } from "@/libs/nullable/mod.ts";
+import { ChildrenProps } from "@/libs/props/children/mod.ts";
 import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 import React, { JSX, useCallback, useEffect, useState } from "react";
-import { Outline } from "../../libs/heroicons/mod.ts";
-import { hexdump } from "../../libs/hexdump/mod.ts";
-import { Lang } from "../../libs/lang/mod.ts";
-import { Nullable } from "../../libs/nullable/mod.ts";
-import { ChildrenProps } from "../../libs/props/children/mod.ts";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("rust", rust);

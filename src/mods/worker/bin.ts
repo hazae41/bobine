@@ -2,13 +2,13 @@
 
 /// <reference lib="webworker" />
 
+import { meter } from "@/libs/metering/mod.ts";
+import { type Packable, Packed } from "@/libs/packed/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import * as Wasm from "@hazae41/wasm";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { meter } from "../../libs/metering/mod.ts";
-import { type Packable, Packed } from "../../libs/packed/mod.ts";
 import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;

@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 
+import { runAsImmediateOrThrow } from "@/libs/sql/mod.ts";
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
-import { runAsImmediateOrThrow } from "../../libs/sql/mod.ts";
 import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
