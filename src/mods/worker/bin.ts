@@ -130,8 +130,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       log: (text: string): void => {
         logs.push(text)
 
-        if (process.env.NODE_ENV !== "production")
-          console.log(text)
+        console.log(text)
 
         return
       }
