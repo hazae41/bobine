@@ -326,6 +326,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       neq: (left: bigint, right: bigint): boolean => {
         return left !== right
       },
+      min: (left: bigint, right: bigint): bigint => {
+        return left < right ? left : right
+      },
+      max: (left: bigint, right: bigint): bigint => {
+        return left > right ? left : right
+      },
       from_base16: (text: string): bigint => {
         return BigInt("0x" + text)
       },
