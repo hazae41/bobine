@@ -1,3 +1,0 @@
-# FAQ
-
-### What the hell
