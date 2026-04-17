@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-unused-vars
+// deno-lint-ignore-file no-unused-vars no-process-global
 
 /// <reference lib="dom" />
 
@@ -15,53 +15,39 @@ import { hydrateRoot } from "react-dom/client";
 
 React;
 
-const AnUpdateIsAvailable = (origin: string) => ({
-  en: `An update of ${origin} is available. Do you want to update now?`,
-  zh: `有可用的 ${origin} 更新。您想现在更新吗？`,
-  hi: `${origin} का एक अपडेट उपलब्ध है। क्या आप अभी अपडेट करना चाहते हैं?`,
-  es: `Hay una actualización de ${origin} disponible. ¿Quieres actualizar ahora?`,
-  ar: `يتوفر تحديث لـ ${origin}. هل تريد التحديث الآن؟`,
-  fr: `Une mise à jour de ${origin} est disponible. Voulez-vous mettre à jour maintenant ?`,
-  de: `Ein Update von ${origin} ist verfügbar. Möchten Sie jetzt aktualisieren?`,
-  ru: `Доступно обновление для ${origin}. Вы хотите обновить сейчас?`,
-  pt: `Uma atualização de ${origin} está disponível. Você quer atualizar agora?`,
-  ja: `${origin} のアップデートが利用可能です。今すぐアップデートしますか？`,
-  pa: `${origin} ਦਾ ਇੱਕ ਅੱਪਡੇਟ ਉਪਲਬਧ ਹੈ। ਕੀ ਤੁਸੀਂ ਹੁਣ ਅੱਪਡੇਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ؟`,
-  bn: `${origin} এর একটি আপডেট উপলব্ধ। আপনি কি এখনই আপডেট করতে চান?`,
-  id: `Pembaruan dari ${origin} tersedia. Apakah Anda ingin memperbarui sekarang?`,
-  ur: `کے لیے ایک اپ ڈیٹ ${origin} دستیاب ہے۔ کیا آپ ابھی اپ ڈیٹ کرنا چاہتے ہیں؟`,
-  ms: `Kemas kini untuk ${origin} tersedia. Adakah anda mahu mengemas kini sekarang?`,
-  it: `È disponibile un aggiornamento per ${origin}. Vuoi aggiornare ora?`,
-  tr: `${origin} için bir güncelleme mevcut. Şimdi güncellemek ister misiniz?`,
-  ta: `${origin} க்கான ஒரு புதுப்பிப்பு கிடைக்கிறது. நீங்கள் இப்போது புதுப்பிக்க விரும்புகிறீர்களா?`,
-  te: `${origin} కోసం ఒక అప్‌డేట్ అందుబాటులో ఉంది. మీరు ఇప్పుడు అప్‌డేట్ చేయాలనుకుంటున్నారా?`,
-  ko: `${origin}의 업데이트가 있습니다. 지금 업데이트하시겠습니까?`,
-  vi: `Có bản cập nhật của ${origin} sẵn có. Bạn có muốn cập nhật ngay bây giờ không?`,
-  pl: `Dostępna jest aktualizacja ${origin}. Czy chcesz zaktualizować teraz?`,
-  ro: `O actualizare pentru ${origin} este disponibilă. Doriți să actualizați acum?`,
-  nl: `Er is een update van ${origin} beschikbaar. Wilt u nu updaten?`,
-  el: `Υπάρχει μια ενημέρωση για το ${origin}. Θέλετε να ενημερώσετε τώρα;`,
-  th: `มีการอัปเดตของ ${origin} คุณต้องการอัปเดตตอนนี้หรือไม่?`,
-  cs: `Je k dispozici aktualizace ${origin}. Chcete nyní aktualizovat?`,
-  hu: `Elérhető egy frissítés a ${origin} számára. Szeretne most frissíteni?`,
-  sv: `En uppdatering av ${origin} är tillgänglig. Vill du uppdatera nu?`,
-  da: `En opdatering af ${origin} er tilgængelig. Vil du opdatere nu?`,
-} as const)
+async function register() {
+  const { registration, update } = await immutable.serviceWorker.register("/service.worker.js", { scope: "/", updateViaCache: "all" })
 
-async function upgrade() {
-  if (navigator.serviceWorker.controller != null)
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
+  registration.addEventListener("updatefound", () => {
+    const { installing, active } = registration
 
-  const { registration, update } = await immutable.serviceWorker.register("/service.worker.js", { type: "module", scope: "/", updateViaCache: "all" })
+    if (active == null)
+      return
+    if (installing == null)
+      return
+
+    installing.addEventListener("statechange", async () => {
+      if (installing.state !== "activated")
+        return
+
+      if (process.env.NODE_ENV !== "production")
+        return
+
+      await Promise.resolve()
+
+      alert(Lang.match({ en: `An update of ${location.host} has been installed. Please refresh the page to use the new version.`, zh: `已安装 ${location.host} 的更新。请刷新页面以使用新版本。`, hi: `${location.host} का एक अपडेट इंस्टॉल हो गया है। कृपया नए संस्करण का उपयोग करने के लिए पृष्ठ को रिफ्रेश करें।`, es: `Se ha instalado una actualización de ${location.host}. Por favor, actualice la página para usar la nueva versión.`, ar: `تم تثبيت تحديث لـ ${location.host}. يرجى تحديث الصفحة لاستخدام الإصدار الجديد.`, fr: `Une mise à jour de ${location.host} a été installée. Veuillez rafraîchir la page pour utiliser la nouvelle version.`, de: `Ein Update von ${location.host} wurde installiert. Bitte aktualisieren Sie die Seite, um die neue Version zu verwenden.`, ru: `Обновление для ${location.host} было установлено. Пожалуйста, обновите страницу, чтобы использовать новую версию.`, pt: `Uma atualização de ${location.host} foi instalada. Por favor, atualize a página para usar a nova versão.`, ja: `${location.host} のアップデートがインストールされました。新しいバージョンを使用するには、ページを更新してください。`, pa: `${location.host} ਦਾ ਇੱਕ ਅੱਪਡੇਟ ਇੰਸਟਾਲ ਹੋ ਗਿਆ ਹੈ। कृपया नए संस्करण का उपयोग करने के लिए पृष्ठ को रिफ्रेश करें।`, bn: `${location.host} এর একটি আপডেট ইনস্টল করা হয়েছে। নতুন সংস্করণ ব্যবহার করতে कृपया पृष्ठ को रिफ्रेश करें।`, id: `Pembaruan dari ${location.host} telah diinstal. Harap segarkan halaman untuk menggunakan versi baru.`, ur: `کے لیے ایک اپ ڈیٹ ${location.host} انسٹال ہو گیا ہے۔ نئے ورژن کو استعمال کرنے کے لیے صفحہ کو ریفریش کریں۔`, ms: `Kemas kini untuk ${location.host} telah dipasang. Sila segarkan halaman untuk menggunakan versi baru.`, it: `Un aggiornamento per ${location.host} è stato installato. Per favore, aggiorna la pagina per usare la nuova versione.`, tr: `${location.host} için bir güncelleme yüklendi. Yeni sürümü kullanmak için lütfen sayfayı yenileyin.`, ta: `${location.host} க்கான ஒரு புதுப்பிப்பு நிறுவப்பட்டுள்ளது. புதிய பதிப்பைப் பயன்படுத்த பக்கத்தை புதுப்பிக்கவும்.`, te: `${location.host} కోసం ఒక అప్‌డేట్ ఇన్‌స్టాల్ చేయబడింది. కొత్త వెర్షన్‌ను ఉపయోగించడానికి దయచేసి పేజీని రిఫ్రెష్ చేయండి.`, ko: `${location.host}의 업데이트가 설치되었습니다. 새 버전을 사용하려면 페이지를 새로 고치세요.`, vi: `Một bản cập nhật của ${location.host} đã được cài đặt. Vui lòng làm mới trang để sử dụng phiên bản mới.`, pl: `Aktualizacja ${location.host} została zainstalowana. Odśwież stronę, aby użyć nowej wersji.`, ro: `O actualizare pentru ${location.host} a fost instalată. Vă rugăm să reîmprospătați pagina pentru a utiliza noua versiune.`, nl: `Er is een update van ${location.host} geïnstalleerd. Vernieuw de pagina om de nieuwe versie te gebruiken.`, el: `Μια ενημέρωση για το ${location.host} έχει εγκατασταθεί. Παρακαλώ ανανεώστε τη σελίδα για να χρησιμοποιήσετε τη νέα έκδοση.`, th: `มีการติดตั้งการอัปเดตของ ${location.host} กรุณารีเฟรชหน้าเพื่อใช้เวอร์ชันใหม่`, cs: `Aktualizace pro ${location.host} byla nainstalována. Obnovte prosím stránku pro použití nové verze.`, hu: `Elérhető egy frissítés a ${location.host} számára. Kérem, frissítse az oldalt az új verzió használatához.`, sv: `En uppdatering av ${location.host} har installerats. Vänligen uppdatera sidan för att använda den nya versionen.`, da: `En opdatering af ${location.host} er blevet installeret. Opdater venligst siden for at bruge den nye version.` }))
+    }, { passive: true })
+
+    console.debug("A new service worker is being installed")
+  }, { passive: true })
 
   if (update == null)
     return registration
-  if (!confirm(Lang.match(AnUpdateIsAvailable(location.origin))))
+  if (!confirm(Lang.match({ en: `An update of ${location.host} is available. Do you want to install it?`, zh: `有可用的 ${location.host} 更新。您想安装它吗？`, hi: `${location.host} का एक अपडेट उपलब्ध है। क्या आप इसे इंस्टॉल करना चाहते हैं?`, es: `Hay una actualización de ${location.host} disponible. ¿Quieres instalarla?`, ar: `يتوفر تحديث لـ ${location.host}. هل تريد تثبيته؟`, fr: `Une mise à jour de ${location.host} est disponible. Voulez-vous l'installer ?`, de: `Ein Update von ${location.host} ist verfügbar. Möchten Sie es installieren?`, ru: `Доступно обновление для ${location.host}. Вы хотите установить его?`, pt: `Uma atualização de ${location.host} está disponível. Você quer instalá-la?`, ja: `${location.host} のアップデートが利用可能です。インストールしますか？`, pa: `${location.host} ਦਾ ਇੱਕ ਅੱਪਡੇਟ ਉਪਲਬਧ ਹੈ। ਕੀ ਤੁਸੀਂ ਇਸ ਨੂੰ ਇੰਸਟਾਲ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?`, bn: `${location.host} এর একটি আপডেট উপলব্ধ। আপনি কি এটি ইনস্টল করতে চান?`, id: `Pembaruan dari ${location.host} tersedia. Apakah Anda ingin menginstalnya?`, ur: `کے لیے ایک اپ ڈیٹ ${location.host} دستیاب ہے۔ کیا آپ اسے انسٹال کرنا چاہتے ہیں؟`, ms: `Kemas kini untuk ${location.host} tersedia. Adakah anda mahu memasangnya?`, it: `È disponibile un aggiornamento per ${location.host}. Vuoi installarlo?`, tr: `${location.host} için bir güncelleme mevcut. Kurmak ister misiniz?`, ta: `${location.host} க்கான ஒரு புதுப்பிப்பு கிடைக்கிறது. நீங்கள் அதை நிறுவ விரும்புகிறீர்களா?`, te: `${location.host} కోసం ఒక అప్‌డేట్ అందుబాటులో ఉంది. మీరు దాన్ని ఇన్‌స్టాల్ చేయాలనుకుంటున్నారా?`, ko: `${location.host}의 업데이트가 있습니다. 설치하시겠습니까?`, vi: `Có bản cập nhật của ${location.host} sẵn có. Bạn có muốn cài đặt nó không?`, pl: `Dostępna jest aktualizacja ${location.host}. Czy chcesz ją zainstalować?`, ro: `O actualizare pentru ${location.host} este disponibilă. Doriți să o instalați?`, nl: `Er is een update van ${location.host} beschikbaar. Wilt u het installeren?`, el: `Υπάρχει μια ενημέρωση για το ${location.host}. Θέλετε να την εγκαταστήσετε;`, th: `มีการอัปเดตของ ${location.host} คุณต้องการติดตั้งหรือไม่?`, cs: `Je k dispozici aktualizace ${location.host}. Chcete ji nainstalovat?`, hu: `Elérhető egy frissítés a ${location.host} számára. Szeretné telepíteni?`, sv: `En uppdatering av ${location.host} är tillgänglig. Vill du installera den?`, da: `En opdatering af ${location.host} er tilgængelig. Vil du installere den?` })))
     return registration
 
   return await update()
 }
-
 function Body() {
   const [client, setClient] = useState(false)
 
@@ -75,14 +61,13 @@ function Body() {
   }, [])
 
   useEffect(() => {
-    upgrade().then(console.log).catch(console.error)
+    register().then(console.log).catch(console.error)
   }, [])
 
   return <App />
 }
 
 // @ts-ignore: process not found
-// deno-lint-ignore no-process-global
 if (process.env.PLATFORM === "browser") {
   await new Rewind(document).hydrateOrThrow().then(() => hydrateRoot(document.body, <Body />))
 } else {
