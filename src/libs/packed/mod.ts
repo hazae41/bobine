@@ -10,42 +10,42 @@ export class Packed {
     readonly value: Packable
   ) { }
 
-  sizeOrThrow() {
-    return Packed.sizeOrThrow(this.value)
+  size() {
+    return Packed.size(this.value)
   }
 
-  writeOrThrow(cursor: Cursor) {
-    Packed.writeOrThrow(this.value, cursor)
+  write(cursor: Cursor) {
+    Packed.write(this.value, cursor)
   }
 
 }
 
 export namespace Packed {
 
-  export function readOrThrow(cursor: Cursor): Packable {
-    const type = cursor.readUint8OrThrow()
+  export function read(cursor: Cursor): Packable {
+    const type = cursor.readUint8()
 
     if (type === 0)
       return null
 
     if (type === 1)
-      return cursor.readFloat64OrThrow(true)
+      return cursor.readFloat64(true)
 
     if (type === 2)
-      return cursor.readOrThrow(cursor.readUint32OrThrow(true))
+      return cursor.read(cursor.readUint32(true))
 
     if (type === 3) {
-      const size = cursor.readUint32OrThrow(true)
-      const data = cursor.readOrThrow(size)
+      const size = cursor.readUint32(true)
+      const data = cursor.read(size)
 
       return new TextDecoder().decode(data)
     }
 
     if (type === 4) {
-      const negative = cursor.readUint8OrThrow()
+      const negative = cursor.readUint8()
 
-      const size = cursor.readUint32OrThrow(true)
-      const data = cursor.readOrThrow(size)
+      const size = cursor.readUint32(true)
+      const data = cursor.read(size)
 
       const absolute = BigInt("0x" + data.toHex())
 
@@ -53,11 +53,11 @@ export namespace Packed {
     }
 
     if (type === 5) {
-      const length = cursor.readUint32OrThrow(true)
+      const length = cursor.readUint32(true)
       const values = new Array<Packable>(length)
 
       for (let i = 0; i < length; i++)
-        values[i] = readOrThrow(cursor)
+        values[i] = read(cursor)
 
       return values
     }
@@ -65,7 +65,7 @@ export namespace Packed {
     throw new Error("Unknown pack type")
   }
 
-  export function sizeOrThrow(value: Packable) {
+  export function size(value: Packable) {
     if (value == null)
       return 1
 
@@ -88,79 +88,79 @@ export namespace Packed {
     }
 
     if (Array.isArray(value)) {
-      let size = 0
+      let total = 0
 
-      size += 1
+      total += 1
 
-      size += 4
+      total += 4
 
       for (const subvalue of value)
-        size += sizeOrThrow(subvalue)
+        total += size(subvalue)
 
-      return size
+      return total
     }
 
     throw new Error("Unknown pack value")
   }
 
-  export function writeOrThrow(value: Packable, cursor: Cursor) {
+  export function write(value: Packable, cursor: Cursor) {
     if (value == null) {
-      cursor.writeUint8OrThrow(0)
+      cursor.writeUint8(0)
 
       return
     }
 
     if (typeof value === "number") {
-      cursor.writeUint8OrThrow(1)
+      cursor.writeUint8(1)
 
-      cursor.writeFloat64OrThrow(value, true)
+      cursor.writeFloat64(value, true)
 
       return
     }
 
     if (value instanceof Uint8Array) {
-      cursor.writeUint8OrThrow(2)
+      cursor.writeUint8(2)
 
-      cursor.writeUint32OrThrow(value.length, true)
-      cursor.writeOrThrow(value)
+      cursor.writeUint32(value.length, true)
+      cursor.write(value)
 
       return
     }
 
     if (typeof value === "string") {
-      cursor.writeUint8OrThrow(3)
+      cursor.writeUint8(3)
 
       const data = new TextEncoder().encode(value)
 
-      cursor.writeUint32OrThrow(data.length, true)
-      cursor.writeOrThrow(data)
+      cursor.writeUint32(data.length, true)
+      cursor.write(data)
 
       return
     }
 
     if (typeof value === "bigint") {
-      cursor.writeUint8OrThrow(4)
+      cursor.writeUint8(4)
 
       const [negative, absolute] = value < 0n ? [1, -value] : [0, value]
 
       const text = absolute.toString(16)
       const data = Uint8Array.fromHex(text.length % 2 === 1 ? "0" + text : text)
 
-      cursor.writeUint8OrThrow(negative)
+      cursor.writeUint8(negative)
 
-      cursor.writeUint32OrThrow(data.length, true)
-      cursor.writeOrThrow(data)
+      cursor.writeUint32(data.length, true)
+      cursor.write(data)
 
       return
     }
 
     if (Array.isArray(value)) {
-      cursor.writeUint8OrThrow(5)
+      cursor.writeUint8(5)
 
-      cursor.writeUint32OrThrow(value.length, true)
+      cursor.writeUint32(value.length, true)
 
       for (const subvalue of value)
-        writeOrThrow(subvalue, cursor)
+        write(subvalue, cursor)
 
       return
     }

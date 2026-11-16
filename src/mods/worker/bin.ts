@@ -29,11 +29,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
 
   const pack_encode = (value: Packable): Uint8Array<ArrayBuffer> => {
-    return Writable.writeToBytesOrThrow(new Packed(value))
+    return Writable.writeToBytes(new Packed(value))
   }
 
   const pack_decode = (bytes: Uint8Array): Packable => {
-    return Readable.readFromBytesOrThrow(Packed, bytes)
+    return Readable.readFromBytes(Packed, bytes)
   }
 
   const sparks_consume = (amount: bigint) => {
@@ -480,11 +480,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     if (!existsSync(`${config.scripts.path}/${module}.metered.wasm`)) {
       const codeAsBytes = readFileSync(`${config.scripts.path}/${module}.wasm`)
 
-      const codeAsWasm = Readable.readFromBytesOrThrow(Wasm.Module, codeAsBytes)
+      const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsBytes)
 
       meter(codeAsWasm, "sparks", "consume")
 
-      meteredCodeAsBytes = Writable.writeToBytesOrThrow(codeAsWasm)
+      meteredCodeAsBytes = Writable.writeToBytes(codeAsWasm)
 
       writeFileSync(`${config.scripts.path}/${module}.metered.wasm`, meteredCodeAsBytes)
     } else {

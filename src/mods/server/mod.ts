@@ -127,9 +127,9 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
         if (sparksAsBigInt < (codeAsBytes.length + saltAsBytes.length))
           return Response.json(null, { status: 402 })
 
-        const saltAsValue = Readable.readFromBytesOrThrow(Packed, saltAsBytes)
+        const saltAsValue = Readable.readFromBytes(Packed, saltAsBytes)
 
-        const packAsBytes = Writable.writeToBytesOrThrow(new Packed([codeAsBytes, saltAsValue]))
+        const packAsBytes = Writable.writeToBytes(new Packed([codeAsBytes, saltAsValue]))
 
         const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
         const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
@@ -314,7 +314,7 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
   }
 
   const onWebSocketRequest = async (request: Request, socket: WebSocket) => {
-    const routeOrThrow = (_message: string) => {
+    const route = (_message: string) => {
       return
     }
 
@@ -323,7 +323,7 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
         if (!request)
           return
 
-        const response = await routeOrThrow(request)
+        const response = await route(request)
 
         if (response == null)
           return

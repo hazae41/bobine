@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { runAsImmediateOrThrow } from "@/libs/sql/mod.ts";
+import { runAsImmediate } from "@/libs/sql/mod.ts";
 import { RpcMethodNotFoundError, type RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
 import type { Config } from "../config/mod.ts";
@@ -19,12 +19,12 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     const request = event.data
 
     if (request.method === "storage_set") {
-      return await runAsImmediateOrThrow(database, async (database) => {
+      return await runAsImmediate(database, async (database) => {
         const [module, method, args, writes] = event.data.params as [string, string, Uint8Array<ArrayBuffer>, [string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]]
 
-        const moment = await database.prepare(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`).run(module, method, args)
+        const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, args)
 
-        const writer = database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
+        const writer = await database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
 
         for (const [module, key, value] of writes)
           await writer.run(moment.lastInsertRowid, module, key, value)
@@ -42,7 +42,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestPreinit & 
     if (request.method === "storage_get") {
       const [module, key] = request.params as [string, Uint8Array<ArrayBuffer>]
 
-      const row = await database.prepare(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`).get(module, key)
+      const row = await database.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, key)
 
       if (row == null) {
         request.result[0] = 1

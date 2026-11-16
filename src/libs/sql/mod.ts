@@ -1,6 +1,6 @@
 import type { Database } from "@tursodatabase/database";
 
-export async function runAsImmediateOrThrow<T>(database: Database, callback: (database: Database) => Promise<T>) {
+export async function runAsImmediate<T>(database: Database, callback: (database: Database) => Promise<T>) {
   await database.exec("BEGIN IMMEDIATE TRANSACTION;")
 
   try {
@@ -13,7 +13,7 @@ export async function runAsImmediateOrThrow<T>(database: Database, callback: (da
   }
 }
 
-export async function runAsDeferredOrThrow<T>(database: Database, callback: (database: Database) => Promise<T>) {
+export async function runAsDeferred<T>(database: Database, callback: (database: Database) => Promise<T>) {
   await database.exec("BEGIN DEFERRED TRANSACTION;")
 
   try {
