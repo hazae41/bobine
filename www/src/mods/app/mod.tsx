@@ -1,5 +1,3 @@
-/// <reference types="@/libs/bytes/lib.d.ts"/>
-
 import hljs from "highlight.js/lib/core";
 
 // @deno-types="npm:highlight.js"

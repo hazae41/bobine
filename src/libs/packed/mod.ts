@@ -1,4 +1,4 @@
-/// <reference types="../bytes/lib.d.ts"/>
+// deno-lint-ignore-file no-namespace
 
 import type { Cursor } from "@hazae41/cursor";
 

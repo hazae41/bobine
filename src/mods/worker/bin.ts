@@ -1,10 +1,14 @@
+// deno-lint-ignore-file no-unused-vars no-explicit-any
+
 /// <reference lib="webworker" />
 
 import { meter } from "@/libs/metering/mod.ts";
 import { type Packable, Packed } from "@/libs/packed/mod.ts";
+import { runAsImmediate } from "@/libs/sql/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import * as Wasm from "@hazae41/wasm";
+import { connect } from "@tursodatabase/database";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import process from "node:process";
@@ -14,9 +18,9 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const config = await fetch(self.name).then(res => res.json()) as Config
 
-const helper = new Worker(import.meta.resolve("../helper/bin.js"), { name: self.name, type: "module" })
+const database = await connect(config.database.path)
 
-function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
+async function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
 
   const exports: WebAssembly.Imports = {}
@@ -32,7 +36,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     return Writable.writeToBytes(new Packed(value))
   }
 
-  const pack_decode = (bytes: Uint8Array): Packable => {
+  const pack_decode = (bytes: Uint8Array<ArrayBuffer>): Packable => {
     return Readable.readFromBytes(Packed, bytes)
   }
 
@@ -50,51 +54,18 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     throw new Error("Out of sparks")
   }
 
-  const sha256_digest = (payload: Uint8Array): Uint8Array => {
+  const sha256_digest = async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
     sparks_consume(BigInt(payload.length) * 256n)
 
-    const result = new Int32Array(new SharedArrayBuffer(4 + 32))
-
-    helper.postMessage({ method: "sha256_digest", params: [payload], result })
-
-    if (Atomics.wait(result, 0, 0) !== "ok")
-      throw new Error("Failed to wait")
-    if (result[0] === 2)
-      throw new Error("Internal error")
-
-    return new Uint8Array(result.buffer, 4, 32).slice()
+    return new Uint8Array(await crypto.subtle.digest("SHA-256", payload))
   }
 
-  const ed25519_verify = (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
+  const ed25519_verify = async (pubkey: Uint8Array<ArrayBuffer>, signature: Uint8Array<ArrayBuffer>, payload: Uint8Array<ArrayBuffer>): Promise<boolean> => {
     sparks_consume(BigInt(payload.length) * 256n)
 
-    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
+    const material = await crypto.subtle.importKey("spki", pubkey, "Ed25519", true, ["verify"])
 
-    helper.postMessage({ method: "ed25519_verify", params: [pubkey, signature, payload], result })
-
-    if (Atomics.wait(result, 0, 0) !== "ok")
-      throw new Error("Failed to wait")
-    if (result[0] === 2)
-      throw new Error("Internal error")
-
-    return result[1] === 1
-  }
-
-  const ed25519_sign = (subpayload: Uint8Array): Uint8Array => {
-    sparks_consume(BigInt(subpayload.length) * 256n)
-
-    const payload = pack_encode([Uint8Array.fromHex(module), subpayload])
-
-    const result = new Int32Array(new SharedArrayBuffer(4 + 64))
-
-    helper.postMessage({ method: "ed25519_sign", params: [payload], result })
-
-    if (Atomics.wait(result, 0, 0) !== "ok")
-      throw new Error("Failed to wait")
-    if (result[0] === 2)
-      throw new Error("Internal error")
-
-    return new Uint8Array(result.buffer, 4, 64).slice()
+    return await crypto.subtle.verify("Ed25519", material, signature, payload)
   }
 
   const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
@@ -137,24 +108,24 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["blobs"] = {
-      save: (offset: number, length: number): Uint8Array => {
+      save: (offset: number, length: number): Uint8Array<ArrayBuffer> => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const view = new Uint8Array(memory.buffer, offset >>> 0, length >>> 0)
 
         return view.slice()
       },
-      load: (blob: Uint8Array, offset: number): void => {
+      load: (blob: Uint8Array<ArrayBuffer>, offset: number): void => {
         const { memory } = current.instance.exports as { memory: WebAssembly.Memory }
 
         const view = new Uint8Array(memory.buffer, offset >>> 0, blob.length)
 
         view.set(blob)
       },
-      length: (blob: Uint8Array): number => {
+      length: (blob: Uint8Array<ArrayBuffer>): number => {
         return blob.length
       },
-      concat: (left: Uint8Array, right: Uint8Array): Uint8Array => {
+      concat: (left: Uint8Array<ArrayBuffer>, right: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> => {
         const concat = new Uint8Array(left.length + right.length)
 
         concat.set(left, 0)
@@ -162,31 +133,31 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return concat
       },
-      equals: (left: Uint8Array, right: Uint8Array): boolean => {
+      equals: (left: Uint8Array<ArrayBuffer>, right: Uint8Array<ArrayBuffer>): boolean => {
         return !Buffer.compare(left, right)
       },
-      includes: (haystack: Uint8Array, needle: Uint8Array): boolean => {
+      includes: (haystack: Uint8Array<ArrayBuffer>, needle: Uint8Array<ArrayBuffer>): boolean => {
         return haystack.toHex().includes(needle.toHex())
       },
-      slice: (blob: Uint8Array, start: number, end: number): Uint8Array => {
+      slice: (blob: Uint8Array<ArrayBuffer>, start: number, end: number): Uint8Array<ArrayBuffer> => {
         return blob.slice(start >>> 0, end >>> 0)
       },
-      from_base16: (text: string): Uint8Array => {
+      from_base16: (text: string): Uint8Array<ArrayBuffer> => {
         return Uint8Array.fromHex(text)
       },
-      to_base16: (blob: Uint8Array): string => {
+      to_base16: (blob: Uint8Array<ArrayBuffer>): string => {
         return blob.toHex()
       },
-      from_base64: (text: string): Uint8Array => {
+      from_base64: (text: string): Uint8Array<ArrayBuffer> => {
         return Uint8Array.fromBase64(text)
       },
-      to_base64: (blob: Uint8Array): string => {
+      to_base64: (blob: Uint8Array<ArrayBuffer>): string => {
         return blob.toBase64()
       },
-      encode: (value: Packable): Uint8Array => {
+      encode: (value: Packable): Uint8Array<ArrayBuffer> => {
         return pack_encode(value)
       },
-      decode: (blob: Uint8Array): Packable => {
+      decode: (blob: Uint8Array<ArrayBuffer>): Packable => {
         return pack_decode(blob)
       }
     }
@@ -207,10 +178,10 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       slice: (text: string, start: number, end: number): string => {
         return text.slice(start >>> 0, end >>> 0)
       },
-      from_utf8: (bytes: Uint8Array): string => {
+      from_utf8: (bytes: Uint8Array<ArrayBuffer>): string => {
         return new TextDecoder().decode(bytes)
       },
-      to_utf8: (text: string): Uint8Array => {
+      to_utf8: (text: string): Uint8Array<ArrayBuffer> => {
         return new TextEncoder().encode(text)
       },
       to_uppercase: (text: string): string => {
@@ -350,7 +321,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
       self: (): string => {
         return module
       },
-      load: (module: string): Uint8Array => {
+      load: (module: string): Uint8Array<ArrayBuffer> => {
         return readFileSync(`${config.scripts.path}/${module}.wasm`)
       },
       call: (module: string, method: string, params: Array<Packable>): [Packable] => {
@@ -362,11 +333,11 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return [exports[module][method](...params)]
       },
-      create: (code: Uint8Array, salt: Packable): string => {
+      create: async (code: Uint8Array<ArrayBuffer>, salt: Packable): Promise<string> => {
         const pack = pack_encode([code, salt])
 
-        const digestOfCodeAsBytes = sha256_digest(code)
-        const digestOfPackAsBytes = sha256_digest(pack)
+        const digestOfCodeAsBytes = await sha256_digest(code)
+        const digestOfPackAsBytes = await sha256_digest(pack)
 
         const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
@@ -395,7 +366,7 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         return
       },
-      get: (key: Packable): [Packable] | null => {
+      get: async (key: Packable): Promise<[Packable] | null> => {
         const cache = caches.get(module)!
 
         const stale = cache.get(key)
@@ -405,18 +376,12 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
 
         const keyAsBytes = pack_encode(key)
 
-        const result = new Int32Array(new SharedArrayBuffer(4 + 4 + 4, { maxByteLength: ((4 + 4 + 4) + (1024 * 1024)) }))
+        const row = await database.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsBytes)
 
-        helper.postMessage({ method: "storage_get", params: [module, keyAsBytes], result })
-
-        if (Atomics.wait(result, 0, 0) !== "ok")
-          throw new Error("Failed to wait")
-        if (result[0] === 2)
-          throw new Error("Internal error")
-        if (result[1] === 2)
+        if (row == null)
           return null
 
-        const valueAsBytes = new Uint8Array(result.buffer, 4 + 4 + 4, result[2]).slice()
+        const valueAsBytes = new Uint8Array(row.value)
 
         reads.push([module, keyAsBytes, valueAsBytes])
 
@@ -461,17 +426,14 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
     }
 
     imports["sha256"] = {
-      digest: (payload: Uint8Array): Uint8Array => {
-        return sha256_digest(payload)
+      digest: async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
+        return new Uint8Array(await crypto.subtle.digest("SHA-256", payload))
       }
     }
 
     imports["ed25519"] = {
-      verify: (pubkey: Uint8Array, signature: Uint8Array, payload: Uint8Array): boolean => {
-        return ed25519_verify(pubkey, signature, payload)
-      },
-      sign: (payload: Uint8Array): Uint8Array => {
-        return ed25519_sign(payload)
+      verify: async (pubkey: Uint8Array<ArrayBuffer>, signature: Uint8Array<ArrayBuffer>, payload: Uint8Array<ArrayBuffer>): Promise<boolean> => {
+        return await ed25519_verify(pubkey, signature, payload)
       }
     }
 
@@ -531,35 +493,35 @@ function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mo
   if (!Array.isArray(args))
     throw new Error("Params is not an array")
 
-  const returned = instance.exports[method](...args)
+  const returned = await instance.exports[method](...args)
 
   if (mode !== 1)
     return pack_encode([logs, reads, writes, returned, sparks])
+  if (!writes.length)
+    return pack_encode([logs, reads, writes, returned, sparks])
 
-  if (writes.length) {
-    const result = new Int32Array(new SharedArrayBuffer(4 + 4))
+  await runAsImmediate(database, async (database) => {
+    const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, args)
 
-    helper.postMessage({ method: "storage_set", params: [module, method, params, writes], result })
+    const writer = await database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
 
-    if (Atomics.wait(result, 0, 0) !== "ok")
-      throw new Error("Failed to wait")
-    if (result[0] === 2)
-      throw new Error("Internal error")
+    for (const [module, key, value] of writes)
+      await writer.run(moment.lastInsertRowid, module, key, value)
 
-    // NOOP
-  }
+    return
+  })
 
   return pack_encode([logs, reads, writes, returned, sparks])
 }
 
-self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
+self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
   try {
     const request = event.data
 
     if (request.method === "execute") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const proof = run(module, method, params, 1, maxsparks)
+      const proof = await run(module, method, params, 1, maxsparks)
 
       self.postMessage(new RpcOk(request.id, proof))
 
@@ -569,7 +531,7 @@ self.addEventListener("message", (event: MessageEvent<RpcRequestInit>) => {
     if (request.method === "simulate") {
       const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const proof = run(module, method, params, 2, maxsparks)
+      const proof = await run(module, method, params, 2, maxsparks)
 
       self.postMessage(new RpcOk(request.id, proof))
 
