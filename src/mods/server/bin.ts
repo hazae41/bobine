@@ -2,10 +2,12 @@
 
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { serveWithEnv } from "./mod.ts";
+import { serve } from "./mod.ts";
 
 export async function main(args: string[]) {
   const options: {
+    data?: string,
+
     port?: number,
 
     cert?: string,
@@ -18,6 +20,11 @@ export async function main(args: string[]) {
 
     if (arg.startsWith("--env=")) {
       process.loadEnvFile(arg.slice("--env=".length))
+      continue
+    }
+
+    if (arg.startsWith("--data=")) {
+      options.data = arg.slice("--data=".length)
       continue
     }
 
@@ -55,12 +62,13 @@ export async function main(args: string[]) {
   }
 
   const {
+    data = process.env.DATA || "./data",
     port = Number(process.env.PORT) || 8080,
     cert = process.env.CERT != null ? readFileSync(process.env.CERT, "utf8") : undefined,
     key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
   } = options
 
-  const server = await serveWithEnv()
+  const server = await serve(data)
 
   const route = async (request: Request) => {
     if (request.method === "OPTIONS")

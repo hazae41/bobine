@@ -6,45 +6,12 @@ import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc"
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-import process from "node:process";
-import type { Config } from "../config/mod.ts";
+import { dirname, join } from "node:path";
 
-export async function serveWithEnv(prefix = ""): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
-  const {
-    DATABASE_PATH = process.env[prefix + "DATABASE_PATH"],
-    SCRIPTS_PATH = process.env[prefix + "SCRIPTS_PATH"],
-    ED25519_PRIVATE_KEY_HEX = process.env[prefix + "ED25519_PRIVATE_KEY_HEX"],
-    ED25519_PUBLIC_KEY_HEX = process.env[prefix + "ED25519_PUBLIC_KEY_HEX"],
-  } = {}
+export async function serve(storage: string): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
+  mkdirSync(dirname(storage), { recursive: true })
 
-  if (DATABASE_PATH == null)
-    throw new Error("DATABASE_PATH is not set")
-  if (SCRIPTS_PATH == null)
-    throw new Error("SCRIPTS_PATH is not set")
-  if (ED25519_PRIVATE_KEY_HEX == null)
-    throw new Error("ED25519_PRIVATE_KEY_HEX is not set")
-  if (ED25519_PUBLIC_KEY_HEX == null)
-    throw new Error("ED25519_PUBLIC_KEY_HEX is not set")
-
-  mkdirSync(dirname(DATABASE_PATH), { recursive: true })
-
-  return await serve({
-    database: {
-      path: DATABASE_PATH
-    },
-    scripts: {
-      path: SCRIPTS_PATH
-    },
-    ed25519: {
-      pvtKeyAsHex: ED25519_PRIVATE_KEY_HEX,
-      pubKeyAsHex: ED25519_PUBLIC_KEY_HEX
-    }
-  })
-}
-
-export async function serve(config: Config): Promise<{ onHttpRequest(request: Request): Promise<Response>, onWebSocketRequest(request: Request, socket: WebSocket): Promise<void> }> {
-  const database = await connect(config.database.path)
+  const database = await connect(join(storage, "database.db"))
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,13 +39,15 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
 
   await database.close()
 
-  mkdirSync(config.scripts.path, { recursive: true })
+  mkdirSync(join(storage, "scripts"), { recursive: true })
 
   const setOfEffortsAsHex = new Set<string>()
 
-  const name = URL.createObjectURL(new Blob([JSON.stringify(config)], { type: 'application/json' }));
+  const url = new URL(import.meta.resolve("../worker/bin.ts"))
 
-  const worker = new Mutex(new Worker(import.meta.resolve("../worker/bin.js"), { name: name, type: "module" }))
+  url.searchParams.set("storage", storage)
+
+  const worker = new Mutex(new Worker(url, { name: storage, type: "module" }))
 
   const onHttpRequest = async (request: Request) => {
     let match: URLPatternResult | null
@@ -139,11 +108,12 @@ export async function serve(config: Config): Promise<{ onHttpRequest(request: Re
         const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`))
-          writeFileSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`, codeAsBytes)
+        if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
+          writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsBytes)
 
-        if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`)
+        if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`))
+
         return Response.json(digestOfPackAsHex)
       }
 

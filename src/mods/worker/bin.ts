@@ -11,14 +11,16 @@ import * as Wasm from "@hazae41/wasm";
 import { connect } from "@tursodatabase/database";
 import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import process from "node:process";
-import type { Config } from "../config/mod.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-const config = await fetch(self.name).then(res => res.json()) as Config
+const url = new URL(location.href)
 
-const database = await connect(config.database.path)
+const storage = url.searchParams.get("storage")!
+
+const database = await connect(join(storage, "database.db"))
 
 async function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
@@ -322,7 +324,7 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         return module
       },
       load: (module: string): Uint8Array<ArrayBuffer> => {
-        return readFileSync(`${config.scripts.path}/${module}.wasm`)
+        return readFileSync(join(storage, "scripts", `${module}.wasm`))
       },
       call: (module: string, method: string, params: Array<Packable>): [Packable] => {
         if (exports[module] == null)
@@ -342,11 +344,11 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
         const digestOfPackAsHex = digestOfPackAsBytes.toHex()
 
-        if (!existsSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`))
-          writeFileSync(`${config.scripts.path}/${digestOfCodeAsHex}.wasm`, code)
+        if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
+          writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), code)
 
-        if (!existsSync(`${config.scripts.path}/${digestOfPackAsHex}.wasm`))
-          symlinkSync(`./${digestOfCodeAsHex}.wasm`, `${config.scripts.path}/${digestOfPackAsHex}.wasm`, "file")
+        if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`), "file")
 
         return digestOfPackAsHex
       }
@@ -439,8 +441,8 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
 
     let meteredCodeAsBytes: Uint8Array<ArrayBuffer>
 
-    if (!existsSync(`${config.scripts.path}/${module}.metered.wasm`)) {
-      const codeAsBytes = readFileSync(`${config.scripts.path}/${module}.wasm`)
+    if (!existsSync(join(storage, "scripts", `${module}.metered.wasm`))) {
+      const codeAsBytes = readFileSync(join(storage, "scripts", `${module}.wasm`))
 
       const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsBytes)
 
@@ -448,9 +450,9 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
 
       meteredCodeAsBytes = Writable.writeToBytes(codeAsWasm)
 
-      writeFileSync(`${config.scripts.path}/${module}.metered.wasm`, meteredCodeAsBytes)
+      writeFileSync(join(storage, "scripts", `${module}.metered.wasm`), meteredCodeAsBytes)
     } else {
-      meteredCodeAsBytes = readFileSync(`${config.scripts.path}/${module}.metered.wasm`)
+      meteredCodeAsBytes = readFileSync(join(storage, "scripts", `${module}.metered.wasm`))
     }
 
     const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsBytes)
