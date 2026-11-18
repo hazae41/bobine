@@ -6,6 +6,8 @@ import process from "node:process";
 
 export async function main(args: string[]) {
   const options: {
+    uuid?: string,
+
     data?: string,
 
     port?: number,
@@ -20,6 +22,11 @@ export async function main(args: string[]) {
 
     if (arg.startsWith("--env=")) {
       process.loadEnvFile(arg.slice("--env=".length))
+      continue
+    }
+
+    if (arg.startsWith("--uuid=")) {
+      options.uuid = arg.slice("--uuid=".length)
       continue
     }
 
@@ -62,13 +69,14 @@ export async function main(args: string[]) {
   }
 
   const {
+    uuid = process.env.UUID || "98e31aaf-c518-430b-8863-eed26c44d91f",
     data = process.env.DATA || "./data",
     port = Number(process.env.PORT) || 8080,
     cert = process.env.CERT != null ? readFileSync(process.env.CERT, "utf8") : undefined,
     key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
   } = options
 
-  const subrespond = await serve(data)
+  const subrespond = await serve(uuid, data)
 
   const upgrade = (request: Request) => {
     const { socket, response } = Deno.upgradeWebSocket(request)

@@ -7,10 +7,10 @@ import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-export async function serve(storage: string) {
-  mkdirSync(dirname(storage), { recursive: true })
+export async function serve(uuid: string, data: string) {
+  mkdirSync(dirname(data), { recursive: true })
 
-  const database = await connect(join(storage, "database.db"))
+  const database = await connect(join(data, "database.db"))
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,11 +38,13 @@ export async function serve(storage: string) {
 
   await database.close()
 
-  mkdirSync(join(storage, "scripts"), { recursive: true })
+  mkdirSync(join(data, "scripts"), { recursive: true })
 
   const url = new URL(import.meta.resolve("../worker/bin.ts"))
 
-  url.searchParams.set("storage", storage)
+  url.searchParams.set("uuid", uuid)
+
+  url.searchParams.set("data", data)
 
   const worker = new Mutex(new Worker(url, { type: "module" }))
 
@@ -90,11 +92,11 @@ export async function serve(storage: string) {
       const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
       const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
-      if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
-        writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsRaw)
+      if (!existsSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`)))
+        writeFileSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsRaw)
 
-      if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
-        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`))
+      if (!existsSync(join(data, "scripts", `${digestOfPackAsHex}.wasm`)))
+        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(data, "scripts", `${digestOfPackAsHex}.wasm`))
 
       return digestOfPackAsHex
     }

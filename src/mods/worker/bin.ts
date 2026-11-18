@@ -19,9 +19,11 @@ declare const self: DedicatedWorkerGlobalScope;
 
 const url = new URL(location.href)
 
-const storage = url.searchParams.get("storage")!
+const uuid = url.searchParams.get("uuid")!
 
-const database = await connect(join(storage, "database.db"))
+const data = url.searchParams.get("data")!
+
+const database = await connect(join(data, "database.db"))
 
 async function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
@@ -84,7 +86,7 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         return
       },
       uuid: (): string => {
-        return "17fa1cb5-c5af-4cfd-9bea-1a36590b890d"
+        return uuid
       },
       panic: (message: string): never => {
         throw new Error(message)
@@ -325,7 +327,7 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         return module
       },
       load: (module: string): Uint8Array<ArrayBuffer> => {
-        return readFileSync(join(storage, "scripts", `${module}.wasm`))
+        return readFileSync(join(data, "scripts", `${module}.wasm`))
       },
       call: (module: string, method: string, params: Array<Packable>): [Packable] => {
         if (exports[module] == null)
@@ -345,11 +347,11 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
         const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
-        if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
-          writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), code)
+        if (!existsSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`)))
+          writeFileSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`), code)
 
-        if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
-          symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`), "file")
+        if (!existsSync(join(data, "scripts", `${digestOfPackAsHex}.wasm`)))
+          symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(data, "scripts", `${digestOfPackAsHex}.wasm`), "file")
 
         return digestOfPackAsHex
       }
@@ -442,8 +444,8 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
 
     let meteredCodeAsRaw: Uint8Array<ArrayBuffer>
 
-    if (!existsSync(join(storage, "scripts", `${module}.metered.wasm`))) {
-      const codeAsRaw = readFileSync(join(storage, "scripts", `${module}.wasm`))
+    if (!existsSync(join(data, "scripts", `${module}.metered.wasm`))) {
+      const codeAsRaw = readFileSync(join(data, "scripts", `${module}.wasm`))
 
       const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsRaw)
 
@@ -451,9 +453,9 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
 
       meteredCodeAsRaw = Writable.writeToBytes(codeAsWasm)
 
-      writeFileSync(join(storage, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
+      writeFileSync(join(data, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
     } else {
-      meteredCodeAsRaw = readFileSync(join(storage, "scripts", `${module}.metered.wasm`))
+      meteredCodeAsRaw = readFileSync(join(data, "scripts", `${module}.metered.wasm`))
     }
 
     const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsRaw)
