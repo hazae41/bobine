@@ -1,7 +1,6 @@
 /// <reference lib="deno.ns" />
 
 import { serve } from "@/mods/server/mod.ts";
-import { readFileSync } from "node:fs";
 import process from "node:process";
 
 export async function main(args: string[]) {
@@ -10,11 +9,7 @@ export async function main(args: string[]) {
 
     data?: string,
 
-    port?: number,
-
-    cert?: string,
-
-    key?: string,
+    port?: number
   } = {}
 
   for (let i = 0; i < args.length; i++) {
@@ -40,26 +35,6 @@ export async function main(args: string[]) {
       continue
     }
 
-    if (arg.startsWith("--cert=")) {
-      options.cert = readFileSync(arg.slice("--cert=".length), "utf8")
-      continue
-    }
-
-    if (arg.startsWith("--key=")) {
-      options.key = readFileSync(arg.slice("--key=".length), "utf8")
-      continue
-    }
-
-    if (arg === "--dev=true") {
-      process.env.NODE_ENV = "development"
-      continue
-    }
-
-    if (arg === "--dev=false") {
-      process.env.NODE_ENV = "production"
-      continue
-    }
-
     if (arg === "--dev") {
       process.env.NODE_ENV = "development"
       continue
@@ -71,9 +46,7 @@ export async function main(args: string[]) {
   const {
     uuid = process.env.UUID || "98e31aaf-c518-430b-8863-eed26c44d91f",
     data = process.env.DATA || "./data",
-    port = Number(process.env.PORT) || 8080,
-    cert = process.env.CERT != null ? readFileSync(process.env.CERT, "utf8") : undefined,
-    key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
+    port = Number(process.env.PORT) || 8080
   } = options
 
   const subrespond = await serve(uuid, data)
@@ -110,7 +83,7 @@ export async function main(args: string[]) {
     return response
   }
 
-  Deno.serve({ hostname: "0.0.0.0", port, cert, key }, respond)
+  Deno.serve({ hostname: "0.0.0.0", port }, respond)
 }
 
 if (import.meta.main) {
