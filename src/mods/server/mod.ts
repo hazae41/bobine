@@ -1,9 +1,8 @@
 import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { execute, simulate, spawn } from "@/mods/worker/mod.ts";
+import { Runner } from "@/mods/runner/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
-import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -44,7 +43,7 @@ async function setup(data: string) {
 export async function serve(uuid: string, data: string) {
   await setup(data)
 
-  const mutex = new Mutex(spawn(uuid, data))
+  const mutex = Runner.spawn(uuid, data)
   const seens = new Set<string>()
 
   const route = async (request: RpcRequestInit) => {
@@ -124,7 +123,7 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      const resultAsRaw = await execute(mutex, module, method, paramsAsRaw, sparksAsBigInt)
+      const resultAsRaw = await mutex.execute(module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex
@@ -156,7 +155,7 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      const resultAsRaw = await simulate(mutex, module, method, paramsAsRaw, sparksAsBigInt)
+      const resultAsRaw = await mutex.simulate(module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex
