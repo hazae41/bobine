@@ -339,11 +339,11 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
       create: async (code: Uint8Array<ArrayBuffer>, salt: Packable): Promise<string> => {
         const pack = pack_encode([code, salt])
 
-        const digestOfCodeAsBytes = await sha256_digest(code)
-        const digestOfPackAsBytes = await sha256_digest(pack)
+        const digestOfCodeAsRaw = await sha256_digest(code)
+        const digestOfPackAsRaw = await sha256_digest(pack)
 
-        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
-        const digestOfPackAsHex = digestOfPackAsBytes.toHex()
+        const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
+        const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
         if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
           writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), code)
@@ -361,11 +361,11 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
 
         cache.set(key, fresh)
 
-        const keyAsBytes = pack_encode(key)
+        const keyAsRaw = pack_encode(key)
 
-        const valueAsBytes = pack_encode(fresh)
+        const valueAsRaw = pack_encode(fresh)
 
-        writes.push([module, keyAsBytes, valueAsBytes])
+        writes.push([module, keyAsRaw, valueAsRaw])
 
         return
       },
@@ -377,18 +377,18 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
         if (stale != null)
           return [stale]
 
-        const keyAsBytes = pack_encode(key)
+        const keyAsRaw = pack_encode(key)
 
-        const row = await database.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsBytes)
+        const row = await database.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsRaw)
 
         if (row == null)
           return null
 
-        const valueAsBytes = new Uint8Array(row.value)
+        const valueAsRaw = new Uint8Array(row.value)
 
-        reads.push([module, keyAsBytes, valueAsBytes])
+        reads.push([module, keyAsRaw, valueAsRaw])
 
-        const fresh = pack_decode(valueAsBytes)
+        const fresh = pack_decode(valueAsRaw)
 
         cache.set(key, fresh)
 
@@ -440,23 +440,23 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
       }
     }
 
-    let meteredCodeAsBytes: Uint8Array<ArrayBuffer>
+    let meteredCodeAsRaw: Uint8Array<ArrayBuffer>
 
     if (!existsSync(join(storage, "scripts", `${module}.metered.wasm`))) {
-      const codeAsBytes = readFileSync(join(storage, "scripts", `${module}.wasm`))
+      const codeAsRaw = readFileSync(join(storage, "scripts", `${module}.wasm`))
 
-      const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsBytes)
+      const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsRaw)
 
       meter(codeAsWasm, "sparks", "consume")
 
-      meteredCodeAsBytes = Writable.writeToBytes(codeAsWasm)
+      meteredCodeAsRaw = Writable.writeToBytes(codeAsWasm)
 
-      writeFileSync(join(storage, "scripts", `${module}.metered.wasm`), meteredCodeAsBytes)
+      writeFileSync(join(storage, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
     } else {
-      meteredCodeAsBytes = readFileSync(join(storage, "scripts", `${module}.metered.wasm`))
+      meteredCodeAsRaw = readFileSync(join(storage, "scripts", `${module}.metered.wasm`))
     }
 
-    const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsBytes)
+    const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsRaw)
 
     for (const descriptor of WebAssembly.Module.imports(meteredCodeAsModule)) {
       if (imports[descriptor.module] != null) {

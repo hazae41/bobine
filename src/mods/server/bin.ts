@@ -1,8 +1,8 @@
 /// <reference lib="deno.ns" />
 
+import { serve } from "@/mods/server/mod.ts";
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { serve } from "./mod.ts";
 
 export async function main(args: string[]) {
   const options: {
@@ -68,24 +68,31 @@ export async function main(args: string[]) {
     key = process.env.KEY != null ? readFileSync(process.env.KEY, "utf8") : undefined,
   } = options
 
-  const server = await serve(data)
+  const subrespond = await serve(data)
 
-  const route = async (request: Request) => {
-    if (request.method === "OPTIONS")
-      return new Response(null, { status: 204 })
+  const upgrade = (request: Request) => {
+    const { socket, response } = Deno.upgradeWebSocket(request)
 
-    if (request.headers.get("Upgrade") === "websocket") {
-      const { socket, response } = Deno.upgradeWebSocket(request)
+    socket.addEventListener("message", async (event) => {
+      socket.send(JSON.stringify(await subrespond(JSON.parse(event.data))))
+    }, { passive: true })
 
-      await server.onWebSocketRequest(request, socket)
-
-      return response
-    }
-
-    return await server.onHttpRequest(request)
+    return response
   }
 
-  const onHttpRequest = async (request: Request) => {
+  const route = async (request: Request) => {
+    if (request.headers.get("Upgrade") === "websocket")
+      return upgrade(request)
+
+    if (request.method === "OPTIONS")
+      return Response.json(null, { status: 204 })
+    if (request.method === "POST")
+      return Response.json(await subrespond(await request.json()), { status: 200 })
+
+    return Response.json(null, { status: 405 })
+  }
+
+  const respond = async (request: Request) => {
     const response = await route(request)
 
     response.headers.set("Access-Control-Allow-Origin", "*")
@@ -95,7 +102,7 @@ export async function main(args: string[]) {
     return response
   }
 
-  Deno.serve({ hostname: "0.0.0.0", port, cert, key }, onHttpRequest)
+  Deno.serve({ hostname: "0.0.0.0", port, cert, key }, respond)
 }
 
 if (import.meta.main) {
