@@ -1,16 +1,18 @@
 import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
+import { spawn } from "@/mods/worker/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequest, RpcRequestInit, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-export async function serve(uuid: string, data: string) {
-  mkdirSync(dirname(data), { recursive: true })
+async function setup(data: string) {
+  mkdirSync(join(data, "."), { recursive: true })
+  mkdirSync(join(data, "scripts"), { recursive: true })
 
-  const database = await connect(join(data, "database.db"))
+  const database = await connect(join(data, "records.db"))
 
   await database.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,18 +39,13 @@ export async function serve(uuid: string, data: string) {
   );`)
 
   await database.close()
+}
 
-  mkdirSync(join(data, "scripts"), { recursive: true })
+export async function serve(uuid: string, data: string) {
+  await setup(data)
 
-  const url = new URL(import.meta.resolve("../worker/bin.ts"))
-
-  url.searchParams.set("uuid", uuid)
-
-  url.searchParams.set("data", data)
-
-  const worker = new Mutex(new Worker(url, { type: "module" }))
-
-  const efforts = new Set<string>()
+  const mutex = new Mutex(spawn(uuid, data))
+  const seens = new Set<string>()
 
   const route = async (request: RpcRequestInit) => {
     using stack = new DisposableStack()
@@ -70,10 +67,10 @@ export async function serve(uuid: string, data: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (efforts.has(effortAsHex))
+      if (seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
-      efforts.add(effortAsHex)
+      seens.add(effortAsHex)
 
       const effortAsRaw = Uint8Array.fromHex(effortAsHex)
 
@@ -120,10 +117,10 @@ export async function serve(uuid: string, data: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (efforts.has(effortAsHex))
+      if (seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
-      efforts.add(effortAsHex)
+      seens.add(effortAsHex)
 
       const effortAsRaw = Uint8Array.fromHex(effortAsHex)
 
@@ -134,17 +131,17 @@ export async function serve(uuid: string, data: string) {
       const aborter = new AbortController()
       stack.defer(() => aborter.abort())
 
-      stack.use(await worker.lockOrWait())
+      stack.use(await mutex.lockOrWait())
 
-      worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+      mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
         RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(console.log).inspectErrSync(future.reject)
       }, { signal: aborter.signal })
 
-      worker.get().addEventListener("error", (event: ErrorEvent) => {
+      mutex.get().addEventListener("error", (event: ErrorEvent) => {
         future.reject(event.error)
       }, { signal: aborter.signal })
 
-      worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+      mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
         future.reject(event.data)
       }, { signal: aborter.signal })
 
@@ -152,7 +149,7 @@ export async function serve(uuid: string, data: string) {
         future.reject(reason)
       }, { signal: aborter.signal })
 
-      worker.get().postMessage(new RpcRequest(null, "execute", [module, method, paramsAsRaw, sparksAsBigInt]))
+      mutex.get().postMessage(new RpcRequest(null, "execute", [module, method, paramsAsRaw, sparksAsBigInt]))
 
       const resultAsRaw = await future.promise
       const resultAsHex = resultAsRaw.toHex()
@@ -177,10 +174,10 @@ export async function serve(uuid: string, data: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (efforts.has(effortAsHex))
+      if (seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
-      efforts.add(effortAsHex)
+      seens.add(effortAsHex)
 
       const effortAsRaw = Uint8Array.fromHex(effortAsHex)
 
@@ -191,17 +188,17 @@ export async function serve(uuid: string, data: string) {
       const aborter = new AbortController()
       stack.defer(() => aborter.abort())
 
-      stack.use(await worker.lockOrWait())
+      stack.use(await mutex.lockOrWait())
 
-      worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+      mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
         RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
       }, { signal: aborter.signal })
 
-      worker.get().addEventListener("error", (event: ErrorEvent) => {
+      mutex.get().addEventListener("error", (event: ErrorEvent) => {
         future.reject(event.error)
       }, { signal: aborter.signal })
 
-      worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+      mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
         future.reject(event.data)
       }, { signal: aborter.signal })
 
@@ -209,7 +206,7 @@ export async function serve(uuid: string, data: string) {
         future.reject(reason)
       }, { signal: aborter.signal })
 
-      worker.get().postMessage(new RpcRequest(null, "simulate", [module, method, paramsAsRaw, sparksAsBigInt]))
+      mutex.get().postMessage(new RpcRequest(null, "simulate", [module, method, paramsAsRaw, sparksAsBigInt]))
 
       const resultAsRaw = await future.promise
       const resultAsHex = resultAsRaw.toHex()
