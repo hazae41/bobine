@@ -51,15 +51,6 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
   const worker = new Mutex(new Worker(url, { name: storage, type: "module" }))
 
   const create = async (codeAsBytes: Uint8Array<ArrayBuffer>, saltAsBytes: Uint8Array<ArrayBuffer>, effortAsBytes: Uint8Array<ArrayBuffer>) => {
-    const effortAsHex = effortAsBytes.toHex()
-
-    if (effortAsHex.length !== 64)
-      throw new RpcInvalidParamsError()
-    if (setOfEffortsAsHex.has(effortAsHex))
-      throw new RpcInvalidParamsError()
-
-    setOfEffortsAsHex.add(effortAsHex)
-
     const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
 
     if (sparksAsBigInt < (codeAsBytes.length + saltAsBytes.length))
@@ -203,6 +194,16 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
 
           const effortAsBytes = await effortAsEntry.bytes()
 
+          if (effortAsBytes.length !== 32)
+            throw new RpcInvalidParamsError()
+
+          const effortAsHex = effortAsBytes.toHex()
+
+          if (setOfEffortsAsHex.has(effortAsHex))
+            throw new RpcInvalidParamsError()
+
+          setOfEffortsAsHex.add(effortAsHex)
+
           return Response.json(await create(codeAsBytes, saltAsBytes, effortAsBytes))
         }
 
@@ -244,6 +245,16 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
             throw new RpcInvalidParamsError()
 
           const effortAsBytes = await effortAsEntry.bytes()
+
+          if (effortAsBytes.length !== 32)
+            throw new RpcInvalidParamsError()
+
+          const effortAsHex = effortAsBytes.toHex()
+
+          if (setOfEffortsAsHex.has(effortAsHex))
+            throw new RpcInvalidParamsError()
+
+          setOfEffortsAsHex.add(effortAsHex)
 
           return new Response(await execute(moduleAsEntry, methodAsEntry, paramsAsBytes, effortAsBytes))
         }
@@ -287,6 +298,16 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
 
           const effortAsBytes = await effortAsEntry.bytes()
 
+          if (effortAsBytes.length !== 32)
+            throw new RpcInvalidParamsError()
+
+          const effortAsHex = effortAsBytes.toHex()
+
+          if (setOfEffortsAsHex.has(effortAsHex))
+            throw new RpcInvalidParamsError()
+
+          setOfEffortsAsHex.add(effortAsHex)
+
           return new Response(await simulate(moduleAsEntry, methodAsEntry, paramsAsBytes, effortAsBytes))
         }
 
@@ -325,44 +346,82 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
       const { method, params } = request
 
       if (method === "create") {
-        const [codeAsBytes, saltAsBytes, effortAsBytes] = params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+        const [codeAsHex, saltAsHex, effortAsHex] = params as [string, string, string]
 
-        if (codeAsBytes instanceof Uint8Array === false)
+        if (typeof codeAsHex !== "string")
           throw new RpcInvalidParamsError()
-        if (saltAsBytes instanceof Uint8Array === false)
+
+        const codeAsBytes = Uint8Array.fromHex(codeAsHex)
+
+        if (typeof saltAsHex !== "string")
           throw new RpcInvalidParamsError()
-        if (effortAsBytes instanceof Uint8Array === false)
+
+        const saltAsBytes = Uint8Array.fromHex(saltAsHex)
+
+        if (typeof effortAsHex !== "string")
           throw new RpcInvalidParamsError()
+        if (effortAsHex.length !== 64)
+          throw new RpcInvalidParamsError()
+        if (setOfEffortsAsHex.has(effortAsHex))
+          throw new RpcInvalidParamsError()
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const effortAsBytes = Uint8Array.fromHex(effortAsHex)
 
         return await create(codeAsBytes, saltAsBytes, effortAsBytes)
       }
 
       if (method === "execute") {
-        const [module, method, paramsAsBytes, effortAsBytes] = params as [string, string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+        const [module, method, paramsAsHex, effortAsHex] = params as [string, string, string, string]
 
         if (typeof module !== "string")
           throw new RpcInvalidParamsError()
         if (typeof method !== "string")
           throw new RpcInvalidParamsError()
-        if (paramsAsBytes instanceof Uint8Array === false)
+
+        if (typeof paramsAsHex !== "string")
           throw new RpcInvalidParamsError()
-        if (effortAsBytes instanceof Uint8Array === false)
+
+        const paramsAsBytes = Uint8Array.fromHex(paramsAsHex)
+
+        if (typeof effortAsHex !== "string")
           throw new RpcInvalidParamsError()
+        if (effortAsHex.length !== 64)
+          throw new RpcInvalidParamsError()
+        if (setOfEffortsAsHex.has(effortAsHex))
+          throw new RpcInvalidParamsError()
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const effortAsBytes = Uint8Array.fromHex(effortAsHex)
 
         return await execute(module, method, paramsAsBytes, effortAsBytes)
       }
 
       if (method === "simulate") {
-        const [module, method, paramsAsBytes, effortAsBytes] = params as [string, string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+        const [module, method, paramsAsHex, effortAsHex] = params as [string, string, string, string]
 
         if (typeof module !== "string")
           throw new RpcInvalidParamsError()
         if (typeof method !== "string")
           throw new RpcInvalidParamsError()
-        if (paramsAsBytes instanceof Uint8Array === false)
+
+        if (typeof paramsAsHex !== "string")
           throw new RpcInvalidParamsError()
-        if (effortAsBytes instanceof Uint8Array === false)
+
+        const paramsAsBytes = Uint8Array.fromHex(paramsAsHex)
+
+        if (typeof effortAsHex !== "string")
           throw new RpcInvalidParamsError()
+        if (effortAsHex.length !== 64)
+          throw new RpcInvalidParamsError()
+        if (setOfEffortsAsHex.has(effortAsHex))
+          throw new RpcInvalidParamsError()
+
+        setOfEffortsAsHex.add(effortAsHex)
+
+        const effortAsBytes = Uint8Array.fromHex(effortAsHex)
 
         return await simulate(module, method, paramsAsBytes, effortAsBytes)
       }
