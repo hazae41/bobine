@@ -1,8 +1,8 @@
 import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { spawn } from "@/mods/worker/mod.ts";
+import { execute, simulate, spawn } from "@/mods/worker/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
-import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequest, RpcRequestInit, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
+import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
@@ -48,10 +48,10 @@ export async function serve(uuid: string, data: string) {
   const seens = new Set<string>()
 
   const route = async (request: RpcRequestInit) => {
-    using stack = new DisposableStack()
+    const { method, params } = request
 
-    if (request.method === "bob_create") {
-      const [codeAsHex, saltAsHex, effortAsHex] = request.params as [string, string, string]
+    if (method === "bob_create") {
+      const [codeAsHex, saltAsHex, effortAsHex] = params as [string, string, string]
 
       if (typeof codeAsHex !== "string")
         throw new RpcInvalidParamsError()
@@ -98,10 +98,8 @@ export async function serve(uuid: string, data: string) {
       return digestOfPackAsHex
     }
 
-    if (request.method === "bob_execute") {
-      using stack = new DisposableStack()
-
-      const [module, method, paramsAsHex, effortAsHex] = request.params as [string, string, string, string]
+    if (method === "bob_execute") {
+      const [module, method, paramsAsHex, effortAsHex] = params as [string, string, string, string]
 
       if (typeof module !== "string")
         throw new RpcInvalidParamsError()
@@ -126,39 +124,14 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
-
-      const aborter = new AbortController()
-      stack.defer(() => aborter.abort())
-
-      stack.use(await mutex.lockOrWait())
-
-      mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-        RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-      }, { signal: aborter.signal })
-
-      mutex.get().addEventListener("error", (event: ErrorEvent) => {
-        future.reject(event.error)
-      }, { signal: aborter.signal })
-
-      mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
-        future.reject(event.data)
-      }, { signal: aborter.signal })
-
-      AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-        future.reject(reason)
-      }, { signal: aborter.signal })
-
-      mutex.get().postMessage(new RpcRequest(null, "execute", [module, method, paramsAsRaw, sparksAsBigInt]))
-
-      const resultAsRaw = await future.promise
+      const resultAsRaw = await execute(mutex, module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex
     }
 
-    if (request.method === "bob_simulate") {
-      const [module, method, paramsAsHex, effortAsHex] = request.params as [string, string, string, string]
+    if (method === "bob_simulate") {
+      const [module, method, paramsAsHex, effortAsHex] = params as [string, string, string, string]
 
       if (typeof module !== "string")
         throw new RpcInvalidParamsError()
@@ -183,32 +156,7 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
-
-      const aborter = new AbortController()
-      stack.defer(() => aborter.abort())
-
-      stack.use(await mutex.lockOrWait())
-
-      mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-        RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-      }, { signal: aborter.signal })
-
-      mutex.get().addEventListener("error", (event: ErrorEvent) => {
-        future.reject(event.error)
-      }, { signal: aborter.signal })
-
-      mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
-        future.reject(event.data)
-      }, { signal: aborter.signal })
-
-      AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-        future.reject(reason)
-      }, { signal: aborter.signal })
-
-      mutex.get().postMessage(new RpcRequest(null, "simulate", [module, method, paramsAsRaw, sparksAsBigInt]))
-
-      const resultAsRaw = await future.promise
+      const resultAsRaw = await simulate(mutex, module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex
