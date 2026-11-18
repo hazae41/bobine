@@ -86,25 +86,13 @@ export async function main(args: string[]) {
   }
 
   const onHttpRequest = async (request: Request) => {
-    try {
-      const response = await route(request)
+    const response = await route(request)
 
-      if (response.status === 101)
-        return response
+    response.headers.set("Access-Control-Allow-Origin", "*")
+    response.headers.set("Access-Control-Allow-Methods", "*")
+    response.headers.set("Access-Control-Allow-Headers", "*")
 
-      response.headers.set("Access-Control-Allow-Origin", "*")
-      response.headers.set("Access-Control-Allow-Methods", "*")
-      response.headers.set("Access-Control-Allow-Headers", "*")
-
-      return response
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (error instanceof Error)
-        return new Response(error.message, { status: 500 })
-
-      return new Response(null, { status: 500 })
-    }
+    return response
   }
 
   Deno.serve({ hostname: "0.0.0.0", port, cert, key }, onHttpRequest)

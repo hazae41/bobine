@@ -1,8 +1,9 @@
 // deno-lint-ignore-file no-unused-vars require-await no-cond-assign
 
 import { Packed } from "@/libs/packed/mod.ts";
+import { RpcPaymentError } from "@/mods/errors/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
-import { RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
+import { RpcErr, RpcError, RpcInternalError, RpcInvalidParamsError, RpcInvalidRequestError, RpcMethodNotFoundError, RpcOk, RpcParseError, RpcRequest, RpcResponse, type RpcResponseInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
@@ -49,256 +50,339 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
 
   const worker = new Mutex(new Worker(url, { name: storage, type: "module" }))
 
+  const create = async (codeAsBytes: Uint8Array<ArrayBuffer>, saltAsBytes: Uint8Array<ArrayBuffer>, effortAsBytes: Uint8Array<ArrayBuffer>) => {
+    const effortAsHex = effortAsBytes.toHex()
+
+    if (effortAsHex.length !== 64)
+      throw new RpcInvalidParamsError()
+    if (setOfEffortsAsHex.has(effortAsHex))
+      throw new RpcInvalidParamsError()
+
+    setOfEffortsAsHex.add(effortAsHex)
+
+    const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
+
+    if (sparksAsBigInt < (codeAsBytes.length + saltAsBytes.length))
+      throw new RpcPaymentError()
+
+    const saltAsValue = Readable.readFromBytes(Packed, saltAsBytes)
+
+    const packAsBytes = Writable.writeToBytes(new Packed([codeAsBytes, saltAsValue]))
+
+    const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
+    const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
+
+    const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
+    const digestOfPackAsHex = digestOfPackAsBytes.toHex()
+
+    if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
+      writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsBytes)
+
+    if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
+      symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`))
+
+    return digestOfPackAsHex
+  }
+
+  const execute = async (module: string, method: string, params: Uint8Array<ArrayBuffer>, effortAsBytes: Uint8Array<ArrayBuffer>) => {
+    using stack = new DisposableStack()
+
+    const effortAsHex = effortAsBytes.toHex()
+
+    if (effortAsHex.length !== 64)
+      throw new RpcInvalidParamsError()
+    if (setOfEffortsAsHex.has(effortAsHex))
+      throw new RpcInvalidParamsError()
+
+    setOfEffortsAsHex.add(effortAsHex)
+
+    const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
+
+    const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
+
+    const aborter = new AbortController()
+    stack.defer(() => aborter.abort())
+
+    stack.use(await worker.lockOrWait())
+
+    worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(console.log).inspectErrSync(future.reject)
+    }, { signal: aborter.signal })
+
+    worker.get().addEventListener("error", (event: ErrorEvent) => {
+      future.reject(event.error)
+    }, { signal: aborter.signal })
+
+    worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+      future.reject(event.data)
+    }, { signal: aborter.signal })
+
+    AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
+      future.reject(reason)
+    }, { signal: aborter.signal })
+
+    worker.get().postMessage(new RpcRequest(null, "execute", [module, method, params, sparksAsBigInt]))
+
+    return await future.promise
+  }
+
+  const simulate = async (module: string, method: string, params: Uint8Array<ArrayBuffer>, effortAsBytes: Uint8Array<ArrayBuffer>) => {
+    using stack = new DisposableStack()
+
+    const effortAsHex = effortAsBytes.toHex()
+
+    if (effortAsHex.length !== 64)
+      throw new RpcInvalidParamsError()
+    if (setOfEffortsAsHex.has(effortAsHex))
+      throw new RpcInvalidParamsError()
+
+    setOfEffortsAsHex.add(effortAsHex)
+
+    const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
+
+    const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
+
+    const aborter = new AbortController()
+    stack.defer(() => aborter.abort())
+
+    stack.use(await worker.lockOrWait())
+
+    worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+    }, { signal: aborter.signal })
+
+    worker.get().addEventListener("error", (event: ErrorEvent) => {
+      future.reject(event.error)
+    }, { signal: aborter.signal })
+
+    worker.get().addEventListener("messageerror", (event: MessageEvent) => {
+      future.reject(event.data)
+    }, { signal: aborter.signal })
+
+    AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
+      future.reject(reason)
+    }, { signal: aborter.signal })
+
+    worker.get().postMessage(new RpcRequest(null, "simulate", [module, method, params, sparksAsBigInt]))
+
+    return await future.promise
+  }
+
   const onHttpRequest = async (request: Request) => {
-    let match: URLPatternResult | null
+    try {
+      let match: URLPatternResult | null
 
-    if (match = new URLPattern("/api/create", request.url).exec(request.url)) {
-      if (request.method === "POST") {
-        const form = await request.formData()
+      if (match = new URLPattern("/api/create", request.url).exec(request.url)) {
+        if (request.method === "POST") {
+          const form = await request.formData()
 
-        const codeAsEntry = form.get("code")
+          const codeAsEntry = form.get("code")
 
-        if (codeAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof codeAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          if (codeAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof codeAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const codeAsBytes = await codeAsEntry.bytes()
+          const codeAsBytes = await codeAsEntry.bytes()
 
-        const saltAsEntry = form.get("salt")
+          const saltAsEntry = form.get("salt")
 
-        if (saltAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof saltAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          if (saltAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof saltAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const saltAsBytes = await saltAsEntry.bytes()
+          const saltAsBytes = await saltAsEntry.bytes()
 
-        const effortAsEntry = form.get("effort")
+          const effortAsEntry = form.get("effort")
 
-        if (effortAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof effortAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          if (effortAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof effortAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const effortAsBytes = await effortAsEntry.bytes()
+          const effortAsBytes = await effortAsEntry.bytes()
 
-        if (effortAsBytes.length !== 32)
-          return Response.json(null, { status: 400 })
+          return Response.json(await create(codeAsBytes, saltAsBytes, effortAsBytes))
+        }
 
-        const effortAsHex = effortAsBytes.toHex()
-
-        if (setOfEffortsAsHex.has(effortAsHex))
-          return Response.json(null, { status: 402 })
-
-        setOfEffortsAsHex.add(effortAsHex)
-
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
-
-        if (sparksAsBigInt < (codeAsBytes.length + saltAsBytes.length))
-          return Response.json(null, { status: 402 })
-
-        const saltAsValue = Readable.readFromBytes(Packed, saltAsBytes)
-
-        const packAsBytes = Writable.writeToBytes(new Packed([codeAsBytes, saltAsValue]))
-
-        const digestOfCodeAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", codeAsBytes))
-        const digestOfPackAsBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", packAsBytes))
-
-        const digestOfCodeAsHex = digestOfCodeAsBytes.toHex()
-        const digestOfPackAsHex = digestOfPackAsBytes.toHex()
-
-        if (!existsSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`)))
-          writeFileSync(join(storage, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsBytes)
-
-        if (!existsSync(join(storage, "scripts", `${digestOfPackAsHex}.wasm`)))
-          symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(storage, "scripts", `${digestOfPackAsHex}.wasm`))
-
-        return Response.json(digestOfPackAsHex)
+        return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
       }
 
-      return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
-    }
+      if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
+        if (request.method === "POST") {
+          const form = await request.formData()
 
-    if (match = new URLPattern("/api/execute", request.url).exec(request.url)) {
-      if (request.method === "POST") {
-        using stack = new DisposableStack()
+          const moduleAsEntry = form.get("module")
 
-        const form = await request.formData()
+          if (moduleAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof moduleAsEntry !== "string")
+            throw new RpcInvalidParamsError()
 
-        const moduleAsEntry = form.get("module")
+          const methodAsEntry = form.get("method")
 
-        if (moduleAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof moduleAsEntry !== "string")
-          return Response.json(null, { status: 400 })
+          if (methodAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof methodAsEntry !== "string")
+            throw new RpcInvalidParamsError()
 
-        const methodAsEntry = form.get("method")
+          const paramsAsEntry = form.get("params")
 
-        if (methodAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof methodAsEntry !== "string")
-          return Response.json(null, { status: 400 })
+          if (paramsAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof paramsAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const paramsAsEntry = form.get("params")
+          const paramsAsBytes = await paramsAsEntry.bytes()
 
-        if (paramsAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof paramsAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          const effortAsEntry = form.get("effort")
 
-        const paramsAsBytes = await paramsAsEntry.bytes()
+          if (effortAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof effortAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const effortAsEntry = form.get("effort")
+          const effortAsBytes = await effortAsEntry.bytes()
 
-        if (effortAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof effortAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          return new Response(await execute(moduleAsEntry, methodAsEntry, paramsAsBytes, effortAsBytes))
+        }
 
-        const effortAsBytes = await effortAsEntry.bytes()
-
-        if (effortAsBytes.length !== 32)
-          return Response.json(null, { status: 400 })
-
-        const effortAsHex = effortAsBytes.toHex()
-
-        if (setOfEffortsAsHex.has(effortAsHex))
-          return Response.json(null, { status: 402 })
-
-        setOfEffortsAsHex.add(effortAsHex)
-
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
-
-        const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
-
-        const aborter = new AbortController()
-        stack.defer(() => aborter.abort())
-
-        stack.use(await worker.lockOrWait())
-
-        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-          RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-        }, { signal: aborter.signal })
-
-        worker.get().addEventListener("error", (event: ErrorEvent) => {
-          future.reject(event.error)
-        }, { signal: aborter.signal })
-
-        worker.get().addEventListener("messageerror", (event: MessageEvent) => {
-          future.reject(event.data)
-        }, { signal: aborter.signal })
-
-        AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-          future.reject(reason)
-        }, { signal: aborter.signal })
-
-        worker.get().postMessage(new RpcRequest(null, "execute", [moduleAsEntry, methodAsEntry, paramsAsBytes, sparksAsBigInt]))
-
-        return new Response(await future.promise)
+        return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
       }
 
-      return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
-    }
+      if (match = new URLPattern("/api/simulate", request.url).exec(request.url)) {
+        if (request.method === "POST") {
+          const form = await request.formData()
 
-    if (match = new URLPattern("/api/simulate", request.url).exec(request.url)) {
-      if (request.method === "POST") {
-        using stack = new DisposableStack()
+          const moduleAsEntry = form.get("module")
 
-        const form = await request.formData()
+          if (moduleAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof moduleAsEntry !== "string")
+            throw new RpcInvalidParamsError()
 
-        const moduleAsEntry = form.get("module")
+          const methodAsEntry = form.get("method")
 
-        if (moduleAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof moduleAsEntry !== "string")
-          return Response.json(null, { status: 400 })
+          if (methodAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof methodAsEntry !== "string")
+            throw new RpcInvalidParamsError()
 
-        const methodAsEntry = form.get("method")
+          const paramsAsEntry = form.get("params")
 
-        if (methodAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof methodAsEntry !== "string")
-          return Response.json(null, { status: 400 })
+          if (paramsAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof paramsAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const paramsAsEntry = form.get("params")
+          const paramsAsBytes = await paramsAsEntry.bytes()
 
-        if (paramsAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof paramsAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          const effortAsEntry = form.get("effort")
 
-        const paramsAsBytes = await paramsAsEntry.bytes()
+          if (effortAsEntry == null)
+            throw new RpcInvalidParamsError()
+          if (typeof effortAsEntry === "string")
+            throw new RpcInvalidParamsError()
 
-        const effortAsEntry = form.get("effort")
+          const effortAsBytes = await effortAsEntry.bytes()
 
-        if (effortAsEntry == null)
-          return Response.json(null, { status: 400 })
-        if (typeof effortAsEntry === "string")
-          return Response.json(null, { status: 400 })
+          return new Response(await simulate(moduleAsEntry, methodAsEntry, paramsAsBytes, effortAsBytes))
+        }
 
-        const effortAsBytes = await effortAsEntry.bytes()
-
-        if (effortAsBytes.length !== 32)
-          return Response.json(null, { status: 400 })
-
-        const effortAsHex = effortAsBytes.toHex()
-
-        if (setOfEffortsAsHex.has(effortAsHex))
-          return Response.json(null, { status: 402 })
-
-        setOfEffortsAsHex.add(effortAsHex)
-
-        const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsBytes)).toHex())
-
-        const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
-
-        const aborter = new AbortController()
-        stack.defer(() => aborter.abort())
-
-        stack.use(await worker.lockOrWait())
-
-        worker.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-          RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-        }, { signal: aborter.signal })
-
-        worker.get().addEventListener("error", (event: ErrorEvent) => {
-          future.reject(event.error)
-        }, { signal: aborter.signal })
-
-        worker.get().addEventListener("messageerror", (event: MessageEvent) => {
-          future.reject(event.data)
-        }, { signal: aborter.signal })
-
-        AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-          future.reject(reason)
-        }, { signal: aborter.signal })
-
-        worker.get().postMessage(new RpcRequest(null, "simulate", [moduleAsEntry, methodAsEntry, paramsAsBytes, sparksAsBigInt]))
-
-        return new Response(await future.promise)
+        return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
       }
 
-      return Response.json(null, { status: 405, headers: { "Allow": "POST" } })
-    }
+      return Response.json(null, { status: 404 })
+    } catch (error: unknown) {
+      console.error(error)
 
-    return Response.json(null, { status: 404 })
+      if (error instanceof Error === false)
+        return new Response(null, { status: 500 })
+
+      if (error instanceof RpcError === false)
+        return new Response(error.message, { status: 500 })
+
+      if (error.code === RpcParseError.code)
+        return new Response(error.message, { status: 400 })
+      if (error.code === RpcInvalidRequestError.code)
+        return new Response(error.message, { status: 400 })
+      if (error.code === RpcMethodNotFoundError.code)
+        return new Response(error.message, { status: 404 })
+      if (error.code === RpcInvalidParamsError.code)
+        return new Response(error.message, { status: 400 })
+      if (error.code === RpcInternalError.code)
+        return new Response(error.message, { status: 500 })
+      if (error.code === RpcPaymentError.code)
+        return new Response(error.message, { status: 402 })
+
+      return new Response(error.message, { status: 500 })
+    }
   }
 
   const onWebSocketRequest = async (request: Request, socket: WebSocket) => {
-    const route = (_message: string) => {
-      return
+    const route = async (request: RpcRequest) => {
+      const { method, params } = request
+
+      if (method === "create") {
+        const [codeAsBytes, saltAsBytes, effortAsBytes] = params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+        if (codeAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+        if (saltAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+        if (effortAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+
+        return await create(codeAsBytes, saltAsBytes, effortAsBytes)
+      }
+
+      if (method === "execute") {
+        const [module, method, paramsAsBytes, effortAsBytes] = params as [string, string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+        if (typeof module !== "string")
+          throw new RpcInvalidParamsError()
+        if (typeof method !== "string")
+          throw new RpcInvalidParamsError()
+        if (paramsAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+        if (effortAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+
+        return await execute(module, method, paramsAsBytes, effortAsBytes)
+      }
+
+      if (method === "simulate") {
+        const [module, method, paramsAsBytes, effortAsBytes] = params as [string, string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+        if (typeof module !== "string")
+          throw new RpcInvalidParamsError()
+        if (typeof method !== "string")
+          throw new RpcInvalidParamsError()
+        if (paramsAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+        if (effortAsBytes instanceof Uint8Array === false)
+          throw new RpcInvalidParamsError()
+
+        return await simulate(module, method, paramsAsBytes, effortAsBytes)
+      }
+
+      throw new RpcMethodNotFoundError()
     }
 
-    const handleOrClose = async (request: string) => {
+    const handle = async (request: RpcRequest) => {
       try {
-        if (!request)
-          return
+        return new RpcOk(request.id, await route(request))
+      } catch (cause: unknown) {
+        return new RpcErr(request.id, RpcError.rewrap(cause))
+      }
+    }
 
-        const response = await route(request)
+    const parse = async (message: string) => {
+      try {
+        const request = RpcRequest.from(JSON.parse(message))
 
-        if (response == null)
-          return
+        const response = await handle(request)
 
         socket.send(JSON.stringify(response))
       } catch {
@@ -306,11 +390,7 @@ export async function serve(storage: string): Promise<{ onHttpRequest(request: R
       }
     }
 
-    socket.addEventListener("message", async (event) => {
-      if (typeof event.data !== "string")
-        return
-      return await handleOrClose(event.data)
-    })
+    socket.addEventListener("message", (event) => parse(event.data))
   }
 
   return { onHttpRequest, onWebSocketRequest }

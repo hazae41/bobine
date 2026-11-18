@@ -5,6 +5,7 @@
 import { meter } from "@/libs/metering/mod.ts";
 import { type Packable, Packed } from "@/libs/packed/mod.ts";
 import { runAsImmediate } from "@/libs/sql/mod.ts";
+import { RpcPaymentError } from "@/mods/errors/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import * as Wasm from "@hazae41/wasm";
@@ -45,7 +46,7 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
   const sparks_consume = (amount: bigint) => {
     sparks += amount
 
-    if (process.env.NODE_ENV !== "production")
+    if (process.env.NODE_ENV === "development")
       return
 
     if (maxsparks == null)
@@ -53,7 +54,7 @@ async function run(module: string, method: string, params: Uint8Array<ArrayBuffe
     if (sparks < maxsparks)
       return
 
-    throw new Error("Out of sparks")
+    throw new RpcPaymentError("Out of sparks")
   }
 
   const sha256_digest = async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
@@ -525,7 +526,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
       const proof = await run(module, method, params, 1, maxsparks)
 
-      self.postMessage(new RpcOk(request.id, proof))
+      self.postMessage(new RpcOk(request.id, proof).toJSON())
 
       return
     }
@@ -535,7 +536,7 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
       const proof = await run(module, method, params, 2, maxsparks)
 
-      self.postMessage(new RpcOk(request.id, proof))
+      self.postMessage(new RpcOk(request.id, proof).toJSON())
 
       return
     }
@@ -550,6 +551,8 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
 
     console.error(cause)
 
-    self.postMessage(new RpcErr(request.id, RpcError.rewrap(cause)))
+    const error = RpcError.rewrap(cause)
+
+    self.postMessage(new RpcErr(request.id, error).toJSON())
   }
 })
