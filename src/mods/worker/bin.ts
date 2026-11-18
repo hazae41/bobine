@@ -23,7 +23,7 @@ const uuid = url.searchParams.get("uuid")!
 
 const data = url.searchParams.get("data")!
 
-const database = await connect(join(data, "database.db"))
+const database = await connect(join(data, "records.db"))
 
 async function run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
   let sparks = 0n
@@ -550,8 +550,6 @@ self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => 
     throw new RpcMethodNotFoundError()
   } catch (cause: unknown) {
     const request = event.data
-
-    console.error(cause)
 
     const error = RpcError.rewrap(cause)
 

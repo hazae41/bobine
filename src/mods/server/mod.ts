@@ -134,7 +134,7 @@ export async function serve(uuid: string, data: string) {
       stack.use(await mutex.lockOrWait())
 
       mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-        RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(console.log).inspectErrSync(future.reject)
+        RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
       }, { signal: aborter.signal })
 
       mutex.get().addEventListener("error", (event: ErrorEvent) => {
