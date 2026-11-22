@@ -1,4 +1,4 @@
-import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 
 export class Runner {
 
@@ -19,43 +19,22 @@ export class Runner {
   }
 
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
-    using stack = new DisposableStack()
-
-    const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
-
-    const aborter = new AbortController()
-    stack.defer(() => aborter.abort())
-
-    this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
-      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
-    }, { signal: aborter.signal })
-
-    this.worker.addEventListener("error", (event: ErrorEvent) => {
-      future.reject(event.error)
-    }, { signal: aborter.signal })
-
-    this.worker.addEventListener("messageerror", (event: MessageEvent) => {
-      future.reject(event.data)
-    }, { signal: aborter.signal })
-
-    AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-      future.reject(reason)
-    }, { signal: aborter.signal })
-
-    this.worker.postMessage(new RpcRequest(null, "execute", [module, method, params, sparks]))
-
-    return await future.promise
+    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "execute", params: [module, method, params, sparks] })
   }
 
   async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
+    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "simulate", params: [module, method, params, sparks] })
+  }
+
+  async #request<T>(request: RpcRequestPreinit) {
     using stack = new DisposableStack()
 
-    const future = Promise.withResolvers<Uint8Array<ArrayBuffer>>()
+    const future = Promise.withResolvers<T>()
 
     const aborter = new AbortController()
     stack.defer(() => aborter.abort())
 
-    this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+    this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<T>>) => {
       RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
     }, { signal: aborter.signal })
 
@@ -67,11 +46,7 @@ export class Runner {
       future.reject(event.data)
     }, { signal: aborter.signal })
 
-    AbortSignal.timeout(1000).addEventListener("abort", (reason) => {
-      future.reject(reason)
-    }, { signal: aborter.signal })
-
-    this.worker.postMessage(new RpcRequest(null, "simulate", [module, method, params, sparks]))
+    this.worker.postMessage(request)
 
     return await future.promise
   }
