@@ -5,20 +5,22 @@ export class Runner {
 
   readonly mutex: Mutex<Worker>
 
-  private constructor(
+  constructor(
     readonly worker: Worker
   ) {
     this.mutex = new Mutex(worker)
   }
 
-  static spawn(uuid: string, data: string) {
+  static spawn(uuid: string, path: string) {
     const url = new URL(import.meta.resolve("./bin.ts"))
 
     url.searchParams.set("uuid", uuid)
 
-    url.searchParams.set("data", data)
+    url.searchParams.set("path", path)
 
-    return new Runner(new Worker(url, { type: "module" }))
+    const worker = new Worker(url, { type: "module" })
+
+    return new Runner(worker)
   }
 
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {

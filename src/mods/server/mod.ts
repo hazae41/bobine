@@ -1,20 +1,19 @@
 import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { Runner } from "@/mods/runner/bin.ts";
+import { Runner } from "@/mods/runner/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
-import { Mutex } from "@hazae41/mutex";
 import { connect } from '@tursodatabase/database';
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-async function setup(data: string) {
-  mkdirSync(join(data, "."), { recursive: true })
-  mkdirSync(join(data, "scripts"), { recursive: true })
+async function setup(path: string) {
+  mkdirSync(join(path, "."), { recursive: true })
+  mkdirSync(join(path, "scripts"), { recursive: true })
 
-  const database = await connect(join(data, "records.db"))
+  const data = await connect(join(path, "records.db"))
 
-  await database.exec(`CREATE TABLE IF NOT EXISTS events (
+  await data.exec(`CREATE TABLE IF NOT EXISTS events (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
 
     moment INTEGER NOT NULL,
@@ -26,7 +25,7 @@ async function setup(data: string) {
     value BLOB NOT NULL
   );`)
 
-  await database.exec(`CREATE TABLE IF NOT EXISTS moments (
+  await data.exec(`CREATE TABLE IF NOT EXISTS moments (
     nonce INTEGER PRIMARY KEY AUTOINCREMENT,
     
     epoch INTEGER NOT NULL,
@@ -38,15 +37,13 @@ async function setup(data: string) {
     params BLOB NOT NULL
   );`)
 
-  await database.close()
+  await data.close()
 }
 
-export async function serve(uuid: string, data: string) {
-  await setup(data)
+export async function serve(uuid: string, path: string) {
+  await setup(path)
 
-  const database = await connect(join(data, "records.db"))
-
-  const mutex = new Mutex(new Runner(uuid, data, database))
+  const mutex = Runner.spawn(uuid, path)
   const seens = new Set<string>()
 
   const route = async (request: RpcRequestInit) => {
@@ -91,11 +88,11 @@ export async function serve(uuid: string, data: string) {
       const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
       const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
-      if (!existsSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`)))
-        writeFileSync(join(data, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsRaw)
+      if (!existsSync(join(path, "scripts", `${digestOfCodeAsHex}.wasm`)))
+        writeFileSync(join(path, "scripts", `${digestOfCodeAsHex}.wasm`), codeAsRaw)
 
-      if (!existsSync(join(data, "scripts", `${digestOfPackAsHex}.wasm`)))
-        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(data, "scripts", `${digestOfPackAsHex}.wasm`))
+      if (!existsSync(join(path, "scripts", `${digestOfPackAsHex}.wasm`)))
+        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(path, "scripts", `${digestOfPackAsHex}.wasm`))
 
       return digestOfPackAsHex
     }
@@ -126,9 +123,7 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      using lock = await mutex.lockOrWait()
-
-      const resultAsRaw = await lock.get().execute(module, method, paramsAsRaw, sparksAsBigInt)
+      const resultAsRaw = await mutex.execute(module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex
@@ -160,9 +155,7 @@ export async function serve(uuid: string, data: string) {
 
       const sparksAsBigInt = (2n ** 256n) / BigInt("0x" + new Uint8Array(await crypto.subtle.digest("SHA-256", effortAsRaw)).toHex())
 
-      using lock = await mutex.lockOrWait()
-
-      const resultAsRaw = await lock.get().simulate(module, method, paramsAsRaw, sparksAsBigInt)
+      const resultAsRaw = await mutex.simulate(module, method, paramsAsRaw, sparksAsBigInt)
       const resultAsHex = resultAsRaw.toHex()
 
       return resultAsHex

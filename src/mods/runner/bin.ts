@@ -21,8 +21,8 @@ export class Runner {
 
   constructor(
     readonly uuid: string,
-    readonly data: string,
-    readonly dtbs: Database
+    readonly path: string,
+    readonly data: Database
   ) { }
 
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, maxsparks?: bigint) {
@@ -335,7 +335,7 @@ export class Runner {
           return module
         },
         load: (module: string): Uint8Array<ArrayBuffer> => {
-          return readFileSync(join(this.data, "scripts", `${module}.wasm`))
+          return readFileSync(join(this.path, "scripts", `${module}.wasm`))
         },
         call: (module: string, method: string, params: Array<Packable>): [Packable] => {
           if (exports[module] == null)
@@ -355,11 +355,11 @@ export class Runner {
           const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
           const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
-          if (!existsSync(join(this.data, "scripts", `${digestOfCodeAsHex}.wasm`)))
-            writeFileSync(join(this.data, "scripts", `${digestOfCodeAsHex}.wasm`), code)
+          if (!existsSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`)))
+            writeFileSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
 
-          if (!existsSync(join(this.data, "scripts", `${digestOfPackAsHex}.wasm`)))
-            symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.data, "scripts", `${digestOfPackAsHex}.wasm`), "file")
+          if (!existsSync(join(this.path, "scripts", `${digestOfPackAsHex}.wasm`)))
+            symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.path, "scripts", `${digestOfPackAsHex}.wasm`), "file")
 
           return digestOfPackAsHex
         }
@@ -389,7 +389,7 @@ export class Runner {
 
           const keyAsRaw = pack_encode(key)
 
-          const row = await this.dtbs.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsRaw)
+          const row = await this.data.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsRaw)
 
           if (row == null)
             return null
@@ -452,8 +452,8 @@ export class Runner {
 
       let meteredCodeAsRaw: Uint8Array<ArrayBuffer>
 
-      if (!existsSync(join(this.data, "scripts", `${module}.metered.wasm`))) {
-        const codeAsRaw = readFileSync(join(this.data, "scripts", `${module}.wasm`))
+      if (!existsSync(join(this.path, "scripts", `${module}.metered.wasm`))) {
+        const codeAsRaw = readFileSync(join(this.path, "scripts", `${module}.wasm`))
 
         const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsRaw)
 
@@ -461,9 +461,9 @@ export class Runner {
 
         meteredCodeAsRaw = Writable.writeToBytes(codeAsWasm)
 
-        writeFileSync(join(this.data, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
+        writeFileSync(join(this.path, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
       } else {
-        meteredCodeAsRaw = readFileSync(join(this.data, "scripts", `${module}.metered.wasm`))
+        meteredCodeAsRaw = readFileSync(join(this.path, "scripts", `${module}.metered.wasm`))
       }
 
       const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsRaw)
@@ -513,7 +513,7 @@ export class Runner {
     if (!writes.length)
       return pack_encode([logs, reads, writes, returned, sparks])
 
-    await runAsImmediate(this.dtbs, async (database) => {
+    await runAsImmediate(this.data, async (database) => {
       const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, args)
 
       const writer = await database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
@@ -534,11 +534,11 @@ async function main() {
 
   const uuid = url.searchParams.get("uuid")!
 
-  const data = url.searchParams.get("data")!
+  const path = url.searchParams.get("path")!
 
-  const dtbs = await connect(join(data, "records.db"))
+  const data = await connect(join(path, "records.db"))
 
-  const runner = new Runner(uuid, data, dtbs)
+  const runner = new Runner(uuid, path, data)
 
   self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
     try {
