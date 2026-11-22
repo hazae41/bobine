@@ -3,9 +3,13 @@ import { Mutex } from "@hazae41/mutex";
 
 export class Runner {
 
+  readonly mutex: Mutex<Worker>
+
   private constructor(
-    readonly mutex: Mutex<Worker>
-  ) { }
+    readonly worker: Worker
+  ) {
+    this.mutex = new Mutex(worker)
+  }
 
   static spawn(uuid: string, data: string) {
     const url = new URL(import.meta.resolve("./bin.ts"))
@@ -14,9 +18,7 @@ export class Runner {
 
     url.searchParams.set("data", data)
 
-    const worker = new Worker(url, { type: "module" })
-
-    return new Runner(new Mutex(worker))
+    return new Runner(new Worker(url, { type: "module" }))
   }
 
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
@@ -29,15 +31,15 @@ export class Runner {
 
     stack.use(await this.mutex.lockOrWait())
 
-    this.mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+    this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
       RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
     }, { signal: aborter.signal })
 
-    this.mutex.get().addEventListener("error", (event: ErrorEvent) => {
+    this.worker.addEventListener("error", (event: ErrorEvent) => {
       future.reject(event.error)
     }, { signal: aborter.signal })
 
-    this.mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
+    this.worker.addEventListener("messageerror", (event: MessageEvent) => {
       future.reject(event.data)
     }, { signal: aborter.signal })
 
@@ -45,7 +47,7 @@ export class Runner {
       future.reject(reason)
     }, { signal: aborter.signal })
 
-    this.mutex.get().postMessage(new RpcRequest(null, "execute", [module, method, params, sparks]))
+    this.worker.postMessage(new RpcRequest(null, "execute", [module, method, params, sparks]))
 
     return await future.promise
   }
@@ -60,15 +62,15 @@ export class Runner {
 
     stack.use(await this.mutex.lockOrWait())
 
-    this.mutex.get().addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
+    this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
       RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
     }, { signal: aborter.signal })
 
-    this.mutex.get().addEventListener("error", (event: ErrorEvent) => {
+    this.worker.addEventListener("error", (event: ErrorEvent) => {
       future.reject(event.error)
     }, { signal: aborter.signal })
 
-    this.mutex.get().addEventListener("messageerror", (event: MessageEvent) => {
+    this.worker.addEventListener("messageerror", (event: MessageEvent) => {
       future.reject(event.data)
     }, { signal: aborter.signal })
 
@@ -76,7 +78,7 @@ export class Runner {
       future.reject(reason)
     }, { signal: aborter.signal })
 
-    this.mutex.get().postMessage(new RpcRequest(null, "simulate", [module, method, params, sparks]))
+    this.worker.postMessage(new RpcRequest(null, "simulate", [module, method, params, sparks]))
 
     return await future.promise
   }
