@@ -1,55 +1,91 @@
 import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { Runner } from "@/mods/runner/mod.ts";
+import { RpcRunner } from "@/mods/runner/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
-import { connect } from '@tursodatabase/database';
-import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { Database } from '@tursodatabase/database';
+import { existsSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-async function setup(path: string) {
-  mkdirSync(join(path, "."), { recursive: true })
-  mkdirSync(join(path, "scripts"), { recursive: true })
+export class Server {
 
-  const data = await connect(join(path, "records.db"))
+  readonly subserver: RpcServer
 
-  await data.exec(`CREATE TABLE IF NOT EXISTS events (
-    nonce INTEGER PRIMARY KEY AUTOINCREMENT,
+  constructor(
+    readonly uuid: string,
+    readonly path: string,
+    readonly data: Database
+  ) {
+    this.subserver = new RpcServer(uuid, path, data)
+  }
 
-    moment INTEGER NOT NULL,
+  async setup() {
+    await this.subserver.setup()
+  }
 
-    module TEXT NOT NULL,
-    
-    key BLOB NOT NULL,
+  async respond(request: Request) {
+    const response = await this.#route(request)
 
-    value BLOB NOT NULL
-  );`)
+    response.headers.set("Access-Control-Allow-Origin", "*")
+    response.headers.set("Access-Control-Allow-Methods", "*")
+    response.headers.set("Access-Control-Allow-Headers", "*")
 
-  await data.exec(`CREATE TABLE IF NOT EXISTS moments (
-    nonce INTEGER PRIMARY KEY AUTOINCREMENT,
-    
-    epoch INTEGER NOT NULL,
+    return response
+  }
 
-    module TEXT NOT NULL,
+  async #route(request: Request) {
+    if (request.headers.get("Upgrade") === "websocket")
+      return this.#upgrade(request)
 
-    method TEXT NOT NULL,
-    
-    params BLOB NOT NULL
-  );`)
+    if (request.method === "OPTIONS")
+      return Response.json(null, { status: 204 })
+    if (request.method === "POST")
+      return Response.json(await this.subserver.respond(await request.json()), { status: 200 })
 
-  await data.close()
+    return Response.json(null, { status: 405 })
+  }
+
+  #upgrade(request: Request) {
+    const { socket, response } = Deno.upgradeWebSocket(request)
+
+    socket.addEventListener("message", async (event) => {
+      socket.send(JSON.stringify(await this.subserver.respond(JSON.parse(event.data))))
+    }, { passive: true })
+
+    return response
+  }
+
 }
 
-export async function serve(uuid: string, path: string) {
-  await setup(path)
+export class RpcServer {
 
-  const runner = Runner.spawn(uuid, path)
-  const knowns = new Set<string>()
+  readonly runner: RpcRunner
 
-  const mutex = new Mutex(undefined)
+  readonly seens = new Set<string>()
+  readonly mutex = new Mutex(undefined)
 
-  const route = async (request: RpcRequestInit) => {
+  constructor(
+    readonly uuid: string,
+    readonly path: string,
+    readonly data: Database
+  ) {
+    this.runner = RpcRunner.spawn(uuid, path)
+  }
+
+  async setup() {
+    await this.runner.setup()
+  }
+
+  async respond(request: RpcRequestInit) {
+    try {
+      return new RpcOk(request.id, await this.#route(request))
+    } catch (cause: unknown) {
+      return new RpcErr(request.id, RpcError.rewrap(cause))
+    }
+  }
+
+  async #route(request: RpcRequestInit) {
     if (request.method === "bob_create") {
       const [codeAsHex, saltAsHex, effortAsHex] = request.params as [string, string, string]
 
@@ -68,14 +104,14 @@ export async function serve(uuid: string, path: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (knowns.has(effortAsHex))
+      if (this.seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
       const effort = Uint8Array.fromHex(effortAsHex)
 
-      using _ = await mutex.lockOrWait()
+      using _ = await this.mutex.lockOrWait()
 
-      knowns.add(effortAsHex)
+      this.seens.add(effortAsHex)
 
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
@@ -91,11 +127,11 @@ export async function serve(uuid: string, path: string) {
       const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
       const digestOfPackAsHex = digestOfPackAsRaw.toHex()
 
-      if (!existsSync(join(path, "scripts", `${digestOfCodeAsHex}.wasm`)))
-        writeFileSync(join(path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
+      if (!existsSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`)))
+        writeFileSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
 
-      if (!existsSync(join(path, "scripts", `${digestOfPackAsHex}.wasm`)))
-        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(path, "scripts", `${digestOfPackAsHex}.wasm`))
+      if (!existsSync(join(this.path, "scripts", `${digestOfPackAsHex}.wasm`)))
+        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.path, "scripts", `${digestOfPackAsHex}.wasm`))
 
       return digestOfPackAsHex
     }
@@ -117,19 +153,19 @@ export async function serve(uuid: string, path: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (knowns.has(effortAsHex))
+      if (this.seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
       const effort = Uint8Array.fromHex(effortAsHex)
 
-      using _ = await mutex.lockOrWait()
+      using _ = await this.mutex.lockOrWait()
 
-      knowns.add(effortAsHex)
+      this.seens.add(effortAsHex)
 
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
 
-      const result = await runner.execute(module, method, params, target)
+      const result = await this.runner.execute(module, method, params, target)
 
       return result.toHex()
     }
@@ -151,19 +187,19 @@ export async function serve(uuid: string, path: string) {
         throw new RpcInvalidParamsError()
       if (effortAsHex.length !== 64)
         throw new RpcInvalidParamsError()
-      if (knowns.has(effortAsHex))
+      if (this.seens.has(effortAsHex))
         throw new RpcInvalidParamsError()
 
       const effort = Uint8Array.fromHex(effortAsHex)
 
-      using _ = await mutex.lockOrWait()
+      using _ = await this.mutex.lockOrWait()
 
-      knowns.add(effortAsHex)
+      this.seens.add(effortAsHex)
 
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
 
-      const result = await runner.simulate(module, method, params, target)
+      const result = await this.runner.simulate(module, method, params, target)
 
       return result.toHex()
     }
@@ -171,11 +207,4 @@ export async function serve(uuid: string, path: string) {
     throw new RpcMethodNotFoundError()
   }
 
-  return async (request: RpcRequestInit) => {
-    try {
-      return new RpcOk(request.id, await route(request))
-    } catch (cause: unknown) {
-      return new RpcErr(request.id, RpcError.rewrap(cause))
-    }
-  }
 }

@@ -1,13 +1,15 @@
 /// <reference lib="deno.ns" />
 
-import { serve } from "@/mods/server/mod.ts";
+import { Server } from "@/mods/server/mod.ts";
+import { connect } from "@tursodatabase/database";
+import { join } from "node:path";
 import process from "node:process";
 
 export async function main(args: string[]) {
   const options: {
     uuid?: string,
 
-    data?: string,
+    path?: string,
 
     port?: number
   } = {}
@@ -26,7 +28,7 @@ export async function main(args: string[]) {
     }
 
     if (arg.startsWith("--data=")) {
-      options.data = arg.slice("--data=".length)
+      options.path = arg.slice("--data=".length)
       continue
     }
 
@@ -45,45 +47,17 @@ export async function main(args: string[]) {
 
   const {
     uuid = process.env.UUID || "98e31aaf-c518-430b-8863-eed26c44d91f",
-    data = process.env.DATA || "./data",
+    path = process.env.DATA || "./data",
     port = Number(process.env.PORT) || 8080
   } = options
 
-  const subrespond = await serve(uuid, data)
+  const data = await connect(join(path, "records.db"))
 
-  const upgrade = (request: Request) => {
-    const { socket, response } = Deno.upgradeWebSocket(request)
+  const server = new Server(uuid, path, data)
 
-    socket.addEventListener("message", async (event) => {
-      socket.send(JSON.stringify(await subrespond(JSON.parse(event.data))))
-    }, { passive: true })
+  await server.setup()
 
-    return response
-  }
-
-  const route = async (request: Request) => {
-    if (request.headers.get("Upgrade") === "websocket")
-      return upgrade(request)
-
-    if (request.method === "OPTIONS")
-      return Response.json(null, { status: 204 })
-    if (request.method === "POST")
-      return Response.json(await subrespond(await request.json()), { status: 200 })
-
-    return Response.json(null, { status: 405 })
-  }
-
-  const respond = async (request: Request) => {
-    const response = await route(request)
-
-    response.headers.set("Access-Control-Allow-Origin", "*")
-    response.headers.set("Access-Control-Allow-Methods", "*")
-    response.headers.set("Access-Control-Allow-Headers", "*")
-
-    return response
-  }
-
-  Deno.serve({ hostname: "0.0.0.0", port }, respond)
+  Deno.serve({ hostname: "0.0.0.0", port }, (request) => server.respond(request))
 }
 
 if (import.meta.main) {

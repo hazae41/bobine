@@ -1,6 +1,6 @@
 import { RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 
-export class Runner {
+export class RpcRunner {
 
   constructor(
     readonly worker: Worker
@@ -15,7 +15,11 @@ export class Runner {
 
     const worker = new Worker(url, { type: "module" })
 
-    return new Runner(worker)
+    return new RpcRunner(worker)
+  }
+
+  async setup() {
+    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "setup" })
   }
 
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
