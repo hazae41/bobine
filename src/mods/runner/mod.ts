@@ -1,15 +1,10 @@
 import { RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
-import { Mutex } from "@hazae41/mutex";
 
 export class Runner {
 
-  readonly mutex: Mutex<Worker>
-
   constructor(
     readonly worker: Worker
-  ) {
-    this.mutex = new Mutex(worker)
-  }
+  ) { }
 
   static spawn(uuid: string, path: string) {
     const url = new URL(import.meta.resolve("./bin.ts"))
@@ -30,8 +25,6 @@ export class Runner {
 
     const aborter = new AbortController()
     stack.defer(() => aborter.abort())
-
-    stack.use(await this.mutex.lockOrWait())
 
     this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
       RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
@@ -61,8 +54,6 @@ export class Runner {
 
     const aborter = new AbortController()
     stack.defer(() => aborter.abort())
-
-    stack.use(await this.mutex.lockOrWait())
 
     this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<Uint8Array<ArrayBuffer>>>) => {
       RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)

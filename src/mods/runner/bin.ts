@@ -25,15 +25,15 @@ export class Runner {
     readonly data: Database
   ) { }
 
-  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, maxsparks?: bigint) {
-    return await this.run(module, method, params, 1, maxsparks)
+  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint) {
+    return await this.#run(module, method, params, target, 1)
   }
 
-  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, maxsparks: bigint) {
-    return await this.run(module, method, params, 2, maxsparks)
+  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint) {
+    return await this.#run(module, method, params, target, 2)
   }
 
-  async run(module: string, method: string, params: Uint8Array<ArrayBuffer>, mode: number, maxsparks?: bigint) {
+  async #run(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint, mode: number) {
     let sparks = 0n
 
     const exports: WebAssembly.Imports = {}
@@ -59,12 +59,10 @@ export class Runner {
       if (process.env.NODE_ENV === "development")
         return
 
-      if (maxsparks == null)
-        return
-      if (sparks < maxsparks)
-        return
+      if (sparks > target)
+        throw new RpcPaymentError("Out of sparks")
 
-      throw new RpcPaymentError("Out of sparks")
+      return
     }
 
     const sha256_digest = async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
@@ -540,14 +538,14 @@ async function main() {
 
   const runner = new Runner(uuid, path, data)
 
-  self.addEventListener("message", async (event: MessageEvent<RpcRequestInit>) => {
+  const onmessage = async (event: MessageEvent<RpcRequestInit>) => {
     try {
       const request = event.data
 
       if (request.method === "execute") {
-        const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+        const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-        const proof = await runner.run(module, method, params, 1, maxsparks)
+        const proof = await runner.execute(module, method, params, target)
 
         self.postMessage(new RpcOk(request.id, proof).toJSON())
 
@@ -555,9 +553,9 @@ async function main() {
       }
 
       if (request.method === "simulate") {
-        const [module, method, params, maxsparks] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+        const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-        const proof = await runner.run(module, method, params, 2, maxsparks)
+        const proof = await runner.simulate(module, method, params, target)
 
         self.postMessage(new RpcOk(request.id, proof).toJSON())
 
@@ -576,7 +574,9 @@ async function main() {
 
       self.postMessage(new RpcErr(request.id, error).toJSON())
     }
-  })
+  }
+
+  self.addEventListener("message", onmessage, { passive: true })
 }
 
 if (import.meta.main) {
