@@ -1,12 +1,8 @@
-import { Packed } from "@/libs/packed/mod.ts";
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
 import { RpcRunner } from "@/mods/runner/mod.ts";
-import { Readable, Writable } from "@hazae41/binary";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { Database } from '@tursodatabase/database';
-import { existsSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 
 export class Server {
 
@@ -97,8 +93,7 @@ export class RpcServer {
       if (typeof saltAsHex !== "string")
         throw new RpcInvalidParamsError()
 
-      const saltAsRaw = Uint8Array.fromHex(saltAsHex)
-      const saltAsRef = Readable.readFromBytes(Packed, saltAsRaw)
+      const salt = Uint8Array.fromHex(saltAsHex)
 
       if (typeof effortAsHex !== "string")
         throw new RpcInvalidParamsError()
@@ -116,24 +111,10 @@ export class RpcServer {
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
 
-      if (target < (code.length + saltAsRaw.length))
+      if (target < (code.length + salt.length))
         throw new RpcPaymentError()
 
-      const pack = Writable.writeToBytes(new Packed([code, saltAsRef]))
-
-      const digestOfCodeAsRaw = new Uint8Array(await crypto.subtle.digest("SHA-256", code))
-      const digestOfPackAsRaw = new Uint8Array(await crypto.subtle.digest("SHA-256", pack))
-
-      const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
-      const digestOfPackAsHex = digestOfPackAsRaw.toHex()
-
-      if (!existsSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`)))
-        writeFileSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
-
-      if (!existsSync(join(this.path, "scripts", `${digestOfPackAsHex}.wasm`)))
-        symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.path, "scripts", `${digestOfPackAsHex}.wasm`))
-
-      return digestOfPackAsHex
+      return await this.runner.create(code, salt)
     }
 
     if (request.method === "bob_execute") {

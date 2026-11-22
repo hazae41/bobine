@@ -22,6 +22,10 @@ export class RpcRunner {
     return await this.#request<Uint8Array<ArrayBuffer>>({ method: "setup" })
   }
 
+  async create(code: Uint8Array<ArrayBuffer>, salt: Uint8Array<ArrayBuffer>) {
+    return await this.#request<string>({ method: "create", params: [code, salt] })
+  }
+
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
     return await this.#request<Uint8Array<ArrayBuffer>>({ method: "execute", params: [module, method, params, sparks] })
   }

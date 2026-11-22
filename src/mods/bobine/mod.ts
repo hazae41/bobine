@@ -51,6 +51,24 @@ export class Bobine {
     await this.data.close()
   }
 
+  async create(code: Uint8Array<ArrayBuffer>, salt: Uint8Array<ArrayBuffer>) {
+    const pack = Writable.writeToBytes(new Packed([code, salt]))
+
+    const digestOfCodeAsRaw = new Uint8Array(await crypto.subtle.digest("SHA-256", code))
+    const digestOfPackAsRaw = new Uint8Array(await crypto.subtle.digest("SHA-256", pack))
+
+    const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
+    const digestOfPackAsHex = digestOfPackAsRaw.toHex()
+
+    if (!existsSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`)))
+      writeFileSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
+
+    if (!existsSync(join(this.path, "scripts", `${digestOfPackAsHex}.wasm`)))
+      symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.path, "scripts", `${digestOfPackAsHex}.wasm`), "file")
+
+    return digestOfPackAsHex
+  }
+
   async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint) {
     return await this.#run(module, method, params, target, 1)
   }
@@ -60,7 +78,7 @@ export class Bobine {
   }
 
   async #run(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint, mode: number) {
-    let sparks = 0n
+    let sparks = 0
 
     const exports: WebAssembly.Imports = {}
 
@@ -71,15 +89,15 @@ export class Bobine {
     const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
     const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
 
-    const pack_encode = (value: Packable): Uint8Array<ArrayBuffer> => {
+    const encode = (value: Packable): Uint8Array<ArrayBuffer> => {
       return Writable.writeToBytes(new Packed(value))
     }
 
-    const pack_decode = (bytes: Uint8Array<ArrayBuffer>): Packable => {
+    const decode = (bytes: Uint8Array<ArrayBuffer>): Packable => {
       return Readable.readFromBytes(Packed, bytes)
     }
 
-    const sparks_consume = (amount: bigint) => {
+    const consume = (amount: number) => {
       sparks += amount
 
       if (process.env.NODE_ENV === "development")
@@ -89,20 +107,6 @@ export class Bobine {
         throw new RpcPaymentError("Out of sparks")
 
       return
-    }
-
-    const sha256_digest = async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
-      sparks_consume(BigInt(payload.length) * 256n)
-
-      return new Uint8Array(await crypto.subtle.digest("SHA-256", payload))
-    }
-
-    const ed25519_verify = async (pubkey: Uint8Array<ArrayBuffer>, signature: Uint8Array<ArrayBuffer>, payload: Uint8Array<ArrayBuffer>): Promise<boolean> => {
-      sparks_consume(BigInt(payload.length) * 256n)
-
-      const material = await crypto.subtle.importKey("spki", pubkey, "Ed25519", true, ["verify"])
-
-      return await crypto.subtle.verify("Ed25519", material, signature, payload)
     }
 
     const load = (module: string): WebAssembly.WebAssemblyInstantiatedSource => {
@@ -127,10 +131,10 @@ export class Bobine {
 
       imports["sparks"] = {
         remaining: (): bigint => {
-          return sparks
+          return target - BigInt(sparks)
         },
         consume: (amount: number): void => {
-          sparks_consume(BigInt(amount >>> 0))
+          consume(amount >>> 0)
         }
       }
 
@@ -192,10 +196,10 @@ export class Bobine {
           return blob.toBase64()
         },
         encode: (value: Packable): Uint8Array<ArrayBuffer> => {
-          return pack_encode(value)
+          return encode(value)
         },
         decode: (blob: Uint8Array<ArrayBuffer>): Packable => {
-          return pack_decode(blob)
+          return decode(blob)
         }
       }
 
@@ -370,22 +374,10 @@ export class Bobine {
 
           return [exports[module][method](...params)]
         },
-        create: async (code: Uint8Array<ArrayBuffer>, salt: Packable): Promise<string> => {
-          const pack = pack_encode([code, salt])
+        create: async (code: Uint8Array<ArrayBuffer>, salt: Uint8Array<ArrayBuffer>): Promise<string> => {
+          consume(code.length + salt.length)
 
-          const digestOfCodeAsRaw = await sha256_digest(code)
-          const digestOfPackAsRaw = await sha256_digest(pack)
-
-          const digestOfCodeAsHex = digestOfCodeAsRaw.toHex()
-          const digestOfPackAsHex = digestOfPackAsRaw.toHex()
-
-          if (!existsSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`)))
-            writeFileSync(join(this.path, "scripts", `${digestOfCodeAsHex}.wasm`), code)
-
-          if (!existsSync(join(this.path, "scripts", `${digestOfPackAsHex}.wasm`)))
-            symlinkSync(`./${digestOfCodeAsHex}.wasm`, join(this.path, "scripts", `${digestOfPackAsHex}.wasm`), "file")
-
-          return digestOfPackAsHex
+          return await this.create(code, salt)
         }
       }
 
@@ -395,9 +387,9 @@ export class Bobine {
 
           cache.set(key, fresh)
 
-          const keyAsRaw = pack_encode(key)
+          const keyAsRaw = encode(key)
 
-          const valueAsRaw = pack_encode(fresh)
+          const valueAsRaw = encode(fresh)
 
           writes.push([module, keyAsRaw, valueAsRaw])
 
@@ -411,7 +403,7 @@ export class Bobine {
           if (stale != null)
             return [stale]
 
-          const keyAsRaw = pack_encode(key)
+          const keyAsRaw = encode(key)
 
           const row = await this.data.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsRaw)
 
@@ -422,7 +414,7 @@ export class Bobine {
 
           reads.push([module, keyAsRaw, valueAsRaw])
 
-          const fresh = pack_decode(valueAsRaw)
+          const fresh = decode(valueAsRaw)
 
           cache.set(key, fresh)
 
@@ -464,13 +456,19 @@ export class Bobine {
 
       imports["sha256"] = {
         digest: async (payload: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
+          consume(payload.length)
+
           return new Uint8Array(await crypto.subtle.digest("SHA-256", payload))
         }
       }
 
       imports["ed25519"] = {
         verify: async (pubkey: Uint8Array<ArrayBuffer>, signature: Uint8Array<ArrayBuffer>, payload: Uint8Array<ArrayBuffer>): Promise<boolean> => {
-          return await ed25519_verify(pubkey, signature, payload)
+          consume(payload.length)
+
+          const material = await crypto.subtle.importKey("spki", pubkey, "Ed25519", true, ["verify"])
+
+          return await crypto.subtle.verify("Ed25519", material, signature, payload)
         }
       }
 
@@ -525,7 +523,7 @@ export class Bobine {
     if (typeof instance.exports[method] !== "function")
       throw new Error("Not found")
 
-    const args = pack_decode(params)
+    const args = decode(params)
 
     if (!Array.isArray(args))
       throw new Error("Params is not an array")
@@ -533,9 +531,9 @@ export class Bobine {
     const returned = await instance.exports[method](...args)
 
     if (mode !== 1)
-      return pack_encode([logs, reads, writes, returned, sparks])
+      return encode([logs, reads, writes, returned, sparks])
     if (!writes.length)
-      return pack_encode([logs, reads, writes, returned, sparks])
+      return encode([logs, reads, writes, returned, sparks])
 
     await runAsImmediate(this.data, async (database) => {
       const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, args)
@@ -548,7 +546,7 @@ export class Bobine {
       return
     })
 
-    return pack_encode([logs, reads, writes, returned, sparks])
+    return encode([logs, reads, writes, returned, sparks])
   }
 
 }

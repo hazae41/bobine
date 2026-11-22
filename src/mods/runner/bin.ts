@@ -32,6 +32,16 @@ async function main() {
         return
       }
 
+      if (request.method === "create") {
+        const [code, salt] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+        const pack = await bobine.create(code, salt)
+
+        self.postMessage(new RpcOk(request.id, pack).toJSON())
+
+        return
+      }
+
       if (request.method === "execute") {
         const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
