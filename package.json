@@ -27,7 +27,7 @@
     "@hazae41/jsonrpc": "^1.2.1",
     "@hazae41/mutex": "^3.0.1",
     "@hazae41/wasm": "^1.0.1",
-    "@tursodatabase/database": "^0.8.3"
+    "@tursodatabase/database": "^0.8.4"
   },
   "devDependencies": {
     "@hazae41/phobos": "^2.0.16",
