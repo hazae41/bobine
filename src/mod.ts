@@ -3,7 +3,8 @@
 export * from "./mods/mod.ts";
 
 import process from "node:process";
-import * as server from "./mods/server/bin.ts";
+
+import * as server from "./mods/turbine/server/bin.ts";
 
 export async function main(args: string[]) {
   const subargs = new Array<string>();

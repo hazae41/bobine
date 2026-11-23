@@ -3,7 +3,7 @@
 import { meter } from "@/libs/metering/mod.ts";
 import { type Packable, Packed } from "@/libs/packed/mod.ts";
 import { runAsImmediate } from "@/libs/sql/mod.ts";
-import { RpcPaymentError } from "@/mods/errors/mod.ts";
+import { RpcPaymentError } from "@/mods/bobine/errors/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import * as Wasm from "@hazae41/wasm";
 import { Database } from "@tursodatabase/database";

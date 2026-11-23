@@ -1,8 +1,7 @@
-import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { RpcWorkerClient } from "@/mods/worker/mod.ts";
+import { RpcPaymentError } from "@/mods/bobine/errors/mod.ts";
+import { RpcWorkerClient } from "@/mods/bobine/worker/mod.ts";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
-import { Database } from '@tursodatabase/database';
 
 /**
  * Translates HTTP or WebSocket into JSON-RPC
@@ -13,10 +12,9 @@ export class Server {
 
   constructor(
     readonly uuid: string,
-    readonly path: string,
-    readonly data: Database
+    readonly path: string
   ) {
-    this.subserver = new RpcServer(uuid, path, data)
+    this.subserver = new RpcServer(uuid, path)
   }
 
   async setup() {
@@ -70,8 +68,7 @@ export class RpcServer {
 
   constructor(
     readonly uuid: string,
-    readonly path: string,
-    readonly data: Database
+    readonly path: string
   ) {
     this.worker = RpcWorkerClient.spawn(uuid, path)
   }

@@ -1,8 +1,6 @@
 /// <reference lib="deno.ns" />
 
-import { Server } from "@/mods/server/mod.ts";
-import { connect } from "@tursodatabase/database";
-import { join } from "node:path";
+import { Server } from "@/mods/turbine/server/mod.ts";
 import process from "node:process";
 
 export async function main(args: string[]) {
@@ -51,9 +49,7 @@ export async function main(args: string[]) {
     port = Number(process.env.PORT) || 8080
   } = options
 
-  const data = await connect(join(path, "records.db"))
-
-  const server = new Server(uuid, path, data)
+  const server = new Server(uuid, path)
 
   await server.setup()
 
