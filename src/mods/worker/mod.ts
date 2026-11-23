@@ -1,9 +1,66 @@
-import { RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { Runner } from "@/mods/runner/mod.ts";
+import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequestInit, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { Database } from "@tursodatabase/database";
 
-/**
- * Interact with a Bobine in a worker over JSON-RPC
- */
-export class RpcWorker {
+export class RpcWorkerServer {
+
+  readonly runner: Runner
+
+  constructor(
+    readonly uuid: string,
+    readonly path: string,
+    readonly data: Database
+  ) {
+    this.runner = new Runner(uuid, path, data)
+  }
+
+  async respond(request: RpcRequestInit) {
+    try {
+      return new RpcOk(request.id, await this.#route(request))
+    } catch (cause: unknown) {
+      return new RpcErr(request.id, RpcError.rewrap(cause))
+    }
+  }
+
+  async #route(request: RpcRequestInit) {
+    if (request.method === "setup") {
+      const _ = request.params
+
+      await this.runner.setup()
+
+      return
+    }
+
+    if (request.method === "create") {
+      const [code, salt] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
+
+      const pack = await this.runner.create(code, salt)
+
+      return pack
+    }
+
+    if (request.method === "execute") {
+      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+
+      const proof = await this.runner.execute(module, method, params, target)
+
+      return proof
+    }
+
+    if (request.method === "simulate") {
+      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+
+      const proof = await this.runner.simulate(module, method, params, target)
+
+      return proof
+    }
+
+    throw new RpcMethodNotFoundError()
+  }
+
+}
+
+export class RpcWorkerClient {
 
   constructor(
     readonly worker: Worker
@@ -18,7 +75,7 @@ export class RpcWorker {
 
     const worker = new Worker(url, { type: "module" })
 
-    return new RpcWorker(worker)
+    return new RpcWorkerClient(worker)
   }
 
   async setup() {

@@ -1,5 +1,5 @@
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { RpcWorker } from "@/mods/worker/mod.ts";
+import { RpcWorkerClient } from "@/mods/worker/mod.ts";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { Database } from '@tursodatabase/database';
@@ -63,7 +63,7 @@ export class Server {
  */
 export class RpcServer {
 
-  readonly worker: RpcWorker
+  readonly worker: RpcWorkerClient
 
   readonly seens = new Set<string>()
   readonly mutex = new Mutex(undefined)
@@ -73,7 +73,7 @@ export class RpcServer {
     readonly path: string,
     readonly data: Database
   ) {
-    this.worker = RpcWorker.spawn(uuid, path)
+    this.worker = RpcWorkerClient.spawn(uuid, path)
   }
 
   async setup() {

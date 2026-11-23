@@ -1,7 +1,6 @@
 /// <reference lib="webworker" />
 
-import { Runner } from "@/mods/runner/mod.ts";
-import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
+import { RpcWorkerServer } from "@/mods/worker/mod.ts";
 import { connect } from "@tursodatabase/database";
 import { join } from "node:path";
 
@@ -22,58 +21,10 @@ async function main() {
 
   const data = await connect(join(path, "records.db"))
 
-  const runner = new Runner(uuid, path, data)
-
-  const route = async (request: RpcRequestInit) => {
-    if (request.method === "setup") {
-      const _ = request.params
-
-      await runner.setup()
-
-      return
-    }
-
-    if (request.method === "create") {
-      const [code, salt] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
-
-      const pack = await runner.create(code, salt)
-
-      return pack
-    }
-
-    if (request.method === "execute") {
-      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
-
-      const proof = await runner.execute(module, method, params, target)
-
-      return proof
-    }
-
-    if (request.method === "simulate") {
-      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
-
-      const proof = await runner.simulate(module, method, params, target)
-
-      return proof
-    }
-
-    if (request.method === "verify") {
-      // TODO
-    }
-
-    throw new RpcMethodNotFoundError()
-  }
-
-  const respond = async (request: RpcRequestInit) => {
-    try {
-      return new RpcOk(request.id, await route(request))
-    } catch (cause: unknown) {
-      return new RpcErr(request.id, RpcError.rewrap(cause))
-    }
-  }
+  const server = new RpcWorkerServer(uuid, path, data)
 
   self.addEventListener("message", async (event) => {
-    const refs = await respond(event.data)
+    const refs = await server.respond(event.data)
 
     const json = refs.toJSON()
 
