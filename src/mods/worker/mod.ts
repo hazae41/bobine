@@ -1,6 +1,9 @@
 import { RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 
-export class RpcRunner {
+/**
+ * Interact with a Bobine in a worker over JSON-RPC
+ */
+export class RpcWorker {
 
   constructor(
     readonly worker: Worker
@@ -15,7 +18,7 @@ export class RpcRunner {
 
     const worker = new Worker(url, { type: "module" })
 
-    return new RpcRunner(worker)
+    return new RpcWorker(worker)
   }
 
   async setup() {

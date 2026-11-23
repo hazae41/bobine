@@ -1,9 +1,12 @@
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { RpcRunner } from "@/mods/runner/mod.ts";
+import { RpcWorker } from "@/mods/runner/mod.ts";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { Database } from '@tursodatabase/database';
 
+/**
+ * Translates HTTP or WebSocket into JSON-RPC
+ */
 export class Server {
 
   readonly subserver: RpcServer
@@ -36,6 +39,7 @@ export class Server {
 
     if (request.method === "OPTIONS")
       return Response.json(null, { status: 204 })
+
     if (request.method === "POST")
       return Response.json(await this.subserver.respond(await request.json()), { status: 200 })
 
@@ -54,9 +58,12 @@ export class Server {
 
 }
 
+/**
+ * Converts hex to raw and checks efforts
+ */
 export class RpcServer {
 
-  readonly runner: RpcRunner
+  readonly worker: RpcWorker
 
   readonly seens = new Set<string>()
   readonly mutex = new Mutex(undefined)
@@ -66,11 +73,11 @@ export class RpcServer {
     readonly path: string,
     readonly data: Database
   ) {
-    this.runner = RpcRunner.spawn(uuid, path)
+    this.worker = RpcWorker.spawn(uuid, path)
   }
 
   async setup() {
-    await this.runner.setup()
+    await this.worker.setup()
   }
 
   async respond(request: RpcRequestInit) {
@@ -114,7 +121,7 @@ export class RpcServer {
       if (target < (code.length + salt.length))
         throw new RpcPaymentError()
 
-      return await this.runner.create(code, salt)
+      return await this.worker.create(code, salt)
     }
 
     if (request.method === "bob_execute") {
@@ -146,7 +153,7 @@ export class RpcServer {
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
 
-      const result = await this.runner.execute(module, method, params, target)
+      const result = await this.worker.execute(module, method, params, target)
 
       return result.toHex()
     }
@@ -180,7 +187,7 @@ export class RpcServer {
       const proven = new Uint8Array(await crypto.subtle.digest("SHA-256", effort))
       const target = (2n ** 256n) / BigInt("0x" + proven.toHex())
 
-      const result = await this.runner.simulate(module, method, params, target)
+      const result = await this.worker.simulate(module, method, params, target)
 
       return result.toHex()
     }
