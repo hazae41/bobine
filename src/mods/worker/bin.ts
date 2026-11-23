@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { Bobine } from "@/mods/bobine/mod.ts";
+import { Runner } from "@/mods/runner/mod.ts";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, type RpcRequestInit } from "@hazae41/jsonrpc";
 import { connect } from "@tursodatabase/database";
 import { join } from "node:path";
@@ -22,13 +22,13 @@ async function main() {
 
   const data = await connect(join(path, "records.db"))
 
-  const bobine = new Bobine(uuid, path, data)
+  const runner = new Runner(uuid, path, data)
 
   const route = async (request: RpcRequestInit) => {
     if (request.method === "setup") {
       const _ = request.params
 
-      await bobine.setup()
+      await runner.setup()
 
       return
     }
@@ -36,7 +36,7 @@ async function main() {
     if (request.method === "create") {
       const [code, salt] = request.params as [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]
 
-      const pack = await bobine.create(code, salt)
+      const pack = await runner.create(code, salt)
 
       return pack
     }
@@ -44,7 +44,7 @@ async function main() {
     if (request.method === "execute") {
       const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const proof = await bobine.execute(module, method, params, target)
+      const proof = await runner.execute(module, method, params, target)
 
       return proof
     }
@@ -52,7 +52,7 @@ async function main() {
     if (request.method === "simulate") {
       const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
 
-      const proof = await bobine.simulate(module, method, params, target)
+      const proof = await runner.simulate(module, method, params, target)
 
       return proof
     }

@@ -1,5 +1,5 @@
 import { RpcPaymentError } from "@/mods/errors/mod.ts";
-import { RpcWorker } from "@/mods/runner/mod.ts";
+import { RpcWorker } from "@/mods/worker/mod.ts";
 import { RpcErr, RpcError, RpcInvalidParamsError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { Mutex } from "@hazae41/mutex";
 import { Database } from '@tursodatabase/database';

@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 
 import { join } from "node:path";
 import process from "node:process";
 
-export class Bobine {
+export class Runner {
 
   constructor(
     readonly uuid: string,
