@@ -26,7 +26,7 @@ export async function main(args: string[]) {
     break
   }
 
-  console.log("serve [--env=<env file as path>] [--port=<port>] [--dev]")
+  console.log("serve [--uuid=<uuid>] [--data=<data folder as path>] [--port=<port>] [--dev]")
   return
 }
 
