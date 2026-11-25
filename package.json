@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@hazae41/bobine",
   "version": "0.0.23",
-  "description": "A blockchain in your garage",
+  "description": "WebAssembly-based metered chain of compute",
   "repository": "github:hazae41/bobine",
   "author": "hazae41",
   "license": "MIT",
@@ -25,14 +25,13 @@
     "@hazae41/binary": "^2.1.1",
     "@hazae41/cursor": "^2.2.0",
     "@hazae41/jsonrpc": "^1.2.1",
-    "@hazae41/mutex": "^3.0.1",
     "@hazae41/wasm": "^1.0.1",
     "@tursodatabase/database": "^0.8.4"
   },
   "devDependencies": {
     "@hazae41/phobos": "^2.0.16",
     "@hazae41/tscousin": "^1.0.28",
-    "@types/node": "^26.6.6",
+    "@types/node": "^26.6.10",
     "typescript": "^7.0.2"
   },
   "keywords": [
@@ -42,8 +41,5 @@
     "esmodules",
     "tested",
     "unit-tested"
-  ],
-  "bin": {
-    "bobine": "./out/mod.js"
-  }
+  ]
 }

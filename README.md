@@ -1,12 +1,12 @@
-# Bobine 🧵
+# Bobine
 
-A blockchain in your garage
+WebAssembly-based metered chain of compute
 
 ```bash
-npm install --global @hazae41/bobine
+npm install @hazae41/bobine
 ```
 
-[**🌐 Website**](https://bobine.tech/) • [**📚 Docs**](./docs/index.md) • [**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine)
+[**📦 NPM**](https://www.npmjs.com/package/@hazae41/bobine) • [**🌐 Website**](https://bobine.tech/) • [**📚 Docs**](./docs/index.md)
 
 ## Ecosystem
 

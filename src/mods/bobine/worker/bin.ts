@@ -94,6 +94,4 @@ async function main() {
   }, { passive: true })
 }
 
-if (import.meta.main) {
-  await main()
-}
+await main()

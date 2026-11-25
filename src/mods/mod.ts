@@ -1,1 +1,1 @@
-export * from "./turbine/mod.ts";
+export * from "./bobine/mod.ts";
