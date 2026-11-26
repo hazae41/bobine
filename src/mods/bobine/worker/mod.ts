@@ -7,7 +7,7 @@ export class RpcWorkerClient {
   ) { }
 
   static spawn(uuid: string, path: string) {
-    const url = new URL(import.meta.resolve("./bin.ts"))
+    const url = new URL(import.meta.resolve("./bin.js"))
 
     url.searchParams.set("uuid", uuid)
 
