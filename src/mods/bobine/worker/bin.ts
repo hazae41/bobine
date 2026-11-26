@@ -29,6 +29,14 @@ export class RpcWorkerServer {
   }
 
   async #route(request: RpcRequestInit) {
+    if (request.method === "ping") {
+      const _ = request.params
+
+      // NOOP 
+
+      return "pong"
+    }
+
     if (request.method === "setup") {
       const _ = request.params
 
@@ -92,6 +100,8 @@ async function main() {
 
     self.postMessage(json)
   }, { passive: true })
+
+  self.postMessage({ id: null, result: "pong" })
 }
 
 await main()

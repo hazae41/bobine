@@ -1,4 +1,4 @@
-import { RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { RpcRequest, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 
 export class RpcWorkerClient {
 
@@ -6,7 +6,7 @@ export class RpcWorkerClient {
     readonly worker: Worker
   ) { }
 
-  static spawn(uuid: string, path: string) {
+  static async spawn(uuid: string, path: string) {
     const url = new URL(import.meta.resolve("./bin.js"))
 
     url.searchParams.set("uuid", uuid)
@@ -15,7 +15,11 @@ export class RpcWorkerClient {
 
     const worker = new Worker(url, { type: "module" })
 
-    return new RpcWorkerClient(worker)
+    const client = new RpcWorkerClient(worker)
+
+    await client.#request({ id: null, method: "ping" })
+
+    return client
   }
 
   async setup() {
@@ -34,7 +38,9 @@ export class RpcWorkerClient {
     return await this.#request<Uint8Array<ArrayBuffer>>({ method: "simulate", params: [module, method, params, sparks] })
   }
 
-  async #request<T>(request: RpcRequestPreinit) {
+  async #request<T>(init: RpcRequestPreinit) {
+    const { id = crypto.randomUUID(), method, params } = init
+
     using stack = new DisposableStack()
 
     const future = Promise.withResolvers<T>()
@@ -42,8 +48,15 @@ export class RpcWorkerClient {
     const aborter = new AbortController()
     stack.defer(() => aborter.abort())
 
+    const request = new RpcRequest(id, method, params)
+
     this.worker.addEventListener("message", (event: MessageEvent<RpcResponseInit<T>>) => {
-      RpcResponse.from(event.data).inspectSync(future.resolve).inspectErrSync(future.reject)
+      const response = RpcResponse.from(event.data)
+
+      if (response.id !== request.id)
+        return
+
+      response.inspectSync(future.resolve).inspectErrSync(future.reject)
     }, { signal: aborter.signal })
 
     this.worker.addEventListener("error", (event: ErrorEvent) => {
