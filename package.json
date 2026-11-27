@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/bobine",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "WebAssembly-based metered chain of compute",
   "repository": "github:hazae41/bobine",
   "author": "hazae41",
