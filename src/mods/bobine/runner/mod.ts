@@ -7,25 +7,41 @@ import { runAsImmediate } from "@/libs/sql/mod.ts";
 import { RpcPaymentError } from "@/mods/bobine/errors/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import * as Wasm from "@hazae41/wasm";
-import { Database } from "@tursodatabase/database";
+import { connect, Database } from "@tursodatabase/database";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 
+export interface Run {
+  readonly module: string,
+  readonly method: string,
+  readonly params: Packable[]
+
+  readonly result: Packable,
+  readonly sparks: bigint
+
+  readonly reads: [string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]
+  readonly writes: [string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>][]
+
+  readonly logs: string[]
+}
+
 export class Runner {
 
-  constructor(
+  private constructor(
     readonly uuid: string,
     readonly path: string,
     readonly data: Database
   ) { }
 
-  async setup() {
-    mkdirSync(join(this.path, "."), { recursive: true })
-    mkdirSync(join(this.path, "scripts"), { recursive: true })
+  static async setup(uuid: string, path: string) {
+    mkdirSync(join(path), { recursive: true })
+    mkdirSync(join(path, "scripts"), { recursive: true })
 
-    await this.data.exec(`CREATE TABLE IF NOT EXISTS events (
+    const data = await connect(join(path, "records.db"))
+
+    await data.exec(`CREATE TABLE IF NOT EXISTS events (
       nonce INTEGER PRIMARY KEY AUTOINCREMENT,
 
       moment INTEGER NOT NULL,
@@ -37,7 +53,7 @@ export class Runner {
       value BLOB NOT NULL
     );`)
 
-    await this.data.exec(`CREATE TABLE IF NOT EXISTS moments (
+    await data.exec(`CREATE TABLE IF NOT EXISTS moments (
       nonce INTEGER PRIMARY KEY AUTOINCREMENT,
       
       epoch INTEGER NOT NULL,
@@ -49,7 +65,7 @@ export class Runner {
       params BLOB NOT NULL
     );`)
 
-    await this.data.close()
+    return new Runner(uuid, path, data)
   }
 
   async create(code: Uint8Array<ArrayBuffer>, salt: Uint8Array<ArrayBuffer>) {
@@ -70,16 +86,16 @@ export class Runner {
     return digestOfPackAsHex
   }
 
-  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+  async execute(module: string, method: string, params: Packable[], target?: Nullable<bigint>) {
     return await this.#run(1, module, method, params, target)
   }
 
-  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+  async simulate(module: string, method: string, params: Packable[], target?: Nullable<bigint>) {
     return await this.#run(2, module, method, params, target)
   }
 
-  async #run(mode: number, module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
-    let sparks = 0
+  async #run(mode: number, module: string, method: string, params: Packable[], target?: Nullable<bigint>): Promise<Run> {
+    let sparks = 0n
 
     const exports: WebAssembly.Imports = {}
 
@@ -99,7 +115,7 @@ export class Runner {
     }
 
     const consume = (amount: number) => {
-      sparks += amount
+      sparks += BigInt(amount)
 
       if (process.env.NODE_ENV === "development")
         return
@@ -525,20 +541,18 @@ export class Runner {
     if (typeof instance.exports[method] !== "function")
       throw new Error("Not found")
 
-    const args = decode(params)
-
-    if (!Array.isArray(args))
+    if (!Array.isArray(params))
       throw new Error("Params is not an array")
 
-    const returned = await instance.exports[method](...args)
+    const result = await instance.exports[method](...params)
 
     if (mode !== 1)
-      return encode([logs, reads, writes, returned, sparks])
+      return { module, method, params, logs, reads, writes, result, sparks }
     if (!writes.length)
-      return encode([logs, reads, writes, returned, sparks])
+      return { module, method, params, logs, reads, writes, result, sparks }
 
     await runAsImmediate(this.data, async (database) => {
-      const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, args)
+      const moment = await database.run(`INSERT INTO moments (epoch, module, method, params) VALUES (0, ?, ?, ?);`, module, method, params)
 
       const writer = await database.prepare(`INSERT INTO events (moment, module, key, value) VALUES (?, ?, ?, ?);`)
 
@@ -548,7 +562,7 @@ export class Runner {
       return
     })
 
-    return encode([logs, reads, writes, returned, sparks])
+    return { module, method, params, logs, reads, writes, result, sparks }
   }
 
 }
