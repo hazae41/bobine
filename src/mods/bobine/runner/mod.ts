@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-unused-vars no-explicit-any
 
 import { meter } from "@/libs/metering/mod.ts";
+import { Nullable } from "@/libs/nullable/mod.ts";
 import { type Packable, Packed } from "@/libs/packed/mod.ts";
 import { runAsImmediate } from "@/libs/sql/mod.ts";
 import { RpcPaymentError } from "@/mods/bobine/errors/mod.ts";
@@ -69,15 +70,15 @@ export class Runner {
     return digestOfPackAsHex
   }
 
-  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint) {
-    return await this.#run(module, method, params, target, 1)
+  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+    return await this.#run(1, module, method, params, target)
   }
 
-  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint) {
-    return await this.#run(module, method, params, target, 2)
+  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+    return await this.#run(2, module, method, params, target)
   }
 
-  async #run(module: string, method: string, params: Uint8Array<ArrayBuffer>, target: bigint, mode: number) {
+  async #run(mode: number, module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
     let sparks = 0
 
     const exports: WebAssembly.Imports = {}
@@ -101,6 +102,8 @@ export class Runner {
       sparks += amount
 
       if (process.env.NODE_ENV === "development")
+        return
+      if (target == null)
         return
 
       if (sparks > target)
@@ -130,9 +133,6 @@ export class Runner {
       }
 
       imports["sparks"] = {
-        remaining: (): bigint => {
-          return target - BigInt(sparks)
-        },
         consume: (amount: number): void => {
           consume(amount >>> 0)
         }
@@ -474,7 +474,11 @@ export class Runner {
 
       let meteredCodeAsRaw: Uint8Array<ArrayBuffer>
 
-      if (!existsSync(join(this.path, "scripts", `${module}.metered.wasm`))) {
+      if (target == null) {
+        meteredCodeAsRaw = readFileSync(join(this.path, "scripts", `${module}.wasm`))
+      } else if (existsSync(join(this.path, "scripts", `${module}.metered.wasm`))) {
+        meteredCodeAsRaw = readFileSync(join(this.path, "scripts", `${module}.metered.wasm`))
+      } else {
         const codeAsRaw = readFileSync(join(this.path, "scripts", `${module}.wasm`))
 
         const codeAsWasm = Readable.readFromBytes(Wasm.Module, codeAsRaw)
@@ -484,8 +488,6 @@ export class Runner {
         meteredCodeAsRaw = Writable.writeToBytes(codeAsWasm)
 
         writeFileSync(join(this.path, "scripts", `${module}.metered.wasm`), meteredCodeAsRaw)
-      } else {
-        meteredCodeAsRaw = readFileSync(join(this.path, "scripts", `${module}.metered.wasm`))
       }
 
       const meteredCodeAsModule = new WebAssembly.Module(meteredCodeAsRaw)

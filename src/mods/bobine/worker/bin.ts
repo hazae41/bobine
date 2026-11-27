@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import { Nullable } from "@/libs/nullable/mod.ts";
 import { Runner } from "@/mods/bobine/runner/mod.ts";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
 import { connect, Database } from "@tursodatabase/database";
@@ -54,7 +55,7 @@ export class RpcWorkerServer {
     }
 
     if (request.method === "execute") {
-      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, Nullable<bigint>]
 
       const proof = await this.runner.execute(module, method, params, target)
 
@@ -62,7 +63,7 @@ export class RpcWorkerServer {
     }
 
     if (request.method === "simulate") {
-      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, bigint]
+      const [module, method, params, target] = request.params as [string, string, Uint8Array<ArrayBuffer>, Nullable<bigint>]
 
       const proof = await this.runner.simulate(module, method, params, target)
 

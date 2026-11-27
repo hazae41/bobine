@@ -1,3 +1,4 @@
+import { Nullable } from "@/libs/nullable/mod.ts";
 import { RpcRequest, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
 
 export class RpcWorkerClient {
@@ -30,12 +31,12 @@ export class RpcWorkerClient {
     return await this.#request<string>({ method: "create", params: [code, salt] })
   }
 
-  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
-    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "execute", params: [module, method, params, sparks] })
+  async execute(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "execute", params: [module, method, params, target] })
   }
 
-  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, sparks: bigint) {
-    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "simulate", params: [module, method, params, sparks] })
+  async simulate(module: string, method: string, params: Uint8Array<ArrayBuffer>, target?: Nullable<bigint>) {
+    return await this.#request<Uint8Array<ArrayBuffer>>({ method: "simulate", params: [module, method, params, target] })
   }
 
   async #request<T>(init: RpcRequestPreinit) {
