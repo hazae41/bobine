@@ -23,13 +23,13 @@
     "@hazae41/binary": "^2.1.1",
     "@hazae41/cursor": "^2.2.0",
     "@hazae41/jsonrpc": "^1.2.1",
-    "@hazae41/wasm": "^1.0.1",
+    "@hazae41/wasm": "^1.0.2",
     "@tursodatabase/database": "^0.8.4"
   },
   "devDependencies": {
     "@hazae41/phobos": "^2.0.16",
     "@hazae41/tscousin": "^1.0.28",
-    "@types/node": "^26.6.10",
+    "@types/node": "^26.6.11",
     "typescript": "^7.0.2"
   },
   "keywords": [
