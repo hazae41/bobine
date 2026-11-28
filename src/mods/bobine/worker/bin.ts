@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 
 import { Nullable } from "@/libs/nullable/mod.ts";
-import { Packable } from "@/libs/packed/mod.ts";
 import { Runner } from "@/mods/bobine/runner/mod.ts";
 import { RpcErr, RpcError, RpcMethodNotFoundError, RpcOk, RpcRequestInit } from "@hazae41/jsonrpc";
+import { Packable } from "@hazae41/webpack";
 
 declare const self: DedicatedWorkerGlobalScope;
 

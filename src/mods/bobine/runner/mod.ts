@@ -2,11 +2,11 @@
 
 import { meter } from "@/libs/metering/mod.ts";
 import { Nullable } from "@/libs/nullable/mod.ts";
-import { type Packable, Packed } from "@/libs/packed/mod.ts";
 import { runAsImmediate } from "@/libs/sql/mod.ts";
 import { RpcPaymentError } from "@/mods/bobine/errors/mod.ts";
 import { Readable, Writable } from "@hazae41/binary";
 import * as Wasm from "@hazae41/wasm";
+import { type Packable, Packed } from "@hazae41/webpack";
 import { connect, Database } from "@tursodatabase/database";
 import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
@@ -106,14 +106,6 @@ export class Runner {
     const reads = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
     const writes = new Array<[string, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>]>()
 
-    const encode = (value: Packable): Uint8Array<ArrayBuffer> => {
-      return Writable.writeToBytes(new Packed(value))
-    }
-
-    const decode = (bytes: Uint8Array<ArrayBuffer>): Packable => {
-      return Readable.readFromBytes(Packed, bytes)
-    }
-
     const consume = (amount: number) => {
       sparks += BigInt(amount)
 
@@ -212,10 +204,10 @@ export class Runner {
           return blob.toBase64()
         },
         encode: (value: Packable): Uint8Array<ArrayBuffer> => {
-          return encode(value)
+          return Packed.encode(value)
         },
         decode: (blob: Uint8Array<ArrayBuffer>): Packable => {
-          return decode(blob)
+          return Packed.decode(blob)
         }
       }
 
@@ -403,9 +395,9 @@ export class Runner {
 
           cache.set(key, fresh)
 
-          const keyAsRaw = encode(key)
+          const keyAsRaw = Packed.encode(key)
 
-          const valueAsRaw = encode(fresh)
+          const valueAsRaw = Packed.encode(fresh)
 
           writes.push([module, keyAsRaw, valueAsRaw])
 
@@ -419,7 +411,7 @@ export class Runner {
           if (stale != null)
             return [stale]
 
-          const keyAsRaw = encode(key)
+          const keyAsRaw = Packed.encode(key)
 
           const row = await this.data.get(`SELECT value FROM events event WHERE event.module = ? AND event.key = ? ORDER BY event.nonce DESC LIMIT 1;`, module, keyAsRaw)
 
@@ -430,7 +422,7 @@ export class Runner {
 
           reads.push([module, keyAsRaw, valueAsRaw])
 
-          const fresh = decode(valueAsRaw)
+          const fresh = Packed.decode(valueAsRaw)
 
           cache.set(key, fresh)
 

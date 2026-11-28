@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "@hazae41/binary": "^2.1.1",
-    "@hazae41/cursor": "^2.2.0",
     "@hazae41/jsonrpc": "^1.2.1",
     "@hazae41/wasm": "^1.0.2",
+    "@hazae41/webpack": "^1.0.0",
     "@tursodatabase/database": "^0.8.4"
   },
   "devDependencies": {
